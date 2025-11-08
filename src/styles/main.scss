@@ -1,3 +1,5 @@
+@use 'st-tailwind';
+
 // =============================================================================
 // Core Variables
 //
@@ -266,17 +268,97 @@ textarea {
       font-size: var(--top-bar-icon-size);
       cursor: pointer;
       padding: 1px 3px;
+      opacity: 0.3;
+      transition: all var(--animation-duration-2x);
 
-      &.closed-icon {
-        opacity: 0.3;
-        transition: all var(--animation-duration-2x);
+      &:hover {
+        opacity: 1;
+      }
 
-        &:hover {
-          opacity: 1;
-        }
+      &.active {
+        opacity: 1;
       }
     }
   }
+}
+
+.drawer-content {
+  display: none;
+  background-color: var(--theme-background-tint);
+  color: var(--theme-text-color);
+  border-radius: 10px;
+  padding: 5px;
+  border: 1px solid var(--theme-border-color);
+  transition-property: height, display;
+  transition-duration: var(--animation-duration-2x);
+  transition-timing-function: ease-in-out;
+  transition-behavior: allow-discrete;
+}
+
+.fill-right,
+.fill-left {
+  min-width: 100px !important;
+  min-height: 100px !important;
+  position: fixed;
+}
+
+.fill-left,
+.fill-right {
+  width: calc((100vw - var(--layout-panel-width) - 2px) /2);
+  width: calc((100dvw - var(--layout-panel-width) - 2px) /2);
+  max-height: calc(100vh - var(--top-bar-height));
+  max-height: calc(100dvh - var(--top-bar-height));
+  height: 0;
+  position: fixed;
+  top: 0;
+  margin: 0;
+  box-shadow: none;
+  overflow: hidden;
+  flex-flow: column;
+  min-width: 100px;
+}
+
+.fill-left {
+  left: 0;
+  right: auto;
+}
+
+.fill-right {
+  right: 0;
+  // left: calc(100% - var(--layout-panel-width) / 2 + var(--layout-panel-width) + 1px);
+  z-index: 3000;
+}
+
+.fill-left.active,
+.fill-left .active,
+.fill-right.active,
+.fill-right .active {
+  display: flex;
+  height: 100%;
+
+  @starting-style {
+    height: 0;
+  }
+}
+
+.right-menu-button {
+  display: block;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 0;
+  padding: 1px;
+  filter: brightness(75%);
+  -webkit-transition: all var(--animation-duration-3x) ease-in-out;
+  transition: all var(--animation-duration-3x) ease-in-out;
+}
+
+.right-menu-button.active,
+.right-menu-button:hover {
+  filter: brightness(150%);
+}
+
+#rm_button_panel_pin {
+  display: none;
 }
 
 #background {
@@ -341,15 +423,18 @@ textarea {
           padding-left: 2px;
           order: 1;
         }
+
         .right-send-form {
           padding-right: 2px;
           order: 3;
         }
 
-        .left-send-form, .right-send-form {
+        .left-send-form,
+        .right-send-form {
           display: flex;
           flex-wrap: wrap;
           align-content: center;
+
           div {
             width: var(--send-form-height);
             height: var(--send-form-height);
@@ -360,6 +445,7 @@ textarea {
             align-items: center;
             justify-content: center;
             transition: opacity var(--animation-duration-2x);
+
             &:hover {
               opacity: 1;
             }

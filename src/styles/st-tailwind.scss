@@ -1,0 +1,33 @@
+.flex-container {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.flex-nowrap {
+    flex-wrap: nowrap;
+}
+
+.flex-flow-column {
+    flex-direction: column;
+}
+
+.align-items-flex-start {
+    align-items: flex-start;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.margin-0auto {
+    margin: 0 auto;
+}
+
+.width-100p {
+    width: 100%;
+}
+
+.space-evenly {
+    justify-content: space-evenly;
+}
