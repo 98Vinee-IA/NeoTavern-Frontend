@@ -245,6 +245,40 @@ textarea {
   z-index: 3005;
 }
 
+#top-settings-holder {
+  display: flex;
+  position: relative;
+  width: var(--layout-panel-width);
+  height: var(--top-bar-height);
+  margin: 0 auto;
+  justify-content: center;
+  z-index: 3005;
+
+  .drawer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-flow: row;
+    width: 100%;
+
+    .drawer-icon {
+      display: inline-block;
+      font-size: var(--top-bar-icon-size);
+      cursor: pointer;
+      padding: 1px 3px;
+
+      &.closed-icon {
+        opacity: 0.3;
+        transition: all var(--animation-duration-2x);
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+  }
+}
+
 #background {
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -302,6 +336,7 @@ textarea {
         flex-direction: row;
         column-gap: 5px;
         font-size: var(--font-size-main);
+
         #send-textarea {
           min-height: calc(var(--send-form-height) + 2px);
           height: calc(var(--send-form-height) + 2px);
