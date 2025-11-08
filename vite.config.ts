@@ -7,13 +7,16 @@ export default defineConfig({
     proxy: {
       '/backgrounds': {
         target: 'http://localhost:8000',
-        changeOrigin: true, // Recommended for virtual hosts
+        changeOrigin: true,
       },
-      // '/api': {
-      //   target: 'http://localhost:8000',
-      //   changeOrigin: true,
-      //   rewrite: (path) => path.replace(/^\/api/, ''), // Optional: remove /api prefix
-      // }
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/csrf-token': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
   build: {

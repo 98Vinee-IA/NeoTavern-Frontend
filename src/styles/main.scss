@@ -280,6 +280,40 @@ select.text-pole {
   padding-right: 20px;
 }
 
+body>#toast-container {
+    margin-top: var(--top-bar-height);
+}
+
+body #toast-container>div {
+    opacity: 1;
+    filter: unset;
+    -ms-filter: unset;
+    padding: 10px 10px 10px 50px;
+    font-size: calc(var(--font-size-main) * 0.95);
+    width: 300px;
+}
+
+body #toast-container .toast-success {
+    background-color: #5d9e5d;
+}
+
+body #toast-container .toast-error {
+    background-color: #a83c36;
+}
+
+body #toast-container .toast-info {
+    background-color: #4092aa;
+}
+
+body #toast-container .toast-warning {
+    background-color: #e29325;
+}
+
+button.toast-close-button {
+    padding-right: 5px;
+    padding-top: 3px;
+}
+
 #top-bar {
   width: var(--layout-panel-width);
   margin: 0 auto;
