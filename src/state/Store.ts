@@ -21,6 +21,40 @@ export interface Character {
   data?: { alternate_greetings?: string[] } & Record<string, any>;
 }
 
+export interface Group {
+  disabled_members?: Array<string>;
+  chats: string[];
+  members: Array<Character['name']>;
+  past_metadata?: Record<string, any>;
+  id: string;
+  chat_id: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  folder_type?: string;
+  filter_state?: string;
+  sort_order?: number;
+  color?: string;
+  color2?: string;
+  create_date?: number;
+  is_hidden_on_character_card?: boolean;
+  action?: Function;
+  class?: string;
+  icon?: string;
+  title?: string;
+}
+
+export interface Entity {
+  item: Character | Tag | Group;
+  id: string | number;
+  type: 'character' | 'tag' | 'group';
+  entities?: Entity[];
+  hidden?: number;
+  isUseless?: boolean;
+}
+
 export interface ChatMessage {
   send_date?: string;
   name: string;
@@ -108,6 +142,26 @@ export const RegexPlacement = {
   REASONING: 6,
 } as const;
 
+export const TAG_FOLDER_TYPES = {
+  OPEN: {
+    icon: '✔',
+    class: 'folder_open',
+    fa_icon: 'fa-folder-open',
+    tooltip: 'Open Folder (Show all characters even if not selected)',
+    color: 'green',
+    size: '1',
+  },
+  CLOSED: {
+    icon: '👁',
+    class: 'folder_closed',
+    fa_icon: 'fa-eye-slash',
+    tooltip: 'Closed Folder (Hide all characters unless selected)',
+    color: 'lightgoldenrodyellow',
+    size: '0.7',
+  },
+  NONE: { icon: '✕', class: 'no_folder', tooltip: 'No Folder', color: 'red', size: '1' },
+} as const;
+
 export const DEFAULT_SAVE_EDIT_TIMEOUT = DebounceTimeout.RELAXED;
 
 export type ThumbnailType = 'bg' | 'avatar' | 'persona';
@@ -120,7 +174,7 @@ export let animation_easing = 'ease-in-out';
 export const token = atom<string | null>(null);
 
 export const characters = atom<Array<Character>>([]);
-export const groups = atom<Array<{ id: string; chat_id: string }>>([]);
+export const groups = atom<Array<Group>>([]);
 export const worldNames = atom<Array<string>>([]);
 
 export const activeCharacterIndex = atom<number | null>(null);

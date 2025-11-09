@@ -1,4 +1,4 @@
-import { delay, getBase64Async, getRequestHeaders, humanizedDateTime } from '../../utils';
+import { delay, getBase64Async, getRequestHeaders, humanizedDateTime, onlyUnique } from '../../utils';
 import DOMPurify from 'dompurify';
 import { Toast } from '../Toast';
 import {
@@ -17,16 +17,21 @@ import {
   depth_prompt_depth_default,
   depth_prompt_role_default,
   favoriteCharacterChecked,
+  groups,
   isChatSaving,
   isGroupGenerating,
   isSendPress,
   menuType,
   powerUser,
   selectedButton,
+  TAG_FOLDER_TYPES,
   talkativeness_default,
   worldNames,
   type Character,
+  type Entity,
+  type Group,
   type MenuType,
+  type Tag,
   type ThumbnailType,
 } from '../../state/Store';
 import { clearChat, refreshChat, resetSelectedGroup } from '../Chat';
@@ -103,6 +108,9 @@ export async function refreshCharacters() {
       return location.reload();
     }
   }
+
+  await refreshGroups();
+  await printCharacters(true);
 }
 
 /**
@@ -883,4 +891,354 @@ function getCharacterSource(index: number) {
   }
 
   return '';
+}
+
+async function refreshGroups() {
+  const response = await fetch('/api/groups/all', {
+    method: 'POST',
+    headers: getRequestHeaders(),
+  });
+
+  if (response.ok) {
+    const data = (await response.json()) as Group[];
+    // @ts-ignore
+    groups.set(data.sort((a, b) => a.id - b.id));
+
+    // Convert groups to new format
+    for (const group of groups.get()) {
+      if (typeof group.id === 'number') {
+        group.id = String(group.id);
+      }
+      if (group.disabled_members == undefined) {
+        group.disabled_members = [];
+      }
+      if (group.chat_id == undefined) {
+        group.chat_id = group.id;
+        group.chats = [group.id];
+        group.members = group.members
+          .map((x) => characters.get().find((y) => y.name == x)?.avatar)
+          .filter((x) => x !== undefined)
+          .filter(onlyUnique);
+      }
+      if (group.past_metadata == undefined) {
+        group.past_metadata = {};
+      }
+      if (typeof group.chat_id === 'number') {
+        group.chat_id = String(group.chat_id);
+      }
+      if (Array.isArray(group.chats) && group.chats.some((x) => typeof x === 'number')) {
+        group.chats = group.chats.map((x) => String(x));
+      }
+    }
+  }
+}
+
+/**
+ * Prints the global character list, optionally doing a full refresh of the list
+ * Use this function whenever the reprinting of the character list is the primary focus, otherwise using `printCharactersDebounced` is preferred for a cleaner, non-blocking experience.
+ *
+ * The printing will also always reprint all filter options of the global list, to keep them up to date.
+ *
+ * @param {boolean} fullRefresh - If true, the list is fully refreshed and the navigation is being reset
+ */
+export async function printCharacters(fullRefresh = false) {
+  const storageKey = 'Characters_PerPage';
+  const listId = '#rm_print_characters_block';
+
+  // let currentScrollTop = $(listId).scrollTop();
+  let currentScrollTop = document.querySelector<HTMLElement>(listId)?.scrollTop || 0;
+
+  if (fullRefresh) {
+    saveCharactersPage = 0;
+    currentScrollTop = 0;
+    await delay(1);
+  }
+
+  // Before printing the personas, we check if we should enable/disable search sorting
+  // verifyCharactersSearchSortRule(); TODO: Implement
+
+  // We are actually always reprinting filters, as it "doesn't hurt", and this way they are always up to date
+  // printTagFilters(tag_filter_type.character); // TODO: Implement
+  // printTagFilters(tag_filter_type.group_member); // TODO: Implement
+
+  // We are also always reprinting the lists on character/group edit window, as these ones doesn't get updated otherwise
+  // applyTagsOnCharacterSelect(); // TODO: Implement
+  // applyTagsOnGroupSelect(); // TODO: Implement
+
+  const entities = getEntitiesList({ doFilter: true });
+
+  const pageSize = Number(accountStorage.getItem(storageKey)) || per_page_default;
+  const sizeChangerOptions = [10, 25, 50, 100, 250, 500, 1000];
+  $('#rm_print_characters_pagination').pagination({
+    dataSource: entities,
+    pageSize,
+    pageRange: 1,
+    pageNumber: saveCharactersPage || 1,
+    position: 'top',
+    showPageNumbers: false,
+    showSizeChanger: true,
+    prevText: '<',
+    nextText: '>',
+    formatNavigator: PAGINATION_TEMPLATE,
+    formatSizeChanger: renderPaginationDropdown(pageSize, sizeChangerOptions),
+    showNavigator: true,
+    callback: async function (/** @type {Entity[]} */ data) {
+      $(listId).empty();
+      if (powerUser.get().bogus_folders && isBogusFolderOpen()) {
+        $(listId).append(getBackBlock());
+      }
+      if (!data.length) {
+        const emptyBlock = await getEmptyBlock();
+        $(listId).append(emptyBlock);
+      }
+      let displayCount = 0;
+      for (const i of data) {
+        switch (i.type) {
+          case 'character':
+            $(listId).append(getCharacterBlock(i.item, i.id));
+            displayCount++;
+            break;
+          case 'group':
+            $(listId).append(getGroupBlock(i.item));
+            displayCount++;
+            break;
+          case 'tag':
+            $(listId).append(getTagBlock(i.item, i.entities, i.hidden, i.isUseless));
+            break;
+        }
+      }
+
+      const hidden = characters.length + groups.length - displayCount;
+      if (hidden > 0 && entitiesFilter.hasAnyFilter()) {
+        const hiddenBlock = await getHiddenBlock(hidden);
+        $(listId).append(hiddenBlock);
+      }
+      localizePagination($('#rm_print_characters_pagination'));
+
+      // eventSource.emit(event_types.CHARACTER_PAGE_LOADED); // TODO: Implement
+    },
+    afterSizeSelectorChange: function (e, size) {
+      accountStorage.setItem(storageKey, e.target.value);
+      paginationDropdownChangeHandler(e, size);
+    },
+    afterPaging: function (e) {
+      saveCharactersPage = e;
+    },
+    afterRender: function () {
+      $(listId).scrollTop(currentScrollTop);
+    },
+  });
+
+  favsToHotswap();
+  updatePersonaConnectionsAvatarList();
+}
+
+/**
+ * Builds the full list of all entities available
+ *
+ * They will be correctly marked and filtered.
+ *
+ * @param {object} param0 - Optional parameters
+ * @param {boolean} [param0.doFilter] - Whether this entity list should already be filtered based on the global filters
+ * @param {boolean} [param0.doSort] - Whether the entity list should be sorted when returned
+ * @returns {Entity[]} All entities
+ */
+export function getEntitiesList({ doFilter = false, doSort = true } = {}) {
+  const resolvedCharacters = characters.get();
+  const resolvedGroups = groups.get();
+
+  let entities = [
+    ...resolvedCharacters.map((item, index) => characterToEntity(item, index)),
+    ...resolvedGroups.map((item) => groupToEntity(item)),
+    // ...(power_user.bogus_folders ? tags.filter(isBogusFolder).sort(compareTagsForSort).map(item => tagToEntity(item)) : []), // TODO: Implement
+  ];
+
+  // We need to do multiple filter runs in a specific order, otherwise different settings might override each other
+  // and screw up tags and search filter, sub lists or similar.
+  // The specific filters are written inside the "filterByTagState" method and its different parameters.
+  // Generally what we do is the following:
+  //   1. First swipe over the list to remove the most obvious things
+  //   2. Build sub entity lists for all folders, filtering them similarly to the second swipe
+  //   3. We do the last run, where global filters are applied, and the search filters last
+
+  // First run filters, that will hide what should never be displayed
+  if (doFilter) {
+    entities = filterByTagState(entities);
+  }
+
+  // Run over all entities between first and second filter to save some states
+  for (const entity of entities) {
+    // For folders, we remember the sub entities so they can be displayed later, even if they might be filtered
+    // Those sub entities should be filtered and have the search filters applied too
+    if (entity.type === 'tag') {
+      let subEntities = filterByTagState(entities, { subForEntity: entity, filterHidden: false });
+      const subCount = subEntities.length;
+      subEntities = filterByTagState(entities, { subForEntity: entity });
+      if (doFilter) {
+        // sub entities filter "hacked" because folder filter should not be applied there, so even in "only folders" mode characters show up
+        subEntities = entitiesFilter.applyFilters(subEntities, {
+          clearScoreCache: false,
+          tempOverrides: { [FILTER_TYPES.FOLDER]: FILTER_STATES.UNDEFINED },
+          clearFuzzySearchCaches: false,
+        });
+      }
+      if (doSort) {
+        sortEntitiesList(subEntities, false);
+      }
+      entity.entities = subEntities;
+      entity.hidden = subCount - subEntities.length;
+    }
+  }
+
+  // Second run filters, hiding whatever should be filtered later
+  if (doFilter) {
+    const beforeFinalEntities = filterByTagState(entities, { globalDisplayFilters: true });
+    entities = entitiesFilter.applyFilters(beforeFinalEntities, { clearFuzzySearchCaches: false });
+
+    // Magic for folder filter. If that one is enabled, and no folders are display anymore, we remove that filter to actually show the characters.
+    if (
+      isFilterState(entitiesFilter.getFilterData(FILTER_TYPES.FOLDER), FILTER_STATES.SELECTED) &&
+      entities.filter((x) => x.type == 'tag').length == 0
+    ) {
+      entities = entitiesFilter.applyFilters(beforeFinalEntities, {
+        tempOverrides: { [FILTER_TYPES.FOLDER]: FILTER_STATES.UNDEFINED },
+        clearFuzzySearchCaches: false,
+      });
+    }
+  }
+
+  // Final step, updating some properties after the last filter run
+  const nonTagEntitiesCount = entities.filter((entity) => entity.type !== 'tag').length;
+  for (const entity of entities) {
+    if (entity.type === 'tag') {
+      if (entity.entities?.length == nonTagEntitiesCount) entity.isUseless = true;
+    }
+  }
+
+  // Sort before returning if requested
+  if (doSort) {
+    sortEntitiesList(entities, false);
+  }
+  entitiesFilter.clearFuzzySearchCaches();
+  return entities;
+}
+
+/**
+ * Converts the given character to its entity representation
+ *
+ * @param {Character} character - The character
+ * @param {string|number} index - The id of this character
+ * @returns {Entity} The entity for this character
+ */
+export function characterToEntity(character: Character, index: number): Entity {
+  return { item: character, id: index, type: 'character' };
+}
+
+/**
+ * Converts the given group to its entity representation
+ *
+ * @param {Group} group - The group
+ * @returns {Entity} The entity for this group
+ */
+export function groupToEntity(group: Group): Entity {
+  return { item: group, id: group.id, type: 'group' };
+}
+
+/**
+ * Converts the given tag to its entity representation
+ */
+export function tagToEntity(tag: Tag): Entity {
+  return { item: structuredClone(tag), id: tag.id, type: 'tag', entities: [] };
+}
+
+/**
+ * Applies the basic filter for the current state of the tags and their selection on an entity list.
+ * @param {Array<Object>} entities List of entities for display, consisting of tags, characters and groups.
+ * @param {Object} param1 Optional parameters, explained below.
+ * @param {Boolean} [param1.globalDisplayFilters] When enabled, applies the final filter for the global list. Icludes filtering out entities in closed/hidden folders and empty folders.
+ * @param {Object} [param1.subForEntity] When given an entity, the list of entities gets filtered specifically for that one as a "sub list", filtering out other tags, elements not tagged for this and hidden elements.
+ * @param {Boolean} [param1.filterHidden] Optional switch with which filtering out hidden items (from closed folders) can be disabled.
+ * @returns The filtered list of entities
+ */
+function filterByTagState(
+  entities: Entity[],
+  { globalDisplayFilters = false, subForEntity = undefined, filterHidden = true } = {},
+) {
+  const filterData = structuredClone(entitiesFilter.getFilterData(FILTER_TYPES.TAG));
+
+  entities = entities.filter((entity) => {
+    if (entity.type === 'tag') {
+      // Remove folders that are already filtered on
+      if (filterData.selected.includes(entity.id) || filterData.excluded.includes(entity.id)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  if (globalDisplayFilters) {
+    // Prepare some data for caching and performance
+    const closedFolders = entities.filter(
+      (x) => x.type === 'tag' && TAG_FOLDER_TYPES[x.item.folder_type] === TAG_FOLDER_TYPES.CLOSED,
+    );
+
+    entities = entities.filter((entity) => {
+      // Hide entities that are in a closed folder, unless that one is opened
+      if (
+        filterHidden &&
+        entity.type !== 'tag' &&
+        closedFolders.some((f) => entitiesFilter.isElementTagged(entity, f.id) && !filterData.selected.includes(f.id))
+      ) {
+        return false;
+      }
+
+      // Hide folders that have 0 visible sub entities after the first filtering round, unless we are inside a search via search term.
+      // Then we want to display folders that mach too, even if the chars inside don't match the search.
+      if (entity.type === 'tag') {
+        return entity.entities.length > 0 || entitiesFilter.getFilterData(FILTER_TYPES.SEARCH);
+      }
+
+      return true;
+    });
+  }
+
+  if (subForEntity !== undefined && subForEntity.type === 'tag') {
+    entities = filterTagSubEntities(subForEntity.item, entities, { filterHidden: filterHidden });
+  }
+
+  return entities;
+}
+
+/**
+ * Filter a a list of entities based on a given tag, returning all entities that represent "sub entities"
+ */
+function filterTagSubEntities(tag: Tag, entities: Entity[], { filterHidden = true } = {}) {
+  const filterData = structuredClone(entitiesFilter.getFilterData(FILTER_TYPES.TAG));
+
+  // @ts-ignore
+  const closedFolders = entities.filter(
+    (x) => x.type === 'tag' && TAG_FOLDER_TYPES[x.item.folder_type] === TAG_FOLDER_TYPES.CLOSED,
+  );
+
+  entities = entities.filter((sub) => {
+    // Filter out all tags and and all who isn't tagged for this item
+    if (sub.type === 'tag' || !entitiesFilter.isElementTagged(sub, tag.id)) {
+      return false;
+    }
+
+    // Hide entities that are in a closed folder, unless the closed folder is opened or we display a closed folder
+    if (
+      filterHidden &&
+      sub.type !== 'tag' &&
+      TAG_FOLDER_TYPES[tag.folder_type] !== TAG_FOLDER_TYPES.CLOSED &&
+      closedFolders.some((f) => entitiesFilter.isElementTagged(sub, f.id) && !filterData.selected.includes(f.id))
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return entities;
 }

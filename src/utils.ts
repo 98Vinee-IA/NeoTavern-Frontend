@@ -100,6 +100,10 @@ export function removeFromArray<T>(arr: T[], item: T): boolean {
   return false;
 }
 
+export function onlyUnique<T>(value: T, index: number, self: T[]): boolean {
+  return self.indexOf(value) === index;
+}
+
 /**
  * Returns a promise that resolves after the specified number of milliseconds.
  */
