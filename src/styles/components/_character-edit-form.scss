@@ -61,6 +61,7 @@
 
       &.red_button {
         color: var(--color-warning);
+
         &:hover {
           background-color: var(--color-accent-crimson-hover);
         }
@@ -132,9 +133,14 @@
 
     &__icon {
       transition: transform var(--animation-duration-2x);
+
       &.is-open {
         transform: rotate(180deg);
       }
+    }
+
+    &:hover {
+      filter: brightness(150%);
     }
   }
 
@@ -158,20 +164,10 @@
   }
 }
 
-.slide-fade-enter-active,
-.slide-fade-leave-active {
+.slide-js-enter-active,
+.slide-js-leave-active {
   transition:
-    grid-template-rows 0.3s ease-in-out,
-    opacity 0.2s ease-in-out;
-}
-
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-  grid-template-rows: 0fr;
-  opacity: 0;
-}
-.slide-fade-enter-to,
-.slide-fade-leave-from {
-  grid-template-rows: 1fr;
-  opacity: 1;
+    height 0.3s ease-in-out,
+    opacity 0.3s ease-in-out;
+  overflow: hidden;
 }

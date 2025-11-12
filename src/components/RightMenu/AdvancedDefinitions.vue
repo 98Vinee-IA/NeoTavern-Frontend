@@ -34,6 +34,44 @@ const editingFieldName = ref<EditableField | null>(null);
 const editorPopupOptions = ref<PopupOptions>({});
 const editorPopupTitle = ref('');
 
+// --- Transition Hooks for Drawers ---
+function beforeEnter(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = '0';
+  el.style.opacity = '0';
+  el.style.overflow = 'hidden';
+}
+function enter(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.getBoundingClientRect(); // Force repaint
+  requestAnimationFrame(() => {
+    el.style.height = `${el.scrollHeight}px`;
+    el.style.opacity = '1';
+  });
+}
+function afterEnter(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = '';
+}
+function beforeLeave(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = `${el.scrollHeight}px`;
+  el.style.overflow = 'hidden';
+}
+function leave(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.getBoundingClientRect(); // Force repaint
+  requestAnimationFrame(() => {
+    el.style.height = '0';
+    el.style.opacity = '0';
+  });
+}
+function afterLeave(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = '';
+  el.style.opacity = '0';
+}
+
 watch(
   () => props.characterData,
   (newData) => {
@@ -138,8 +176,16 @@ function close() {
               :class="{ 'is-open': isPromptOverridesOpen }"
             ></i>
           </div>
-          <Transition name="slide-fade">
-            <div v-show="isPromptOverridesOpen" style="overflow: hidden">
+          <Transition
+            name="slide-js"
+            @before-enter="beforeEnter"
+            @enter="enter"
+            @after-enter="afterEnter"
+            @before-leave="beforeLeave"
+            @leave="leave"
+            @after-leave="afterLeave"
+          >
+            <div v-show="isPromptOverridesOpen">
               <div class="inline-drawer-content u-flex-col">
                 <small v-pre>Insert {{ original }} into either box to include the respective default prompt.</small>
                 <div>
@@ -192,8 +238,16 @@ function close() {
               :class="{ 'is-open': isMetadataOpen }"
             ></i>
           </div>
-          <Transition name="slide-fade">
-            <div v-show="isMetadataOpen" style="overflow: hidden">
+          <Transition
+            name="slide-js"
+            @before-enter="beforeEnter"
+            @enter="enter"
+            @after-enter="afterEnter"
+            @before-leave="beforeLeave"
+            @leave="leave"
+            @after-leave="afterLeave"
+          >
+            <div v-show="isMetadataOpen">
               <div class="inline-drawer-content u-flex-col">
                 <small>Everything here is optional</small>
                 <div class="u-flex u-flex-nowrap">

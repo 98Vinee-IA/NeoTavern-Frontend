@@ -18,7 +18,7 @@ const formData = ref<Partial<Character> & { data?: any }>({});
 
 // --- State for new features ---
 const areDetailsHidden = ref(settingsStore.powerUser.spoiler_free_mode);
-const isCreatorNotesOpen = ref(true);
+const isCreatorNotesOpen = ref(false);
 const isAdvancedDefinitionsVisible = ref(false);
 
 // Popup state for maximizing editors
@@ -28,6 +28,44 @@ const editorPopupValue = ref('');
 const editingFieldName = ref<EditableField | null>(null);
 const editorPopupOptions = ref<PopupOptions>({});
 const editorPopupTitle = ref('');
+
+// --- Transition Hooks ---
+function beforeEnter(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = '0';
+  el.style.opacity = '0';
+  el.style.overflow = 'hidden';
+}
+function enter(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.getBoundingClientRect(); // Force repaint
+  requestAnimationFrame(() => {
+    el.style.height = `${el.scrollHeight}px`;
+    el.style.opacity = '1';
+  });
+}
+function afterEnter(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = '';
+}
+function beforeLeave(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = `${el.scrollHeight}px`;
+  el.style.overflow = 'hidden';
+}
+function leave(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.getBoundingClientRect(); // Force repaint
+  requestAnimationFrame(() => {
+    el.style.height = '0';
+    el.style.opacity = '0';
+  });
+}
+function afterLeave(el: Element) {
+  if (!(el instanceof HTMLElement)) return;
+  el.style.height = '';
+  el.style.opacity = '0';
+}
 
 watch(
   activeCharacter,
@@ -181,8 +219,16 @@ function handleAdvancedUpdate(updatedData: Character) {
             :class="{ 'is-open': isCreatorNotesOpen }"
           ></i>
         </div>
-        <Transition name="slide-fade">
-          <div v-show="isCreatorNotesOpen" style="overflow: hidden">
+        <Transition
+          name="slide-js"
+          @before-enter="beforeEnter"
+          @enter="enter"
+          @after-enter="afterEnter"
+          @before-leave="beforeLeave"
+          @leave="leave"
+          @after-leave="afterLeave"
+        >
+          <div v-show="isCreatorNotesOpen">
             <div class="inline-drawer-content">
               <div v-if="formData.data.creator_notes" v-html="formData.data.creator_notes"></div>
               <div v-else>No Creator's Notes provided.</div>
