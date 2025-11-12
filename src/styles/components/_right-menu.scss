@@ -99,3 +99,78 @@
     padding: 1px;
   }
 }
+
+.character-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin: 2px 0;
+  gap: 10px;
+
+  &:hover {
+    background-color: var(--white-20a);
+  }
+
+  &.is-active {
+    background-color: var(--color-active);
+  }
+
+  &__avatar img {
+    width: 50px;
+    height: 50px;
+    border-radius: 5px;
+    object-fit: cover;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    gap: 2px;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+  }
+
+  &__name {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__fav-icon {
+    color: var(--color-golden);
+    margin-left: 5px;
+  }
+
+  &__description {
+    font-size: 0.9em;
+    color: var(--theme-emphasis-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 3px;
+
+    .tag {
+      background-color: var(--grey-7070a);
+      color: var(--theme-text-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8em;
+    }
+  }
+}
