@@ -132,3 +132,26 @@ select option[disabled]:not(:checked) {
 select.text-pole {
   padding-right: 20px;
 }
+
+.menu-button {
+  color: var(--theme-text-color);
+  background-color: var(--theme-background-tint);
+  border: 1px solid var(--theme-border-color);
+  border-radius: 5px;
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: background-color var(--animation-duration-2x);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  &:not(.disabled):not([disabled]):hover,
+  &:not(.disabled):not([disabled]).active {
+    background-color: var(--white-30a);
+  }
+
+  &.default {
+    background-color: var(--color-active);
+  }
+}

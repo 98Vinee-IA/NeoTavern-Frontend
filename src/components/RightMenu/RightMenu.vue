@@ -30,48 +30,37 @@ onMounted(() => {
       <div class="menu-button-icon fa-solid fa-list-ul" title="Select/Create Characters"></div>
     </div>
     <div class="u-items-center u-flex u-mx-auto u-w-full u-justify-evenly">
-      <div
-        class="hotswap avatars-inline scroll-reset-container expander"
-        title="Favorite characters to add them to HotSwaps"
-      >
+      <div title="Favorite characters to add them to HotSwaps">
         <small>
           <span> <i class="fa-solid fa-star"></i>&nbsp;Favorite characters to add them to HotSwaps</span>
         </small>
       </div>
     </div>
   </div>
-  <div class="scrollableInner">
+  <div>
     <div id="right-menu-panel" class="right-menu-panel">
       <div class="right-menu-panel__header">
         <div class="right-menu-panel__actions">
-          <div id="character-create-button" title="Create New Character" class="menu-button fa-solid fa-user-plus"></div>
-          <div
-            id="character-import-button"
-            title="Import Character from File"
-            class="menu-button fa-solid fa-file-import"
-          ></div>
-          <div
-            id="external-import-button"
-            title="Import content from external URL"
-            class="menu-button fa-solid fa-cloud-arrow-down"
-          ></div>
-          <div id="group-create-button" title="Create New Chat Group" class="menu-button fa-solid fa-users-gear"></div>
-          <div id="right-menu-extensions-container">
+          <div title="Create New Character" class="menu-button fa-solid fa-user-plus"></div>
+          <div title="Import Character from File" class="menu-button fa-solid fa-file-import"></div>
+          <div title="Import content from external URL" class="menu-button fa-solid fa-cloud-arrow-down"></div>
+          <div title="Create New Chat Group" class="menu-button fa-solid fa-users-gear"></div>
+          <div>
             <!-- Container for additional buttons added by extensions -->
           </div>
           <select id="character-sort-order" class="text-pole" title="Characters sorting order">
-            <option data-field="search" data-order="desc" hidden>Search</option>
-            <option data-field="name" data-order="asc">A-Z</option>
-            <option data-field="name" data-order="desc">Z-A</option>
-            <option data-field="create_date" data-order="desc">Newest</option>
-            <option data-field="create_date" data-order="asc">Oldest</option>
-            <option data-field="fav" data-order="desc" data-rule="boolean">Favorites</option>
-            <option data-field="date_last_chat" data-order="desc">Recent</option>
-            <option data-field="chat_size" data-order="desc">Most chats</option>
-            <option data-field="chat_size" data-order="asc">Least chats</option>
-            <option data-field="data_size" data-order="desc">Most tokens</option>
-            <option data-field="data_size" data-order="asc">Least tokens</option>
-            <option data-field="name" data-order="random">Random</option>
+            <option value="search" hidden>Search</option>
+            <option value="name:asc">A-Z</option>
+            <option value="name:desc">Z-A</option>
+            <option value="create_date:desc">Newest</option>
+            <option value="create_date:asc">Oldest</option>
+            <option value="fav:desc">Favorites</option>
+            <option value="date_last_chat:desc">Recent</option>
+            <option value="chat_size:desc">Most chats</option>
+            <option value="chat_size:asc">Least chats</option>
+            <option value="data_size:desc">Most tokens</option>
+            <option value="data_size:asc">Least tokens</option>
+            <option value="random">Random</option>
           </select>
           <div
             id="character-search-toggle"
@@ -81,38 +70,23 @@ onMounted(() => {
           ></div>
         </div>
         <div id="character-search-form" :class="{ active: isSearchActive }">
-          <input id="character-search-input" class="text-pole u-w-full" type="search" placeholder="Search..." />
+          <input class="text-pole u-w-full" type="search" placeholder="Search..." />
         </div>
         <div class="tag-controls">
-          <div class="tags tag-filter"></div>
-          <div class="tags tag-bogus-drilldown"></div>
+          <div></div>
+          <div></div>
         </div>
       </div>
 
       <div class="right-menu-panel__pagination">
+        <i class="fa-solid fa-table-cells-large menu-button" title="Toggle character grid view"></i>
         <i
-          id="character-grid-toggle"
-          class="fa-solid fa-table-cells-large menu-button"
-          title="Toggle character grid view"
-        ></i>
-        <i
-          id="bulk-edit-toggle"
-          class="fa-solid fa-edit menu-button bulk-edit-button"
+          class="fa-solid fa-edit menu-button"
           title="Bulk edit characters&#13;&#13;Click to toggle characters&#13;Shift + Click to select/deselect a range of characters&#13;Right-click for actions"
         ></i>
-        <div id="bulk-selected-count" class="bulk-edit-option-element paginationjs-nav"></div>
-        <i
-          id="bulk-select-all-button"
-          class="fa-solid fa-check-double menu-button bulk-edit-option-element bulk-select-all-button"
-          title="Bulk select all characters"
-          style="display: none"
-        ></i>
-        <i
-          id="bulk-delete-button"
-          class="fa-solid fa-trash menu-button bulk-edit-option-element bulk-delete-button"
-          title="Bulk delete characters"
-          style="display: none"
-        ></i>
+        <div></div>
+        <i class="fa-solid fa-check-double menu-button" title="Bulk select all characters" style="display: none"></i>
+        <i class="fa-solid fa-trash menu-button" title="Bulk delete characters" style="display: none"></i>
       </div>
       <div id="character-list" class="u-flex-col">
         <div v-if="characterStore.displayableEntities.length === 0">Loading...</div>
@@ -131,7 +105,7 @@ onMounted(() => {
           </div>
 
           <!-- Group Block -->
-          <div v-if="entity.type === 'group'" class="character-item is-group">
+          <div v-if="entity.type === 'group'" class="character-item">
             <!-- Group rendering logic here -->
             <div class="character-item__name">GROUP: {{ (entity.item as Group).id }}</div>
           </div>

@@ -4,7 +4,7 @@ import type { Character, Entity } from '../types';
 import { fetchAllCharacters } from '../api/characters';
 import DOMPurify from 'dompurify';
 import { humanizedDateTime } from '../utils/date';
-import { Toast } from '../components/Toast';
+import { toast } from '../composables/useToast';
 import { useChatStore } from './chat.store';
 import { useGroupStore } from './group.store';
 import { useUiStore } from './ui.store';
@@ -63,7 +63,7 @@ export const useCharacterStore = defineStore('character', () => {
         if (newIndex !== -1) {
           await selectCharacterById(newIndex, { switchMenu: false });
         } else {
-          Toast.error('The active character is no longer available. The page will be refreshed to prevent data loss.');
+          toast.error('The active character is no longer available. The page will be refreshed to prevent data loss.');
           setTimeout(() => location.reload(), 3000);
         }
       }
@@ -71,7 +71,7 @@ export const useCharacterStore = defineStore('character', () => {
     } catch (error: any) {
       console.error('Failed to fetch characters:', error);
       if (error.message === 'overflow') {
-        Toast.warning(
+        toast.warning(
           'Character data length limit reached. To resolve this, set "performance.lazyLoadCharacters" to "true" in config.yaml and restart the server.',
         );
       }
@@ -83,7 +83,7 @@ export const useCharacterStore = defineStore('character', () => {
 
     const uiStore = useUiStore();
     if (uiStore.isChatSaving) {
-      Toast.info('Please wait until the chat is saved before switching characters.');
+      toast.info('Please wait until the chat is saved before switching characters.');
       return;
     }
 

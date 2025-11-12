@@ -5,20 +5,10 @@
   width: 300px;
   max-width: 100%;
 
-  &.toast-top-left { top: 12px; left: 12px; }
-  &.toast-top-center { top: var(--top-bar-height); left: 50%; transform: translateX(-50%); }
-  &.toast-top-right { top: 12px; right: 12px; }
-  &.toast-bottom-left { bottom: 12px; left: 12px; }
-  &.toast-bottom-center { bottom: 12px; left: 50%; transform: translateX(-50%); }
-  &.toast-bottom-right { bottom: 12px; right: 12px; }
-
-  /* When inside a dialog, it's no longer fixed, and we need to adjust position */
-  dialog[open] > & {
-    position: absolute;
-    // top-center for dialogs
-    &.toast-top-center {
-      top: 12px;
-    }
+  &.toast-top-center {
+    top: var(--top-bar-height);
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
 
@@ -27,20 +17,22 @@
   position: relative;
   overflow: hidden;
   margin: 0 0 6px;
-  padding: 10px 10px 10px 50px;
+  padding: 10px 10px 10px 20px;
   width: 100%;
   border-radius: 3px;
   box-shadow: 0 0 12px #000;
   color: #fff;
   opacity: 0;
-  background-position: 15px center;
-  background-repeat: no-repeat;
+  transform: translateY(-20px);
+  transition:
+    opacity 250ms ease-in-out,
+    transform 250ms ease-in-out;
   text-shadow: none;
   font-size: calc(var(--font-size-main) * 0.95);
-  transition: opacity 250ms ease-in-out;
 
   &.show {
     opacity: 0.9;
+    transform: translateY(0);
   }
 }
 
@@ -57,9 +49,9 @@ button.toast-close-button {
   padding: 0 5px 0 0;
   text-shadow: 0 1px 0 #fff;
   opacity: 0.8;
-  padding-top: 3px;
 
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     opacity: 1;
   }
 }
@@ -73,17 +65,17 @@ button.toast-close-button {
 }
 
 .toast-success {
-    background-color: #5d9e5d;
+  background-color: #5d9e5d;
 }
 
 .toast-error {
-    background-color: #a83c36;
+  background-color: #a83c36;
 }
 
 .toast-info {
-    background-color: #4092aa;
+  background-color: #4092aa;
 }
 
 .toast-warning {
-    background-color: #e29325;
+  background-color: #e29325;
 }
