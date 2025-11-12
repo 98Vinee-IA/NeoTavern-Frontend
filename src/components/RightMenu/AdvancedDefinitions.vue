@@ -16,8 +16,8 @@ const localFormData = ref<Partial<Character> & { data?: any }>({});
 const autoSaveTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 
 // Drawer states
-const isPromptOverridesOpen = ref(true);
-const isMetadataOpen = ref(true);
+const isPromptOverridesOpen = ref(false);
+const isMetadataOpen = ref(false);
 
 // Popup state for maximizing editors
 type EditableField =
