@@ -288,9 +288,17 @@ export type Settings = {
     auto_fix_generated_markdown: boolean;
     confirm_message_delete: boolean;
     tag_import_setting: TagImportSetting;
+    movingUI: boolean;
+    zoomed_avatar_magnification: boolean;
   };
   oai_settings: OaiSettings;
   username?: string;
   user_avatar?: string;
   main_api?: string;
 } & Record<string, any>;
+
+export interface ZoomedAvatar {
+  id: string; // Unique ID, can be character name or a UUID
+  src: string; // Full URL to the image
+  charName: string; // To associate with a character
+}

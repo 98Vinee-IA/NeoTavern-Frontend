@@ -2,12 +2,15 @@
 import TopBar from './components/TopBar/TopBar.vue';
 import ChatInterface from './components/Chat/ChatInterface.vue';
 import Popup from './components/Popup/Popup.vue';
+import ZoomedAvatar from './components/ZoomedAvatar.vue';
 import { onMounted } from 'vue';
 import { useSettingsStore } from './stores/settings.store';
 import { usePopupStore } from './stores/popup.store';
+import { useUiStore } from './stores/ui.store';
 
 const settingsStore = useSettingsStore();
 const popupStore = usePopupStore();
+const uiStore = useUiStore();
 
 onMounted(() => {
   settingsStore.initializeSettings();
@@ -24,5 +27,9 @@ onMounted(() => {
       @submit="(payload: any) => popupStore.confirm(popup.id, payload)"
       @close="popupStore.cancel(popup.id)"
     />
+  </template>
+
+  <template v-for="avatar in uiStore.zoomedAvatars" :key="avatar.id">
+    <ZoomedAvatar :avatar="avatar" />
   </template>
 </template>

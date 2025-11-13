@@ -26,6 +26,14 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/characters': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/personas': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,

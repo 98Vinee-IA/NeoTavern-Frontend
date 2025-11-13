@@ -291,6 +291,14 @@
       "confirm_message_delete": {
         "label": "Confirm Message Deletion",
         "description": "Show a confirmation dialog before deleting a chat message."
+      },
+      "movingUI": {
+        "label": "Movable UI Elements",
+        "description": "Allow UI elements like the zoomed avatar viewer to be moved around and have multiple instances open."
+      },
+      "zoomed_avatar_magnification": {
+        "label": "Magnify Zoomed Avatars",
+        "description": "Enable magnification effect when hovering over a zoomed-in avatar."
       }
     }
   }

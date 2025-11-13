@@ -44,14 +44,57 @@ watch(isEditing, (editing) => {
 
 const avatarUrl = computed(() => {
   if (props.message.is_user && !props.message.force_avatar) {
-    return getThumbnailUrl('persona', undefined); // Will use default_avatar
+    return getThumbnailUrl('persona', uiStore.activePlayerAvatar ?? undefined);
   }
   if (props.message.force_avatar) {
-    // This could be a URL or a thumbnail string. Assuming it's a URL for now.
     return props.message.force_avatar;
   }
-  return getThumbnailUrl('avatar', characterStore.activeCharacter?.avatar);
+  // For bot message
+  const character = characterStore.characters.find((c) => c.name === props.message.name);
+  return getThumbnailUrl('avatar', character?.avatar);
 });
+
+const fullAvatarUrl = computed(() => {
+  const url = new URL(avatarUrl.value, window.location.origin);
+  const file = url.searchParams.get('file');
+  const type = url.searchParams.get('type');
+
+  if (file && type) {
+    // It's a thumbnail URL, construct full path
+    switch (type) {
+      case 'avatar':
+        return `/characters/${file}`;
+      case 'persona':
+        return getThumbnailUrl('persona', file);
+      case 'bg':
+        return `/backgrounds/${file}`;
+    }
+  }
+  // It's likely a direct URL (e.g., default avatar `img/ai4.png` or data URL)
+  return avatarUrl.value;
+});
+
+const charNameForAvatar = computed(() => {
+  const url = new URL(avatarUrl.value, window.location.origin);
+  const file = url.searchParams.get('file');
+
+  if (file) {
+    return file.substring(0, file.lastIndexOf('.')) || file;
+  }
+  // Fallback for user messages or defaults
+  if (props.message.is_user) {
+    return props.message.name;
+  }
+  // Fallback for character messages if file param is missing
+  return props.message.name;
+});
+
+function handleAvatarClick() {
+  uiStore.toggleZoomedAvatar({
+    src: fullAvatarUrl.value,
+    charName: charNameForAvatar.value,
+  });
+}
 
 const displayName = computed(() => {
   if (props.message.is_user) {
@@ -157,7 +200,7 @@ function moveDown() {
 <template>
   <div class="message" :class="{ 'is-user': message.is_user, 'is-bot': !message.is_user }">
     <div class="message__avatar-wrapper">
-      <div class="message__avatar">
+      <div class="message__avatar" @click="handleAvatarClick" style="cursor: pointer">
         <img :src="avatarUrl" :alt="`${displayName} Avatar`" />
       </div>
       <div class="message__id">#{{ index }}</div>
