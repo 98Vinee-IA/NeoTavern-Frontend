@@ -224,7 +224,7 @@ export interface OaiPrompt {
 }
 
 export interface OaiPromptOrderConfig {
-  character_id: number;
+  character_id: number; // TODO: I think this should be removed.
   order: {
     identifier: string;
     enabled: boolean;
@@ -233,10 +233,9 @@ export interface OaiPromptOrderConfig {
 
 export interface OaiSettings {
   chat_completion_source: ChatCompletionSource;
-  api_key_openai: string;
-  api_key_claude: string;
-  model_openai_select: string;
-  model_claude_select: string;
+  openai_model: string;
+  claude_model: string;
+  openrouter_model: string;
   reverse_proxy: string;
   proxy_password: string;
 
@@ -291,5 +290,6 @@ export type Settings = {
   };
   oai_settings: OaiSettings;
   username?: string;
+  user_avatar?: string;
   main_api?: string;
 } & Record<string, any>;

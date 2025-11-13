@@ -148,9 +148,7 @@ export const useCharacterStore = defineStore('character', () => {
     } catch (error: any) {
       console.error('Failed to fetch characters:', error);
       if (error.message === 'overflow') {
-        toast.warning(
-          'Character data length limit reached. To resolve this, set "performance.lazyLoadCharacters" to "true" in config.yaml and restart the server.',
-        );
+        toast.warning(t('character.fetch.overflowWarning'));
       }
     }
   }
@@ -204,7 +202,7 @@ export const useCharacterStore = defineStore('character', () => {
         characters.value[index] = updatedCharacter;
       } else {
         console.error(`Saved character with avatar ${avatar} not found in local list.`);
-        toast.warning('Character saved, but local list might be out of sync. Consider refreshing.');
+        toast.warning(t('character.save.syncWarning'));
       }
     } catch (error) {
       console.error('Failed to save character:', error);
@@ -351,11 +349,11 @@ export const useCharacterStore = defineStore('character', () => {
         break;
       case 'ask':
         // TODO: Implement Tag Import Popup
-        toast.info(`Tag import for "${character.name}" requires user input (not implemented yet).`);
+        toast.info(t('character.import.tagImportAskNotImplemented', { characterName: character.name }));
         break;
       case 'only_existing':
         // TODO: Requires global tag list.
-        toast.info(`"Import only existing tags" is not fully implemented yet.`);
+        toast.info(t('character.import.tagImportExistingNotImplemented'));
         break;
       case 'none':
       default:

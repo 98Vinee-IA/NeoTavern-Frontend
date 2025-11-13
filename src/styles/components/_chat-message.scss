@@ -126,6 +126,22 @@
     }
   }
 
+  &__edit-area {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    textarea {
+      min-height: 80px;
+    }
+  }
+
+  &__edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+  }
+
   // TODO: Styles for reasoning block, once implemented
   &__reasoning {
     i,

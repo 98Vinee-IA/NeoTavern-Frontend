@@ -30,7 +30,7 @@ export class PromptBuilder {
   public build(): ApiChatMessage[] {
     const messages: ApiChatMessage[] = [];
 
-    const promptOrderConfig = this.settings.prompt_order?.find((p) => p.character_id === 100000);
+    const promptOrderConfig = this.settings.prompt_order?.[0]; // Not using character_id
     if (!promptOrderConfig) {
       console.error('Default prompt order not found in settings.');
       return [];

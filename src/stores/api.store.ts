@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import type { OaiPrompt, OaiPromptOrderConfig, OaiSettings } from '../types';
 import { chat_completion_sources } from '../types';
 import { fetchChatCompletionStatus } from '../api/connection';
@@ -18,12 +18,16 @@ export const useApiStore = defineStore('api', () => {
 
   const defaultOaiSettings: Partial<OaiSettings> = {
     chat_completion_source: chat_completion_sources.OPENAI,
-    api_key_openai: '',
-    api_key_claude: '',
-    model_openai_select: 'gpt-4o',
-    model_claude_select: 'claude-3-5-sonnet-20240620',
+    openai_model: 'gpt-4o',
+    claude_model: 'claude-sonnet-4-5',
+    openrouter_model: '', // TODO: Add "OR_Website" which uses from user's OpenRouter account
     temp_openai: 1.0,
-    openai_max_tokens: 300,
+    freq_pen_openai: 0,
+    pres_pen_openai: 0,
+    top_p_openai: 1,
+    top_k_openai: 0,
+    openai_max_context: 16384,
+    openai_max_tokens: 500,
     stream_openai: true,
     prompts: [
       {
@@ -55,6 +59,19 @@ export const useApiStore = defineStore('api', () => {
       },
     ] as OaiPromptOrderConfig[],
   };
+
+  const activeModel = computed(() => {
+    switch (oaiSettings.value.chat_completion_source) {
+      case chat_completion_sources.OPENAI:
+        return oaiSettings.value.openai_model;
+      case chat_completion_sources.CLAUDE:
+        return oaiSettings.value.claude_model;
+      case chat_completion_sources.OPENROUTER:
+        return oaiSettings.value.openrouter_model;
+      default:
+        return oaiSettings.value.openai_model;
+    }
+  });
 
   // When settings are loaded or changed from the backend, update our local API state.
   watch(
@@ -103,7 +120,7 @@ export const useApiStore = defineStore('api', () => {
     if (isConnecting.value) return;
 
     if (mainApi.value !== 'openai') {
-      onlineStatus.value = i18n.global.t('api.status.notConnected') + ' (Not implemented)';
+      onlineStatus.value = `${i18n.global.t('api.status.notConnected')} ${i18n.global.t('api.status.notImplemented')}`;
       return;
     }
 
@@ -131,5 +148,5 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
-  return { mainApi, oaiSettings, onlineStatus, isConnecting, connect };
+  return { mainApi, oaiSettings, onlineStatus, isConnecting, connect, activeModel };
 });

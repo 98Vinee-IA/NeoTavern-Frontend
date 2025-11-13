@@ -23,7 +23,8 @@
       "valid": "Valid",
       "noConnection": "No connection...",
       "notConnected": "Not connected...",
-      "connecting": "Connecting..."
+      "connecting": "Connecting...",
+      "notImplemented": "(Not implemented)"
     }
   },
   "errors": {
@@ -47,7 +48,11 @@
     "continue": "Continue the last message",
     "send": "Send a message",
     "saveError": "Cannot save: No active character selected.",
-    "loadError": "Failed to load chat."
+    "loadError": "Failed to load chat.",
+    "generate": {
+      "noPrompts": "No prompts were built for the AI. Please check your prompt settings.",
+      "errorFallback": "Failed to get a response from the AI."
+    }
   },
   "character": {
     "import": {
@@ -58,14 +63,18 @@
       "error": "Could not import character",
       "errorMessage": "The file is likely invalid or corrupted.",
       "tagsImported": "Tags Imported",
-      "tagsImportedMessage": "Imported tags for {characterName}:\n{tags}"
+      "tagsImportedMessage": "Imported tags for {characterName}:\n{tags}",
+      "tagImportAskNotImplemented": "Tag import for \"{characterName}\" requires user input (not implemented yet).",
+      "tagImportExistingNotImplemented": "\"Import only existing tags\" is not fully implemented yet."
     },
     "save": {
       "error": "Failed to save character.",
-      "noActive": "Cannot save character: No active character or avatar found."
+      "noActive": "Cannot save character: No active character or avatar found.",
+      "syncWarning": "Character saved, but local list might be out of sync. Consider refreshing."
     },
     "fetch": {
-      "error": "The active character is no longer available. The page will be refreshed to prevent data loss."
+      "error": "The active character is no longer available. The page will be refreshed to prevent data loss.",
+      "overflowWarning": "Character data length limit reached. To resolve this, set \"performance.lazyLoadCharacters\" to \"true\" in config.yaml and restart the server."
     },
     "switch": {
       "wait": "Please wait until the chat is saved before switching characters."
@@ -90,7 +99,22 @@
     "gridView": "Toggle character grid view",
     "bulkEdit": "Bulk edit characters\n\nClick to toggle characters\nShift + Click to select/deselect a range of characters\nRight-click for actions",
     "bulkSelectAll": "Bulk select all characters",
-    "bulkDelete": "Bulk delete characters"
+    "bulkDelete": "Bulk delete characters",
+    "sorting": {
+      "title": "Characters sorting order",
+      "search": "Search",
+      "nameAsc": "A-Z",
+      "nameDesc": "Z-A",
+      "newest": "Newest",
+      "oldest": "Oldest",
+      "favorites": "Favorites",
+      "recent": "Recent",
+      "mostChats": "Most chats",
+      "leastChats": "Least chats",
+      "mostTokens": "Most tokens",
+      "leastTokens": "Least tokens",
+      "random": "Random"
+    }
   },
   "characterEditor": {
     "avatar": "Click to select a new avatar for this character",
@@ -115,7 +139,18 @@
     "firstMessage": "First message",
     "expandEditor": "Expand the editor",
     "descriptionPlaceholder": "Describe your character's physical and mental traits here.",
-    "firstMessagePlaceholder": "This will be the first message from the character that starts every chat."
+    "firstMessagePlaceholder": "This will be the first message from the character that starts every chat.",
+    "moreOptions": {
+      "linkWorldInfo": "Link to World Info",
+      "importCardLore": "Import Card Lore",
+      "characterSettingsOverrides": "Character Settings Overrides",
+      "convertToPersona": "Convert to Persona",
+      "rename": "Rename",
+      "linkToSource": "Link to Source",
+      "replaceUpdate": "Replace / Update",
+      "importTags": "Import Tags",
+      "setAsWelcomeAssistant": "Set / Unset as Welcome Page Assistant"
+    }
   },
   "advancedDefinitions": {
     "title": "{characterName} - Advanced Definitions",
@@ -153,7 +188,12 @@
     "dialogueExamples": "Examples of dialogue",
     "dialogueExamplesHint": "Important to set the character's writing style.",
     "dialogueExamplesPlaceholder": "(Examples of chat dialog. Begin each example with <START> on a new line.)",
-    "editingTitle": "Editing: {title}"
+    "editingTitle": "Editing: {title}",
+    "roles": {
+      "system": "System",
+      "user": "User",
+      "assistant": "Assistant"
+    }
   },
   "extensions": {
     "title": "Extensions",
@@ -177,12 +217,24 @@
     "openaiKeyPlaceholder": "Enter your OpenAI API key",
     "claudeKey": "Claude API Key",
     "claudeKeyPlaceholder": "Enter your Claude API key",
+    "openrouterKey": "OpenRouter API Key",
+    "openrouterKeyPlaceholder": "Enter your OpenRouter API key",
     "manageKeys": "Manage API keys",
     "keyPrivacy": "For privacy reasons, your API key will be hidden after you click 'Connect'.",
     "openaiModel": "OpenAI Model",
     "claudeModel": "Claude Model",
     "connect": "Connect",
-    "connecting": "Connecting"
+    "connecting": "Connecting",
+    "sources": {
+      "openai": "OpenAI",
+      "claude": "Claude",
+      "openrouter": "OpenRouter"
+    },
+    "modelGroups": {
+      "gpt4o": "GPT-4o",
+      "gpt4turbo": "GPT-4 Turbo"
+    },
+    "openrouterModel": "OpenRouter Model"
   },
   "settings": {
     "power_user": {

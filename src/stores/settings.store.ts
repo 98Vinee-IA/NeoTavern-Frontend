@@ -8,6 +8,7 @@ import { fetchUserSettings, saveUserSettings } from '../api/settings';
 import { settingsDefinition } from '../settings-definition';
 import { toast } from '../composables/useToast';
 import { set, get, defaultsDeep } from 'lodash-es';
+import { useUiStore } from './ui.store';
 
 function createDefaultSettings(): Settings {
   const defaultSettings: Record<string, any> = {};
@@ -58,6 +59,9 @@ export const useSettingsStore = defineStore('settings', () => {
       const defaultSettings = createDefaultSettings();
 
       settings.value = defaultsDeep(userSettings, defaultSettings);
+      const uiStore = useUiStore();
+      uiStore.activePlayerName = settings.value.username || null;
+      uiStore.activePlayerAvatar = settings.value.user_avatar || null;
     } catch (error) {
       console.error('Failed to initialize settings:', error);
       toast.error('Could not load user settings. Using defaults.');

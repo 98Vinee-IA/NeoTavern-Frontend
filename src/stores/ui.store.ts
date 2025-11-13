@@ -10,6 +10,7 @@ export const useUiStore = defineStore('ui', () => {
   const menuType = ref<MenuType | null>(null);
   const cropData = ref<any>(null);
   const activePlayerName = ref<string | null>(null);
+  const activePlayerAvatar = ref<string | null>(null);
 
   return {
     isChatSaving,
@@ -19,5 +20,6 @@ export const useUiStore = defineStore('ui', () => {
     menuType,
     cropData,
     activePlayerName,
+    activePlayerAvatar,
   };
 });

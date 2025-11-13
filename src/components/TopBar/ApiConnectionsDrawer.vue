@@ -32,9 +32,9 @@ const apiStore = useApiStore();
           <h4>{{ $t('apiConnections.source') }}</h4>
           <select class="text-pole" v-model="apiStore.oaiSettings.chat_completion_source">
             <optgroup>
-              <option :value="chat_completion_sources.OPENAI">OpenAI</option>
-              <option :value="chat_completion_sources.CLAUDE">Claude</option>
-              <option :value="chat_completion_sources.OPENROUTER">OpenRouter</option>
+              <option :value="chat_completion_sources.OPENAI">{{ $t('apiConnections.sources.openai') }}</option>
+              <option :value="chat_completion_sources.CLAUDE">{{ $t('apiConnections.sources.claude') }}</option>
+              <option :value="chat_completion_sources.OPENROUTER">{{ $t('apiConnections.sources.openrouter') }}</option>
               <!-- Add other sources as they are implemented -->
             </optgroup>
           </select>
@@ -45,13 +45,14 @@ const apiStore = useApiStore();
           <div class="api-connections-drawer__section">
             <h4>{{ $t('apiConnections.openaiKey') }}</h4>
             <div class="u-flex u-items-center">
-              <input
+              <!-- TODO: Add secret management -->
+              <!-- <input
                 type="password"
                 class="text-pole u-w-full"
                 autocomplete="off"
                 :placeholder="$t('apiConnections.openaiKeyPlaceholder')"
                 v-model="apiStore.oaiSettings.api_key_openai"
-              />
+              /> -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="$t('apiConnections.manageKeys')"></div>
             </div>
             <div class="neutral_warning">
@@ -61,12 +62,12 @@ const apiStore = useApiStore();
           <div class="api-connections-drawer__section">
             <h4>{{ $t('apiConnections.openaiModel') }}</h4>
             <!-- This list is a static example. A real implementation would fetch it. -->
-            <select class="text-pole" v-model="apiStore.oaiSettings.model_openai_select">
-              <optgroup label="GPT-4o">
+            <select class="text-pole" v-model="apiStore.oaiSettings.openai_model">
+              <optgroup :label="$t('apiConnections.modelGroups.gpt4o')">
                 <option value="gpt-4o">gpt-4o</option>
                 <option value="gpt-4o-mini">gpt-4o-mini</option>
               </optgroup>
-              <optgroup label="GPT-4 Turbo">
+              <optgroup :label="$t('apiConnections.modelGroups.gpt4turbo')">
                 <option value="gpt-4-turbo">gpt-4-turbo</option>
               </optgroup>
             </select>
@@ -78,13 +79,14 @@ const apiStore = useApiStore();
           <div class="api-connections-drawer__section">
             <h4>{{ $t('apiConnections.claudeKey') }}</h4>
             <div class="u-flex u-items-center">
-              <input
+              <!-- TODO: Add secret management -->
+              <!-- <input
                 type="password"
                 class="text-pole u-w-full"
                 autocomplete="off"
                 :placeholder="$t('apiConnections.claudeKeyPlaceholder')"
                 v-model="apiStore.oaiSettings.api_key_claude"
-              />
+              /> -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="$t('apiConnections.manageKeys')"></div>
             </div>
             <div class="neutral_warning">
@@ -93,11 +95,41 @@ const apiStore = useApiStore();
           </div>
           <div class="api-connections-drawer__section">
             <h4>{{ $t('apiConnections.claudeModel') }}</h4>
-            <select class="text-pole" v-model="apiStore.oaiSettings.model_claude_select">
+            <select class="text-pole" v-model="apiStore.oaiSettings.claude_model">
               <option value="claude-3-5-sonnet-20240620">claude-3-5-sonnet-20240620</option>
               <option value="claude-3-opus-20240229">claude-3-opus-20240229</option>
               <option value="claude-3-haiku-20240307">claude-3-haiku-20240307</option>
             </select>
+          </div>
+        </form>
+
+        <!-- OpenRouter Form -->
+        <form v-if="apiStore.oaiSettings.chat_completion_source === chat_completion_sources.OPENROUTER">
+          <div class="api-connections-drawer__section">
+            <h4>{{ $t('apiConnections.openrouterKey') }}</h4>
+            <div class="u-flex u-items-center">
+              <!-- TODO: Add secret management -->
+              <!-- <input
+                type="password"
+                class="text-pole u-w-full"
+                autocomplete="off"
+                :placeholder="$t('apiConnections.openrouterKeyPlaceholder')"
+                v-model="apiStore.oaiSettings.api_key_openrouter"
+              /> -->
+              <div class="menu-button fa-solid fa-key fa-fw" :title="$t('apiConnections.manageKeys')"></div>
+            </div>
+            <div class="neutral_warning">
+              {{ $t('apiConnections.keyPrivacy') }}
+            </div>
+          </div>
+          <div class="api-connections-drawer__section">
+            <h4>{{ $t('apiConnections.openrouterModel') }}</h4>
+            <input
+              type="text"
+              class="text-pole u-w-full"
+              placeholder="google/gemini-pro-1.5"
+              v-model="apiStore.oaiSettings.openrouter_model"
+            />
           </div>
         </form>
 

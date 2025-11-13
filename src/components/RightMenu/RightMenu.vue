@@ -2,12 +2,14 @@
 import { onMounted, ref, computed } from 'vue';
 import { useCharacterStore } from '../../stores/character.store';
 import { useUiStore } from '../../stores/ui.store';
+import { useApiStore } from '../../stores/api.store';
 import type { Character, Group } from '../../types';
 import CharacterEditForm from './CharacterEditForm.vue';
 import { getThumbnailUrl } from '../../utils/image';
 
 const characterStore = useCharacterStore();
 const uiStore = useUiStore();
+const apiStore = useApiStore();
 const isSearchActive = ref(false);
 const isPanelPinned = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -20,8 +22,7 @@ const totalTokens = computed(() => characterStore.totalTokens);
 const permanentTokens = computed(() => characterStore.permanentTokens);
 const activeCharacterName = computed(() => characterStore.activeCharacter?.name);
 
-// TODO: Get max_context from a settings store
-const maxContext = ref(12000);
+const maxContext = computed(() => apiStore.oaiSettings.openai_max_context ?? 4096);
 const showTokenWarning = computed(() => {
   const tokenLimit = Math.max(maxContext.value / 2, 1024);
   return totalTokens.value > tokenLimit;
@@ -141,19 +142,19 @@ onMounted(() => {
           <div id="extension-buttons-container">
             <!-- Container for additional buttons added by extensions -->
           </div>
-          <select id="character-sort-order" class="text-pole" title="Characters sorting order">
-            <option value="search" hidden>Search</option>
-            <option value="name:asc">A-Z</option>
-            <option value="name:desc">Z-A</option>
-            <option value="create_date:desc">Newest</option>
-            <option value="create_date:asc">Oldest</option>
-            <option value="fav:desc">Favorites</option>
-            <option value="date_last_chat:desc">Recent</option>
-            <option value="chat_size:desc">Most chats</option>
-            <option value="chat_size:asc">Least chats</option>
-            <option value="data_size:desc">Most tokens</option>
-            <option value="data_size:asc">Least tokens</option>
-            <option value="random">Random</option>
+          <select id="character-sort-order" class="text-pole" :title="$t('rightMenu.sorting.title')">
+            <option value="search" hidden>{{ $t('rightMenu.sorting.search') }}</option>
+            <option value="name:asc">{{ $t('rightMenu.sorting.nameAsc') }}</option>
+            <option value="name:desc">{{ $t('rightMenu.sorting.nameDesc') }}</option>
+            <option value="create_date:desc">{{ $t('rightMenu.sorting.newest') }}</option>
+            <option value="create_date:asc">{{ $t('rightMenu.sorting.oldest') }}</option>
+            <option value="fav:desc">{{ $t('rightMenu.sorting.favorites') }}</option>
+            <option value="date_last_chat:desc">{{ $t('rightMenu.sorting.recent') }}</option>
+            <option value="chat_size:desc">{{ $t('rightMenu.sorting.mostChats') }}</option>
+            <option value="chat_size:asc">{{ $t('rightMenu.sorting.leastChats') }}</option>
+            <option value="data_size:desc">{{ $t('rightMenu.sorting.mostTokens') }}</option>
+            <option value="data_size:asc">{{ $t('rightMenu.sorting.leastTokens') }}</option>
+            <option value="random">{{ $t('rightMenu.sorting.random') }}</option>
           </select>
           <div
             id="character-search-toggle"

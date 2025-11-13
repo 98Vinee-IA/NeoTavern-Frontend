@@ -397,9 +397,9 @@ function close() {
               @change="updateValue('data.depth_prompt.role', ($event.target as HTMLSelectElement).value)"
               class="text-pole"
             >
-              <option value="system">System</option>
-              <option value="user">User</option>
-              <option value="assistant">Assistant</option>
+              <option value="system">{{ $t('advancedDefinitions.roles.system') }}</option>
+              <option value="user">{{ $t('advancedDefinitions.roles.user') }}</option>
+              <option value="assistant">{{ $t('advancedDefinitions.roles.assistant') }}</option>
             </select>
           </div>
         </div>

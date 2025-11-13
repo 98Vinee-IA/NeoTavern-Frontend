@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { PropType } from 'vue';
 import type { ChatMessage } from '../../types';
 import { useCharacterStore } from '../../stores/character.store';
 import { useUiStore } from '../../stores/ui.store';
+import { useChatStore } from '../../stores/chat.store';
 import { getThumbnailUrl } from '../../utils/image';
 import { formatTimeStamp } from '../../utils/date';
 import { formatMessage } from '../../utils/markdown';
@@ -21,6 +22,17 @@ const props = defineProps({
 
 const characterStore = useCharacterStore();
 const uiStore = useUiStore();
+const chatStore = useChatStore();
+
+const editedContent = ref('');
+
+const isEditing = computed(() => chatStore.activeMessageEditIndex === props.index);
+
+watch(isEditing, (editing) => {
+  if (editing) {
+    editedContent.value = props.message.mes;
+  }
+});
 
 const avatarUrl = computed(() => {
   if (props.message.is_user && !props.message.force_avatar) {
@@ -47,6 +59,18 @@ const formattedTimestamp = computed(() => {
 const formattedContent = computed(() => {
   return formatMessage(props.message);
 });
+
+function startEditing() {
+  chatStore.startEditing(props.index);
+}
+
+function saveEdit() {
+  chatStore.saveMessageEdit(editedContent.value);
+}
+
+function cancelEdit() {
+  chatStore.cancelEditing();
+}
 </script>
 
 <template>
@@ -73,11 +97,17 @@ const formattedContent = computed(() => {
           <i class="message__button fa-solid fa-ellipsis" title="Message Actions"></i>
           <!-- TODO: Implement bookmark button -->
           <i class="message__button fa-solid fa-flag" title="Bookmark"></i>
-          <!-- TODO: Implement edit button -->
-          <i class="message__button fa-solid fa-pencil" title="Edit"></i>
+          <i v-if="!isEditing" @click="startEditing" class="message__button fa-solid fa-pencil" title="Edit"></i>
         </div>
       </div>
-      <div class="message__content" v-html="formattedContent"></div>
+      <div v-if="!isEditing" class="message__content" v-html="formattedContent"></div>
+      <div v-else class="message__edit-area">
+        <textarea v-model="editedContent" class="text-pole"></textarea>
+        <div class="message__edit-actions">
+          <button @click="saveEdit" class="menu-button">{{ $t('common.save') }}</button>
+          <button @click="cancelEdit" class="menu-button">{{ $t('common.cancel') }}</button>
+        </div>
+      </div>
       <!-- TODO: Implement swipes, reasoning block, media, etc. -->
     </div>
   </div>

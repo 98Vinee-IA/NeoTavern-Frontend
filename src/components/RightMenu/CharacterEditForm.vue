@@ -213,15 +213,15 @@ function handleEditorSubmit({ value }: { value: string }) {
           <label class="u-w-full">
             <select class="text-pole u-w-full">
               <option value="default" disabled selected>{{ $t('characterEditor.more') }}</option>
-              <option>Link to World Info</option>
-              <option>Import Card Lore</option>
-              <option>Character Settings Overrides</option>
-              <option>Convert to Persona</option>
-              <option>Rename</option>
-              <option>Link to Source</option>
-              <option>Replace / Update</option>
-              <option>Import Tags</option>
-              <option>Set / Unset as Welcome Page Assistant</option>
+              <option>{{ $t('characterEditor.moreOptions.linkWorldInfo') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.importCardLore') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.characterSettingsOverrides') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.convertToPersona') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.rename') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.linkToSource') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.replaceUpdate') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.importTags') }}</option>
+              <option>{{ $t('characterEditor.moreOptions.setAsWelcomeAssistant') }}</option>
             </select>
           </label>
         </div>
