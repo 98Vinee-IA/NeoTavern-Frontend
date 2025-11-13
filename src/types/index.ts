@@ -183,3 +183,16 @@ export interface PopupOptions {
   customInputs?: CustomPopupInput[];
   defaultResult?: number;
 }
+
+export type Settings = {
+  power_user: {
+    external_media_forbidden_overrides: Array<string>;
+    external_media_allowed_overrides: Array<string>;
+    forbid_external_media: boolean;
+    world_import_dialog: boolean;
+    send_on_enter: number;
+    never_resize_avatars: boolean;
+    spoiler_free_mode: boolean;
+    auto_fix_generated_markdown: boolean;
+  };
+} & Record<string, any>;

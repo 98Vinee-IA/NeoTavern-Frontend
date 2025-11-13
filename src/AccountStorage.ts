@@ -1,3 +1,5 @@
+import { useSettingsStore } from './stores/settings.store';
+
 // const MIGRATED_MARKER = '__migrated';
 const MIGRATABLE_KEYS = [
   /^AlertRegex_/,
@@ -108,7 +110,8 @@ class AccountStorage {
 
     // @ts-ignore
     this.#state[key] = String(value);
-    // saveSettingsDebounced(); //TODO: Implement
+    const { saveSettingsDebounced } = useSettingsStore();
+    saveSettingsDebounced();
   }
 
   /**
@@ -126,7 +129,8 @@ class AccountStorage {
 
     // @ts-ignore
     delete this.#state[key];
-    // saveSettingsDebounced(); //TODO: Implement
+    const { saveSettingsDebounced } = useSettingsStore();
+    saveSettingsDebounced();
   }
 
   /**

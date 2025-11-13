@@ -3,18 +3,15 @@ import { ref, computed, watch } from 'vue';
 import { SendOnEnterOptions, DEFAULT_SAVE_EDIT_TIMEOUT } from '../constants';
 import { isMobile } from '../utils/browser';
 import { debounce } from '../utils/common';
+import type { Settings } from '../types';
+import { fetchUserSettings, saveUserSettings } from '../api/settings';
 
 export const useSettingsStore = defineStore('settings', () => {
-  const powerUser = ref<{
-    external_media_forbidden_overrides: Array<string>;
-    external_media_allowed_overrides: Array<string>;
-    forbid_external_media: boolean;
-    world_import_dialog: boolean;
-    send_on_enter: number;
-    never_resize_avatars: boolean;
-    spoiler_free_mode: boolean;
-    auto_fix_generated_markdown: boolean;
-  }>({
+  const settings = ref<Settings>({} as Settings);
+  const settingsInitialized = ref(false);
+  const settingsInitializing = ref(false);
+
+  const powerUser = ref<Settings['power_user']>({
     world_import_dialog: true,
     send_on_enter: SendOnEnterOptions.AUTO,
     never_resize_avatars: false,
@@ -38,23 +35,34 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   });
 
-  async function saveSettings() {
-    // TODO: Implement API call to save settings to the backend.
-    console.log('Debounced saveSettings called. State:', powerUser.value);
+  async function initializeSettings() {
+    try {
+      if (settingsInitialized.value || settingsInitializing.value) return;
+      settingsInitializing.value = true;
+      settings.value = await fetchUserSettings();
+      powerUser.value = { ...powerUser.value, ...settings.value.power_user };
+    } finally {
+      Promise.resolve().then(() => {
+        settingsInitialized.value = true;
+        settingsInitializing.value = false;
+      });
+    }
   }
 
   const saveSettingsDebounced = debounce(() => {
-    saveSettings();
+    if (!settingsInitialized.value) return;
+    saveUserSettings({ ...settings.value, power_user: { ...settings.value.power_user, ...powerUser.value } });
   }, DEFAULT_SAVE_EDIT_TIMEOUT);
 
   // Watch for changes in settings and trigger debounced save
   watch(
     powerUser,
     () => {
+      if (!settingsInitialized.value || settingsInitializing.value) return;
       saveSettingsDebounced();
     },
     { deep: true },
   );
 
-  return { powerUser, shouldSendOnEnter, saveSettings, saveSettingsDebounced };
+  return { powerUser, shouldSendOnEnter, saveSettingsDebounced, initializeSettings, settingsInitialized };
 });
