@@ -80,16 +80,6 @@
       flex-wrap: wrap;
       gap: 5px;
       margin-top: 5px;
-
-      // Reusing tag style from character list
-      .tag {
-        background-color: var(--grey-7070a);
-        color: var(--theme-text-color);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.8em;
-        white-space: nowrap;
-      }
     }
   }
 
@@ -109,57 +99,6 @@
     textarea {
       height: 100%;
       resize: none;
-    }
-  }
-
-  .inline-drawer-header {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-    padding: 5px;
-    background-color: var(--black-30a);
-    border-radius: 5px;
-    margin-bottom: 2px;
-
-    .menu-button {
-      margin: 0;
-      padding: 3px 5px;
-    }
-
-    &__title {
-      flex-grow: 1;
-    }
-
-    &__icon {
-      transition: transform var(--animation-duration-2x);
-
-      &.is-open {
-        transform: rotate(180deg);
-      }
-    }
-
-    &:hover {
-      filter: brightness(150%);
-    }
-  }
-
-  .inline-drawer-content {
-    border: 1px solid var(--theme-border-color);
-    padding: 10px;
-    border-radius: 10px;
-    background-color: var(--black-30a);
-  }
-
-  .editor-maximize-icon {
-    cursor: pointer;
-    margin: 3px;
-    opacity: 0.75;
-    transition: all var(--animation-duration-2x) ease-in-out;
-    filter: grayscale(1);
-
-    &:hover {
-      opacity: 1;
     }
   }
 }

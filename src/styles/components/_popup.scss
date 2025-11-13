@@ -76,17 +76,3 @@
     }
   }
 }
-
-.popup-input {
-  width: 100%;
-  resize: vertical;
-  display: block;
-  border: 1px solid var(--theme-border-color);
-  border-radius: 5px;
-  outline: none;
-  background-color: var(--black-30a);
-  color: var(--theme-text-color);
-  font-family: var(--font-family-main);
-  font-size: var(--font-size-main);
-  padding: 5px 10px;
-}
