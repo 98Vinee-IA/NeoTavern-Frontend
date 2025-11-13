@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, nextTick } from 'vue';
 import { useCharacterStore } from '../../stores/character.store';
 import { useUiStore } from '../../stores/ui.store';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -15,6 +15,7 @@ const settingsStore = useSettingsStore();
 const activeCharacter = computed(() => characterStore.activeCharacter);
 
 const formData = ref<Partial<Character> & { data?: any }>({});
+const isUpdatingFromStore = ref(false);
 
 // --- State for new features ---
 const areDetailsHidden = ref(settingsStore.powerUser.spoiler_free_mode);
@@ -71,20 +72,55 @@ watch(
   activeCharacter,
   (newChar) => {
     if (newChar) {
-      const charCopy = JSON.parse(JSON.stringify(newChar));
-      if (!charCopy.data) {
-        charCopy.data = {};
+      if (JSON.stringify(newChar) !== JSON.stringify(formData.value)) {
+        isUpdatingFromStore.value = true;
+
+        const charCopy = JSON.parse(JSON.stringify(newChar));
+        if (!charCopy.data) {
+          charCopy.data = {};
+        }
+        if (!charCopy.data.creator_notes) {
+          charCopy.data.creator_notes = charCopy.creatorcomment || '';
+        }
+        formData.value = charCopy;
+        areDetailsHidden.value = settingsStore.powerUser.spoiler_free_mode;
+
+        nextTick(() => {
+          isUpdatingFromStore.value = false;
+        });
       }
-      if (!charCopy.data.creator_notes) {
-        charCopy.data.creator_notes = charCopy.creatorcomment || '';
-      }
-      formData.value = charCopy;
-      areDetailsHidden.value = settingsStore.powerUser.spoiler_free_mode;
     } else {
       formData.value = { data: {} };
     }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
+);
+
+watch(
+  formData,
+  (newData, oldData) => {
+    if (isUpdatingFromStore.value) {
+      return;
+    }
+
+    if (oldData && newData.data) {
+      // Dynamically sync any changed root field with its counterpart in `data` if it exists.
+      for (const key in newData) {
+        if (key !== 'data' && Object.prototype.hasOwnProperty.call(newData, key)) {
+          // If the corresponding key exists in the 'data' object, sync it.
+          if (typeof newData.data[key] !== 'undefined') {
+            newData.data[key] = newData[key as keyof typeof newData];
+          }
+        }
+      }
+    }
+
+    // Don't save on initial load when populating from activeCharacter
+    if (oldData && Object.keys(oldData).length > 1 && newData.avatar === oldData.avatar) {
+      characterStore.saveCharacterDebounced(newData);
+    }
+  },
+  { deep: true },
 );
 
 function goBack() {
@@ -122,11 +158,6 @@ function handleEditorSubmit({ value }: { value: string }) {
       formData.value[editingFieldName.value] = value;
     }
   }
-}
-
-function handleAdvancedUpdate(updatedData: Character) {
-  formData.value = updatedData;
-  // TODO: Trigger save-to-backend logic from here
 }
 </script>
 
@@ -282,9 +313,8 @@ function handleAdvancedUpdate(updatedData: Character) {
 
     <AdvancedDefinitions
       v-if="isAdvancedDefinitionsVisible"
-      :character-data="formData"
+      v-model="formData"
       @close="isAdvancedDefinitionsVisible = false"
-      @update="handleAdvancedUpdate"
     />
   </div>
 </template>

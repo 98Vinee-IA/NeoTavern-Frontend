@@ -46,6 +46,7 @@ export const TAG_FOLDER_TYPES = {
 } as const;
 
 export const DEFAULT_SAVE_EDIT_TIMEOUT = DebounceTimeout.RELAXED;
+export const DEFAULT_PRINT_TIMEOUT = DebounceTimeout.QUICK;
 export const default_avatar = 'img/ai4.png';
 export const ANIMATION_DURATION_DEFAULT = 125;
 export let animation_duration = ANIMATION_DURATION_DEFAULT;

@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Character, Entity } from '../types';
-import { fetchAllCharacters } from '../api/characters';
+import { fetchAllCharacters, saveCharacter, fetchCharacterByAvatar } from '../api/characters';
 import DOMPurify from 'dompurify';
 import { humanizedDateTime } from '../utils/date';
 import { toast } from '../composables/useToast';
 import { useChatStore } from './chat.store';
 import { useGroupStore } from './group.store';
 import { useUiStore } from './ui.store';
+import { debounce } from '../utils/common';
+import { DEFAULT_PRINT_TIMEOUT, DEFAULT_SAVE_EDIT_TIMEOUT } from '../constants';
 
 export const useCharacterStore = defineStore('character', () => {
   const characters = ref<Array<Character>>([]);
@@ -43,6 +45,10 @@ export const useCharacterStore = defineStore('character', () => {
     return [...characterEntities, ...groupEntities];
   });
 
+  const refreshCharactersDebounced = debounce(() => {
+    refreshCharacters();
+  }, DEFAULT_PRINT_TIMEOUT);
+
   async function refreshCharacters() {
     try {
       const newCharacters = await fetchAllCharacters();
@@ -61,7 +67,9 @@ export const useCharacterStore = defineStore('character', () => {
       if (previousAvatar) {
         const newIndex = characters.value.findIndex((c) => c.avatar === previousAvatar);
         if (newIndex !== -1) {
-          await selectCharacterById(newIndex, { switchMenu: false });
+          if (activeCharacterIndex.value !== newIndex) {
+            await selectCharacterById(newIndex, { switchMenu: false });
+          }
         } else {
           toast.error('The active character is no longer available. The page will be refreshed to prevent data loss.');
           setTimeout(() => location.reload(), 3000);
@@ -112,6 +120,96 @@ export const useCharacterStore = defineStore('character', () => {
     }
   }
 
+  async function saveActiveCharacter(characterData: Partial<Character>) {
+    const avatar = activeCharacter.value?.avatar;
+    if (!avatar || !activeCharacter.value) {
+      toast.error('Cannot save character: No active character or avatar found.');
+      console.error('Attempted to save character without an active character reference.');
+      return;
+    }
+
+    const oldCharacter = activeCharacter.value;
+    const changes: Partial<Character> & { data?: any } = {};
+
+    for (const key in characterData) {
+      const typedKey = key as keyof Character;
+      const newValue = characterData[typedKey];
+      const oldValue = oldCharacter[typedKey];
+
+      if (typedKey === 'data') {
+        // Handle 'data' object with a granular diff
+        const dataChanges: Record<string, any> = {};
+        const newData = (newValue || {}) as Record<string, any>;
+        const oldData = (oldValue || {}) as Record<string, any>;
+
+        // Check all keys from both old and new data to catch additions, changes, and removals
+        const allDataKeys = new Set([...Object.keys(newData), ...Object.keys(oldData)]);
+
+        for (const subKey of allDataKeys) {
+          const newSubValue = newData[subKey];
+          const oldSubValue = oldData[subKey];
+
+          // A robust stringify comparison handles primitives, arrays, and nested objects within 'data'.
+          if (JSON.stringify(newSubValue) !== JSON.stringify(oldSubValue)) {
+            dataChanges[subKey] = newSubValue;
+          }
+        }
+
+        if (Object.keys(dataChanges).length > 0) {
+          changes.data = dataChanges;
+        }
+      } else {
+        // Handle all other top-level properties (including arrays like 'tags')
+        if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+          // @ts-ignore - This is safe because we're iterating over keys of characterData
+          changes[typedKey] = newValue;
+        }
+      }
+    }
+
+    if (Object.keys(changes).length === 0) {
+      return;
+    }
+
+    // Ensure the `avatar` property (which is the filename) is included for the API call.
+    const dataToSave = {
+      ...changes,
+      avatar: avatar,
+    };
+
+    try {
+      await saveCharacter(dataToSave);
+
+      // After saving, fetch the updated character data to ensure consistency.
+      const updatedCharacter = await fetchCharacterByAvatar(avatar);
+      updatedCharacter.name = DOMPurify.sanitize(updatedCharacter.name);
+
+      if (activeCharacterIndex.value !== null) {
+        characters.value[activeCharacterIndex.value] = updatedCharacter;
+      } else {
+        // This case should ideally not happen if a character is active, but as a fallback:
+        const index = characters.value.findIndex((c) => c.avatar === avatar);
+        if (index !== -1) {
+          characters.value[index] = updatedCharacter;
+        } else {
+          // If character is somehow not in the list, we might need to refresh entirely.
+          // For now, log an error.
+          console.error(`Saved character with avatar ${avatar} not found in local list.`);
+          toast.warning('Character saved, but local list might be out of sync. Consider refreshing.');
+        }
+      }
+
+      // TODO: Update character list if we changed tag or something.
+    } catch (error) {
+      console.error('Failed to save character:', error);
+      toast.error('Failed to save character.');
+    }
+  }
+
+  const saveCharacterDebounced = debounce((characterData: Partial<Character>) => {
+    saveActiveCharacter(characterData);
+  }, DEFAULT_SAVE_EDIT_TIMEOUT);
+
   return {
     characters,
     activeCharacterIndex,
@@ -121,5 +219,8 @@ export const useCharacterStore = defineStore('character', () => {
     displayableEntities,
     refreshCharacters,
     selectCharacterById,
+    saveActiveCharacter,
+    refreshCharactersDebounced,
+    saveCharacterDebounced,
   };
 });

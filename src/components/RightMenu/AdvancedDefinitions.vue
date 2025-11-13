@@ -1,19 +1,67 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, computed } from 'vue';
 import type { PropType } from 'vue';
 import { depth_prompt_depth_default, depth_prompt_role_default, talkativeness_default } from '../../constants';
 import type { Character, PopupOptions } from '../../types';
 import { POPUP_TYPE } from '../../types';
 import Popup from '../Popup/Popup.vue';
-import { DebounceTimeout } from '../../constants';
 
 const props = defineProps({
-  characterData: { type: Object as PropType<Partial<Character>>, required: true },
+  modelValue: { type: Object as PropType<Partial<Character>>, required: true },
 });
-const emit = defineEmits(['close', 'update']);
+const emit = defineEmits(['close', 'update:modelValue']);
 
-const localFormData = ref<Partial<Character> & { data?: any }>({});
-const autoSaveTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+// Helper function to update nested properties without mutating props directly
+function updateValue(path: string, value: any) {
+  // Deep clone to avoid prop mutation.
+  const newModelValue = JSON.parse(JSON.stringify(props.modelValue));
+
+  // Ensure path exists in the new object
+  const fields = path.split('.');
+  let current: any = newModelValue;
+  for (let i = 0; i < fields.length - 1; i++) {
+    const field = fields[i];
+    if (current[field] === undefined || current[field] === null) {
+      current[field] = {};
+    }
+    current = current[field];
+  }
+
+  current[fields[fields.length - 1]] = value;
+
+  // The parent's v-model will handle this event
+  emit('update:modelValue', newModelValue);
+}
+
+// Helper function to safely get nested values from the prop
+function getValue(path: string): any {
+  const fields = path.split('.');
+  let current: any = props.modelValue;
+  for (const field of fields) {
+    if (current && typeof current === 'object' && field in current) {
+      current = current[field];
+    } else {
+      return undefined; // Return undefined if path is not found
+    }
+  }
+  return current;
+}
+
+// Initialize missing data structures on the prop if they don't exist
+// This is done once when the component is created to avoid template errors.
+if (!props.modelValue.data) {
+  props.modelValue.data = {};
+}
+if (!props.modelValue.data.depth_prompt) {
+  props.modelValue.data.depth_prompt = {
+    prompt: '',
+    depth: depth_prompt_depth_default,
+    role: depth_prompt_role_default,
+  };
+}
+if (props.modelValue.talkativeness === undefined) {
+  props.modelValue.talkativeness = talkativeness_default;
+}
 
 // Drawer states
 const isPromptOverridesOpen = ref(false);
@@ -72,81 +120,28 @@ function afterLeave(el: Element) {
   el.style.opacity = '0';
 }
 
-watch(
-  () => props.characterData,
-  (newData) => {
-    const dataCopy = JSON.parse(JSON.stringify(newData));
-    if (!dataCopy.data) {
-      dataCopy.data = {};
-    }
-    if (!dataCopy.data.depth_prompt) {
-      dataCopy.data.depth_prompt = {
-        prompt: '',
-        depth: depth_prompt_depth_default,
-        role: depth_prompt_role_default,
-      };
-    }
-    if (dataCopy.talkativeness === undefined) {
-      dataCopy.talkativeness = talkativeness_default;
-    }
-    localFormData.value = dataCopy;
-  },
-  { immediate: true, deep: true },
-);
-
-watch(
-  localFormData,
-  (newData) => {
-    if (autoSaveTimeout.value) clearTimeout(autoSaveTimeout.value);
-    autoSaveTimeout.value = setTimeout(() => {
-      emit('update', newData);
-    }, DebounceTimeout.RELAXED);
-  },
-  { deep: true },
-);
-
-const characterName = computed(() => localFormData.value.name);
+const characterName = computed(() => props.modelValue.name);
 const joinedTags = computed({
-  get: () => localFormData.value.tags?.join(', ') || '',
+  get: () => props.modelValue.tags?.join(', ') || '',
   set: (value) => {
-    localFormData.value.tags = value.split(',').map((t) => t.trim());
+    updateValue(
+      'tags',
+      value.split(',').map((t) => t.trim()),
+    );
   },
 });
 
 function openMaximizeEditor(fieldName: EditableField, title: string) {
   editingFieldName.value = fieldName;
   editorPopupTitle.value = `Editing: ${title}`;
-
-  let value = '';
-  const fields = fieldName.split('.');
-  let current: any = localFormData.value;
-  for (const field of fields) {
-    if (current && typeof current === 'object' && field in current) {
-      current = current[field];
-    } else {
-      current = undefined;
-      break;
-    }
-  }
-  value = current ?? '';
-
-  editorPopupValue.value = value;
+  editorPopupValue.value = getValue(fieldName) ?? '';
   editorPopupOptions.value = { wide: true, large: true, okButton: 'OK', cancelButton: false };
   isEditorPopupVisible.value = true;
 }
 
 function handleEditorSubmit({ value }: { value: string }) {
   if (editingFieldName.value) {
-    const fields = editingFieldName.value.split('.');
-    let current: any = localFormData.value;
-    for (let i = 0; i < fields.length - 1; i++) {
-      const field = fields[i];
-      if (!current[field]) {
-        current[field] = {};
-      }
-      current = current[field];
-    }
-    current[fields[fields.length - 1]] = value;
+    updateValue(editingFieldName.value, value);
   }
 }
 
@@ -157,7 +152,7 @@ function close() {
 
 <template>
   <div class="advanced-definitions-popup__wrapper" @click.self="close">
-    <div class="advanced-definitions-popup">
+    <div v-if="modelValue.data" class="advanced-definitions-popup">
       <header class="advanced-definitions-popup__header">
         <h3>{{ characterName }} - <span>Advanced Definitions</span></h3>
         <div class="advanced-definitions-popup__close-button fa-solid fa-circle-xmark" @click="close"></div>
@@ -198,7 +193,8 @@ function close() {
                     ></i>
                   </label>
                   <textarea
-                    v-model="localFormData.data.system_prompt"
+                    :value="modelValue.data.system_prompt"
+                    @input="updateValue('data.system_prompt', ($event.target as HTMLTextAreaElement).value)"
                     class="text-pole"
                     rows="3"
                     placeholder="Any contents here will replace the default Main Prompt."
@@ -215,7 +211,8 @@ function close() {
                     ></i>
                   </label>
                   <textarea
-                    v-model="localFormData.data.post_history_instructions"
+                    :value="modelValue.data.post_history_instructions"
+                    @input="updateValue('data.post_history_instructions', ($event.target as HTMLTextAreaElement).value)"
                     class="text-pole"
                     rows="3"
                     placeholder="Any contents here will replace the default Post-History Instructions."
@@ -254,7 +251,8 @@ function close() {
                   <div class="u-w-full">
                     <label>Created by</label>
                     <textarea
-                      v-model="localFormData.data.creator"
+                      :value="modelValue.data.creator"
+                      @input="updateValue('data.creator', ($event.target as HTMLTextAreaElement).value)"
                       class="text-pole"
                       rows="2"
                       placeholder="(Botmaker's name / Contact info)"
@@ -263,7 +261,8 @@ function close() {
                   <div class="u-w-full">
                     <label>Character Version</label>
                     <textarea
-                      v-model="localFormData.data.character_version"
+                      :value="modelValue.data.character_version"
+                      @input="updateValue('data.character_version', ($event.target as HTMLTextAreaElement).value)"
                       class="text-pole"
                       rows="2"
                       placeholder="(If you want to track character versions)"
@@ -281,7 +280,8 @@ function close() {
                       ></i>
                     </label>
                     <textarea
-                      v-model="localFormData.data.creator_notes"
+                      :value="modelValue.data.creator_notes"
+                      @input="updateValue('data.creator_notes', ($event.target as HTMLTextAreaElement).value)"
                       class="text-pole"
                       rows="4"
                       placeholder="(Describe the bot, give use tips, etc.)"
@@ -315,7 +315,8 @@ function close() {
             ></i>
           </label>
           <textarea
-            v-model="localFormData.personality"
+            :value="modelValue.personality"
+            @input="updateValue('personality', ($event.target as HTMLTextAreaElement).value)"
             class="text-pole"
             rows="4"
             placeholder="(A brief description of the personality)"
@@ -332,7 +333,8 @@ function close() {
             ></i>
           </label>
           <textarea
-            v-model="localFormData.scenario"
+            :value="modelValue.scenario"
+            @input="updateValue('scenario', ($event.target as HTMLTextAreaElement).value)"
             class="text-pole"
             rows="4"
             placeholder="(Circumstances and context of the interaction)"
@@ -350,7 +352,8 @@ function close() {
               ></i>
             </label>
             <textarea
-              v-model="localFormData.data.depth_prompt.prompt"
+              :value="modelValue.data.depth_prompt!.prompt"
+              @input="updateValue('data.depth_prompt.prompt', ($event.target as HTMLTextAreaElement).value)"
               class="text-pole"
               rows="5"
               placeholder="(Text to be inserted in-chat)"
@@ -359,14 +362,19 @@ function close() {
           <div>
             <label>@ Depth</label>
             <input
-              v-model.number="localFormData.data.depth_prompt.depth"
+              :value="modelValue.data.depth_prompt!.depth"
+              @input="updateValue('data.depth_prompt.depth', ($event.target as HTMLInputElement).valueAsNumber)"
               type="number"
               min="0"
               max="9999"
               class="text-pole"
             />
             <label>Role</label>
-            <select v-model="localFormData.data.depth_prompt.role" class="text-pole">
+            <select
+              :value="modelValue.data.depth_prompt!.role"
+              @change="updateValue('data.depth_prompt.role', ($event.target as HTMLSelectElement).value)"
+              class="text-pole"
+            >
               <option value="system">System</option>
               <option value="user">User</option>
               <option value="assistant">Assistant</option>
@@ -376,7 +384,14 @@ function close() {
         <div class="advanced-definitions-popup__section">
           <label>Talkativeness</label>
           <small>How often the character speaks in group chats!</small>
-          <input v-model.number="localFormData.talkativeness" type="range" min="0" max="1" step="0.05" />
+          <input
+            :value="modelValue.talkativeness"
+            @input="updateValue('talkativeness', ($event.target as HTMLInputElement).valueAsNumber)"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+          />
           <div class="slider-hint">
             <span>Shy</span>
             <span>Normal</span>
@@ -395,7 +410,8 @@ function close() {
           </label>
           <small>Important to set the character's writing style.</small>
           <textarea
-            v-model="localFormData.mes_example"
+            :value="modelValue.mes_example"
+            @input="updateValue('mes_example', ($event.target as HTMLTextAreaElement).value)"
             class="text-pole"
             rows="6"
             placeholder="(Examples of chat dialog. Begin each example with <START> on a new line.)"

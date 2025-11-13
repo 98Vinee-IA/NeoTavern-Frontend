@@ -29,3 +29,16 @@ export async function fetchCharacterByAvatar(avatar: string): Promise<Character>
 
   return await response.json();
 }
+
+export async function saveCharacter(character: Partial<Character> & { avatar: string }): Promise<void> {
+  if (!character.avatar) {
+    throw new Error('`character.avatar` (character filename) is required to save character data.');
+  }
+
+  await fetch('/api/characters/merge-attributes', {
+    method: 'POST',
+    headers: getRequestHeaders(),
+    body: JSON.stringify(character),
+    cache: 'no-cache',
+  });
+}
