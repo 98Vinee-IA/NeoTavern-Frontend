@@ -76,7 +76,7 @@ export interface ChatMessage {
   force_avatar?: string;
   original_avatar?: string;
   swipes?: string[];
-  swipe_info?: Record<string, any>;
+  swipe_info?: Array<any>;
   swipe_id?: number;
   extra?: {
     reasoning?: string;

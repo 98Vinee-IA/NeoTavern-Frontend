@@ -19,3 +19,26 @@ export async function fetchChat(character: Character, chatMetadata: Record<strin
 
   return await response.json();
 }
+
+export async function saveChat(character: Character, chatToSave: any[]): Promise<void> {
+  const response = await fetch('/api/chats/save', {
+    method: 'POST',
+    headers: getRequestHeaders(),
+    body: JSON.stringify({
+      ch_name: character.name,
+      file_name: character.chat,
+      chat: chatToSave,
+      avatar_url: character.avatar,
+      force: false, // For now, we won't handle the integrity check failure popup
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    // TODO: Handle integrity check failure with a user prompt
+    if (errorData?.error === 'integrity') {
+      throw new Error('Chat integrity check failed. Data may be out of sync.');
+    }
+    throw new Error('Failed to save chat history');
+  }
+}

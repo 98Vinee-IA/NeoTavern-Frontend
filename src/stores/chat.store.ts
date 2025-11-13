@@ -3,9 +3,12 @@ import { ref } from 'vue';
 import type { ChatMessage } from '../types';
 import { usePromptStore } from './prompt.store';
 import { useCharacterStore } from './character.store';
-import { fetchChat } from '../api/chat';
+import { useUiStore } from './ui.store';
+import { fetchChat, saveChat as apiSaveChat } from '../api/chat';
 import { humanizedDateTime } from '../utils/date';
 import { uuidv4 } from '../utils/common';
+import { getFirstMessage } from '../utils/chat';
+import { toast } from '../composables/useToast';
 
 export const useChatStore = defineStore('chat', () => {
   const chat = ref<Array<ChatMessage>>([]);
@@ -19,6 +22,43 @@ export const useChatStore = defineStore('chat', () => {
     // TODO: Integrate group store later
     const characterStore = useCharacterStore();
     return characterStore.activeCharacter?.chat;
+  }
+
+  async function saveChat() {
+    const uiStore = useUiStore();
+    if (uiStore.isChatSaving) {
+      console.warn('Chat is already saving.');
+      return;
+    }
+
+    const characterStore = useCharacterStore();
+    const activeCharacter = characterStore.activeCharacter;
+    if (!activeCharacter) {
+      toast.error('Cannot save: No active character selected.');
+      return;
+    }
+
+    try {
+      uiStore.isChatSaving = true;
+
+      const chatToSave = [
+        {
+          user_name: uiStore.activePlayerName,
+          character_name: activeCharacter.name,
+          create_date: chatCreateDate.value,
+          chat_metadata: chatMetadata.value,
+        },
+        ...chat.value,
+      ];
+
+      await apiSaveChat(activeCharacter, chatToSave);
+      // TODO: Save token cache and itemized prompts
+    } catch (error: any) {
+      console.error('Failed to save chat:', error);
+      toast.error(error.message || 'An unknown error occurred while saving the chat.');
+    } finally {
+      uiStore.isChatSaving = false;
+    }
   }
 
   async function clearChat() {
@@ -84,15 +124,23 @@ export const useChatStore = defineStore('chat', () => {
       // ];
 
       if (response.length > 0) {
-        // Assuming the first element contains metadata
+        // Chat exists, load it
         const metadataItem = response.shift();
         chatCreateDate.value = metadataItem?.create_date ?? null;
         chatMetadata.value = metadataItem?.chat_metadata ?? {};
-        chat.value = response as ChatMessage[];
+        chat.value = response;
       } else {
+        // No chat exists, create a new one
         chatCreateDate.value = humanizedDateTime();
         chatMetadata.value = {};
         chat.value = [];
+
+        const firstMessage = getFirstMessage(activeCharacter);
+        if (firstMessage.mes) {
+          chat.value.push(firstMessage);
+          // Save the newly created chat to the server
+          await saveChat();
+        }
       }
 
       if (!chatMetadata.value['integrity']) {
@@ -105,6 +153,7 @@ export const useChatStore = defineStore('chat', () => {
       await promptStore.loadItemizedPrompts(getCurrentChatId());
     } catch (error) {
       console.error('Failed to refresh chat:', error);
+      toast.error('Failed to load chat.');
     }
   }
 
@@ -117,5 +166,6 @@ export const useChatStore = defineStore('chat', () => {
     saveMetadataTimeout,
     clearChat,
     refreshChat,
+    saveChat,
   };
 });
