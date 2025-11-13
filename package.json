@@ -22,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^22.18.1",
     "@types/dompurify": "^3.2.0",
+    "@types/showdown": "^2.0.6",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
     "@vitejs/plugin-vue": "^6.0.0",
@@ -38,7 +39,6 @@
   "dependencies": {
     "@adobe/css-tools": "^4.4.4",
     "@fortawesome/fontawesome-free": "^7.1.0",
-    "@types/showdown": "^2.0.6",
     "bowser": "^2.12.1",
     "cropperjs": "^2.1.0",
     "dompurify": "^3.3.0",

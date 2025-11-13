@@ -13,9 +13,6 @@ importers:
       '@fortawesome/fontawesome-free':
         specifier: ^7.1.0
         version: 7.1.0
-      '@types/showdown':
-        specifier: ^2.0.6
-        version: 2.0.6
       bowser:
         specifier: ^2.12.1
         version: 2.12.1
@@ -44,6 +41,9 @@ importers:
       '@types/node':
         specifier: ^22.18.1
         version: 22.18.1
+      '@types/showdown':
+        specifier: ^2.0.6
+        version: 2.0.6
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.46.4
         version: 8.46.4(@typescript-eslint/parser@8.46.4(eslint@9.39.1(jiti@2.5.1))(typescript@5.9.2))(eslint@9.39.1(jiti@2.5.1))(typescript@5.9.2)
