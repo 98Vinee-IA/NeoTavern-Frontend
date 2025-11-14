@@ -1,5 +1,3 @@
-// generate-i18n-types.js
-
 import fs from 'fs';
 import path from 'path';
 
