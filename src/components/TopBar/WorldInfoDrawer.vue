@@ -288,7 +288,7 @@ function updateEntry(index: number, newEntry: WorldInfoEntryType) {
           </div>
           <small>{{ t('worldInfo.or') }}</small>
           <select
-            class="text-pole"
+            class="text-pole world-editor__book-selector"
             :value="worldInfoStore.editingBookName"
             @change="worldInfoStore.selectBookForEditing(($event.target as HTMLSelectElement).value)"
           >
@@ -333,11 +333,11 @@ function updateEntry(index: number, newEntry: WorldInfoEntryType) {
             <div class="menu-button fa-solid fa-compress" :title="t('worldInfo.closeAllEntries')"></div>
             <input
               type="search"
-              class="text-pole"
+              class="text-pole world-editor__entry-search"
               :placeholder="t('worldInfo.searchPlaceholder')"
               v-model="worldInfoStore.searchTerm"
             />
-            <select class="text-pole" v-model="worldInfoStore.sortOrder">
+            <select class="text-pole world-editor__sort-order" v-model="worldInfoStore.sortOrder">
               <option value="priority">{{ t('worldInfo.sorting.priority') }}</option>
               <option value="title:asc">{{ t('worldInfo.sorting.titleAsc') }}</option>
               <option value="title:desc">{{ t('worldInfo.sorting.titleDesc') }}</option>

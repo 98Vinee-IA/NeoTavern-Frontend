@@ -40,8 +40,10 @@
 
   &__section {
     display: flex;
-    flex-direction: column;
     gap: 15px;
+    .range-block {
+      flex: 1;
+    }
   }
 
   .wi-settings-grid {
@@ -71,6 +73,10 @@
     flex-direction: column;
     gap: 10px;
 
+    &__book-selector {
+      width: unset;
+    }
+
     &__controls {
       display: flex;
       flex-wrap: wrap;
@@ -81,6 +87,15 @@
         flex-grow: 1;
         margin: 0;
       }
+    }
+
+    &__entries-controls {
+      display: flex;
+    }
+
+    &__entry-search,
+    &__sort-order {
+      flex: 1;
     }
   }
 }
