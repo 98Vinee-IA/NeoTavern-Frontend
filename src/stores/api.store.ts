@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref, watch, computed } from 'vue';
 import type { OaiPrompt, OaiPromptOrderConfig, OaiSettings } from '../types';
-import { chat_completion_sources } from '../types';
+import { POPUP_RESULT, POPUP_TYPE, chat_completion_sources } from '../types';
 import { fetchChatCompletionStatus } from '../api/connection';
 import { toast } from '../composables/useToast';
 import { useSettingsStore } from './settings.store';
 import { defaultsDeep, isEqual } from 'lodash-es';
 import i18n from '../i18n';
+import { fetchAllPresets, savePreset, deletePreset as apiDeletePreset, type Preset } from '../api/presets';
+import { usePopupStore } from './popup.store';
+import { downloadFile, readFileAsText } from '../utils/file';
 
 export const useApiStore = defineStore('api', () => {
   const settingsStore = useSettingsStore();
@@ -16,6 +19,7 @@ export const useApiStore = defineStore('api', () => {
   const onlineStatus = ref('Not connected...');
   const isConnecting = ref(false);
   const modelList = ref<any[]>([]);
+  const presets = ref<Record<string, Preset[]>>({});
 
   const defaultOaiSettings: Partial<OaiSettings> = {
     chat_completion_source: chat_completion_sources.OPENAI,
@@ -137,10 +141,25 @@ export const useApiStore = defineStore('api', () => {
   // When the main API or source changes, try to reconnect
   watch(
     () => [mainApi.value, oaiSettings.value.chat_completion_source],
-    () => {
-      // Avoid connecting if settings are not initialized yet
-      if (settingsStore.powerUser.send_on_enter === undefined) return;
-      connect();
+    ([newMainApi, newSource], [oldMainApi, oldSource]) => {
+      if (settingsStore.settingsInitializing) return;
+      // Only connect if the actual values have changed
+      if (newMainApi !== oldMainApi || newSource !== oldSource) {
+        connect();
+      }
+    },
+  );
+
+  // When the user selects a different preset, apply its settings
+  watch(
+    () => oaiSettings.value.preset_settings_openai,
+    (newPresetName) => {
+      if (settingsStore.settingsInitializing || !newPresetName) return;
+
+      const preset = presets.value.openai?.find((p) => p.name === newPresetName);
+      if (preset) {
+        Object.assign(oaiSettings.value, preset.preset);
+      }
     },
   );
 
@@ -198,5 +217,159 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
-  return { mainApi, oaiSettings, onlineStatus, isConnecting, connect, activeModel, modelList, groupedOpenRouterModels };
+  async function loadPresetsForApi(apiId: string) {
+    try {
+      presets.value[apiId] = await fetchAllPresets(apiId);
+    } catch (error) {
+      console.error(`Failed to load presets for ${apiId}:`, error);
+      toast.error(`Could not load presets for ${apiId}.`);
+    }
+  }
+
+  async function saveCurrentPresetAs(apiId: string, name: string) {
+    try {
+      // Create a clean preset object from current settings
+      const presetData: Partial<OaiSettings> = {
+        temp_openai: oaiSettings.value.temp_openai,
+        freq_pen_openai: oaiSettings.value.freq_pen_openai,
+        pres_pen_openai: oaiSettings.value.pres_pen_openai,
+        top_p_openai: oaiSettings.value.top_p_openai,
+        top_k_openai: oaiSettings.value.top_k_openai,
+        openai_max_context: oaiSettings.value.openai_max_context,
+        openai_max_tokens: oaiSettings.value.openai_max_tokens,
+        stream_openai: oaiSettings.value.stream_openai,
+        // TODO: Add all other settings that should be part of a preset
+      };
+      await savePreset(apiId, name, presetData);
+      await loadPresetsForApi(apiId);
+      oaiSettings.value.preset_settings_openai = name;
+      toast.success(`Preset "${name}" saved.`);
+    } catch (error) {
+      toast.error(`Failed to save preset "${name}".`);
+    }
+  }
+
+  function updateCurrentPreset(apiId: string, name?: string) {
+    if (!name || name === 'Default') {
+      toast.warning('Cannot update the default preset. Please save as a new preset.');
+      return;
+    }
+    saveCurrentPresetAs(apiId, name);
+  }
+
+  async function renamePreset(apiId: string, oldName?: string) {
+    if (!oldName || oldName === 'Default') {
+      toast.warning('Cannot rename the default preset.');
+      return;
+    }
+    const popupStore = usePopupStore();
+    const { result, value: newName } = await popupStore.show({
+      title: 'Rename Preset',
+      type: POPUP_TYPE.INPUT,
+      inputValue: oldName,
+    });
+
+    if (result === POPUP_RESULT.AFFIRMATIVE && newName && newName.trim() && newName !== oldName) {
+      try {
+        const presetToRename = presets.value[apiId]?.find((p) => p.name === oldName);
+        if (!presetToRename) throw new Error('Preset not found');
+
+        // Rename is a delete and save operation
+        await apiDeletePreset(apiId, oldName);
+        await savePreset(apiId, newName, presetToRename.preset);
+
+        toast.success(`Preset renamed to "${newName}".`);
+        await loadPresetsForApi(apiId);
+        oaiSettings.value.preset_settings_openai = newName;
+      } catch (error) {
+        toast.error('Failed to rename preset.');
+        console.error(error);
+      }
+    }
+  }
+
+  async function deletePreset(apiId: string, name?: string) {
+    if (!name || name === 'Default') {
+      toast.warning('Cannot delete the default preset.');
+      return;
+    }
+    const popupStore = usePopupStore();
+    const { result } = await popupStore.show({
+      title: 'Confirm Deletion',
+      content: `Are you sure you want to delete the preset "<b>${name}</b>"?`,
+      type: POPUP_TYPE.CONFIRM,
+    });
+
+    if (result === POPUP_RESULT.AFFIRMATIVE) {
+      try {
+        await apiDeletePreset(apiId, name);
+        toast.success(`Preset "${name}" deleted.`);
+        if (oaiSettings.value.preset_settings_openai === name) {
+          oaiSettings.value.preset_settings_openai = 'Default';
+        }
+        await loadPresetsForApi(apiId);
+      } catch (error) {
+        toast.error(`Failed to delete preset "${name}".`);
+      }
+    }
+  }
+
+  function importPreset(apiId: string) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const content = await readFileAsText(file);
+        const presetData = JSON.parse(content);
+        const name = file.name.replace(/\.json$/, '');
+        // TODO: Add confirmation for overwriting existing preset, like original ST
+        await savePreset(apiId, name, presetData);
+        toast.success(`Preset "${name}" imported.`);
+        await loadPresetsForApi(apiId);
+        oaiSettings.value.preset_settings_openai = name;
+      } catch (error) {
+        toast.error('Failed to import preset. The file might be invalid.');
+        console.error(error);
+      }
+    };
+    input.click();
+  }
+
+  function exportPreset(apiId: string, name?: string) {
+    if (!name) {
+      toast.error('No preset selected to export.');
+      return;
+    }
+    const presetToExport = presets.value[apiId]?.find((p) => p.name === name);
+    if (!presetToExport) {
+      toast.error(`Preset "${name}" not found.`);
+      return;
+    }
+
+    const content = JSON.stringify(presetToExport.preset, null, 2);
+    downloadFile(content, `${name}.json`, 'application/json');
+  }
+
+  return {
+    mainApi,
+    oaiSettings,
+    onlineStatus,
+    isConnecting,
+    connect,
+    activeModel,
+    modelList,
+    groupedOpenRouterModels,
+    presets,
+    loadPresetsForApi,
+    saveCurrentPresetAs,
+    updateCurrentPreset,
+    renamePreset,
+    deletePreset,
+    importPreset,
+    exportPreset,
+  };
 });

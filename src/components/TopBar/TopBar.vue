@@ -4,6 +4,7 @@ import RightMenu from '../RightMenu/RightMenu.vue';
 import ExtensionsDrawer from './ExtensionsDrawer.vue';
 import UserSettingsDrawer from './UserSettingsDrawer.vue';
 import ApiConnectionsDrawer from './ApiConnectionsDrawer.vue';
+import AiConfigDrawer from './AiConfigDrawer.vue';
 
 // Reactive state to control which drawer is open
 const activeDrawer = ref<string | null>(null);
@@ -30,7 +31,7 @@ function toggleDrawer(drawerName: string) {
           ></div>
         </button>
         <div class="nav-item__content drawer-pane--fill-left" :class="{ active: activeDrawer === 'ai-config' }">
-          <!-- AI Config Content -->
+          <AiConfigDrawer />
         </div>
       </div>
       <div class="nav-item">

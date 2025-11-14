@@ -10,6 +10,49 @@
     "personaManagement": "Persona Management",
     "characterManagement": "Character Management"
   },
+  "aiConfig": {
+    "manualInputNote": "Click slider numbers to input manually.",
+    "docsLinkTooltip": "Documentation on sampling parameters.",
+    "presets": {
+      "chatCompletion": {
+        "label": "Chat Completion Presets"
+      },
+      "import": "Import preset",
+      "export": "Export preset",
+      "delete": "Delete the preset",
+      "update": "Update current preset",
+      "rename": "Rename current preset",
+      "saveAs": "Save preset as",
+      "newName": "Enter new preset name:"
+    },
+    "contextSize": {
+      "label": "Context Size (tokens)",
+      "unlocked": "Unlocked",
+      "unlockedTooltip": "Only enable this if your model supports context sizes greater than the slider's default maximum."
+    },
+    "maxResponseLength": {
+      "label": "Max Response Length (tokens)"
+    },
+    "streaming": {
+      "label": "Streaming",
+      "description": "Display the response bit by bit as it is generated. When this is off, responses will be displayed all at once when they are complete."
+    },
+    "temperature": {
+      "label": "Temperature"
+    },
+    "freqPenalty": {
+      "label": "Frequency Penalty"
+    },
+    "presPenalty": {
+      "label": "Presence Penalty"
+    },
+    "topK": {
+      "label": "Top K"
+    },
+    "topP": {
+      "label": "Top P"
+    }
+  },
   "userSettings": {
     "title": "User Settings",
     "searchPlaceholder": "Search Settings",

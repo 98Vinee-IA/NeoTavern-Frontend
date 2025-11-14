@@ -231,6 +231,60 @@ export interface OaiPromptOrderConfig {
   }[];
 }
 
+export interface AiConfigCondition {
+  api?: string | string[];
+  source?: ChatCompletionSource | ChatCompletionSource[];
+  source_not?: ChatCompletionSource | ChatCompletionSource[];
+}
+
+// TODO: Some values might change based on model/source, e.g., max tokens
+export interface AiConfigItem {
+  id?: string; // Corresponds to a key in oaiSettings, e.g., 'temp_openai'
+  widget:
+    | 'preset-manager'
+    | 'slider'
+    | 'number-input'
+    | 'checkbox'
+    | 'select'
+    | 'textarea'
+    | 'custom-component'
+    | 'info-display'
+    | 'hr'
+    | 'header';
+  apiId?: string; // For preset manager to know which API it controls
+  label?: string; // i18n key for the label
+  description?: string; // i18n key for text below the control
+  infoTooltip?: string; // i18n key for the (i) icon
+  infoLink?: string; // URL for docs link
+  conditions?: AiConfigCondition;
+
+  // For slider/number
+  min?: number;
+  max?: number;
+  step?: number;
+  maxUnlockedId?: string;
+  unlockLabel?: string;
+  unlockTooltip?: string;
+
+  // for select
+  options?: { value: string | number; label: string }[];
+
+  // for custom components
+  component?: any;
+
+  // For layout
+  cssClass?: string;
+
+  // For info-display
+  valueGetter?: (apiStore: any) => string;
+}
+
+export interface AiConfigSection {
+  id: string;
+  conditions?: AiConfigCondition;
+  items: AiConfigItem[];
+}
+
 export interface OaiSettings {
   chat_completion_source: ChatCompletionSource;
   openai_model: string;
@@ -239,18 +293,25 @@ export interface OaiSettings {
   reverse_proxy: string;
   proxy_password: string;
 
-  // For generation
+  // Generation settings
   preset_settings_openai?: string;
   temp_openai?: number;
   freq_pen_openai?: number;
   pres_pen_openai?: number;
   top_p_openai?: number;
   top_k_openai?: number;
+  top_a_openai?: number;
+  min_p_openai?: number;
+  repetition_penalty_openai?: number;
   stream_openai?: boolean;
   openai_max_context?: number;
+  max_context_unlocked?: boolean;
   openai_max_tokens?: number;
   prompts?: OaiPrompt[];
   prompt_order?: OaiPromptOrderConfig[];
+  wrap_in_quotes?: boolean;
+  continue_prefill?: boolean;
+  squash_system_messages?: boolean;
 }
 
 // --- Settings Types ---
