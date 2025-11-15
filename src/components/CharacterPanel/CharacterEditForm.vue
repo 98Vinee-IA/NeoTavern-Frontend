@@ -141,7 +141,7 @@ function peekSpoilerMode() {
 
 function openMaximizeEditor(fieldName: EditableField, title: string) {
   editingFieldName.value = fieldName;
-  editorPopupTitle.value = t('advancedDefinitions.editingTitle', { title });
+  editorPopupTitle.value = t('characterEditor.advanced.editingTitle', { title });
   editorPopupValue.value = get(formData.value, fieldName) ?? '';
   editorPopupOptions.value = { wide: true, large: true, okButton: 'OK', cancelButton: false };
   isEditorPopupVisible.value = true;
@@ -267,6 +267,9 @@ function handleEditorSubmit({ value }: { value: string }) {
             @input="updateValue('description', ($event.target as HTMLTextAreaElement).value)"
             :placeholder="t('characterEditor.descriptionPlaceholder')"
           ></textarea>
+          <div class="token-counter">
+            {{ t('common.tokens') }}: <span>{{ tokenCounts['description'] || 0 }}</span>
+          </div>
         </div>
 
         <div class="form-section form-section--text-area">
@@ -286,15 +289,18 @@ function handleEditorSubmit({ value }: { value: string }) {
             @input="updateValue('first_mes', ($event.target as HTMLTextAreaElement).value)"
             :placeholder="t('characterEditor.firstMessagePlaceholder')"
           ></textarea>
+          <div class="token-counter">
+            {{ t('common.tokens') }}: <span>{{ tokenCounts['first_mes'] || 0 }}</span>
+          </div>
         </div>
         <hr />
         <div class="form-section">
           <label>
-            <span>{{ t('advancedDefinitions.personality') }}</span>
+            <span>{{ t('characterEditor.advanced.personality') }}</span>
             <i
               class="editor-maximize-icon fa-solid fa-maximize"
               :title="t('characterEditor.expandEditor')"
-              @click="openMaximizeEditor('personality', t('advancedDefinitions.personality'))"
+              @click="openMaximizeEditor('personality', t('characterEditor.advanced.personality'))"
             ></i>
           </label>
           <textarea
@@ -302,7 +308,7 @@ function handleEditorSubmit({ value }: { value: string }) {
             @input="updateValue('personality', ($event.target as HTMLTextAreaElement).value)"
             class="text-pole"
             rows="4"
-            :placeholder="t('advancedDefinitions.personalityPlaceholder')"
+            :placeholder="t('characterEditor.advanced.personalityPlaceholder')"
           ></textarea>
           <div class="token-counter">
             {{ t('common.tokens') }}: <span>{{ tokenCounts['personality'] || 0 }}</span>
@@ -310,11 +316,11 @@ function handleEditorSubmit({ value }: { value: string }) {
         </div>
         <div class="form-section">
           <label>
-            <span>{{ t('advancedDefinitions.scenario') }}</span>
+            <span>{{ t('characterEditor.advanced.scenario') }}</span>
             <i
               class="editor-maximize-icon fa-solid fa-maximize"
               :title="t('characterEditor.expandEditor')"
-              @click="openMaximizeEditor('scenario', t('advancedDefinitions.scenario'))"
+              @click="openMaximizeEditor('scenario', t('characterEditor.advanced.scenario'))"
             ></i>
           </label>
           <textarea
@@ -322,7 +328,7 @@ function handleEditorSubmit({ value }: { value: string }) {
             @input="updateValue('scenario', ($event.target as HTMLTextAreaElement).value)"
             class="text-pole"
             rows="4"
-            :placeholder="t('advancedDefinitions.scenarioPlaceholder')"
+            :placeholder="t('characterEditor.advanced.scenarioPlaceholder')"
           ></textarea>
           <div class="token-counter">
             {{ t('common.tokens') }}: <span>{{ tokenCounts['scenario'] || 0 }}</span>
@@ -331,11 +337,11 @@ function handleEditorSubmit({ value }: { value: string }) {
         <div class="form-section character-note">
           <div class="u-w-full">
             <label>
-              <span>{{ t('advancedDefinitions.characterNote') }}</span>
+              <span>{{ t('characterEditor.advanced.characterNote') }}</span>
               <i
                 class="editor-maximize-icon fa-solid fa-maximize"
                 :title="t('characterEditor.expandEditor')"
-                @click="openMaximizeEditor('data.depth_prompt.prompt', t('advancedDefinitions.characterNote'))"
+                @click="openMaximizeEditor('data.depth_prompt.prompt', t('characterEditor.advanced.characterNote'))"
               ></i>
             </label>
             <textarea
@@ -343,11 +349,11 @@ function handleEditorSubmit({ value }: { value: string }) {
               @input="updateValue('data.depth_prompt.prompt', ($event.target as HTMLTextAreaElement).value)"
               class="text-pole"
               rows="5"
-              :placeholder="t('advancedDefinitions.characterNotePlaceholder')"
+              :placeholder="t('characterEditor.advanced.characterNotePlaceholder')"
             ></textarea>
           </div>
           <div>
-            <label>{{ t('advancedDefinitions.depth') }}</label>
+            <label>{{ t('characterEditor.advanced.depth') }}</label>
             <input
               :value="formData.data.depth_prompt.depth"
               @input="updateValue('data.depth_prompt.depth', ($event.target as HTMLInputElement).valueAsNumber)"
@@ -356,21 +362,21 @@ function handleEditorSubmit({ value }: { value: string }) {
               max="9999"
               class="text-pole"
             />
-            <label>{{ t('advancedDefinitions.role') }}</label>
+            <label>{{ t('characterEditor.advanced.role') }}</label>
             <select
               :value="formData.data.depth_prompt.role"
               @change="updateValue('data.depth_prompt.role', ($event.target as HTMLSelectElement).value)"
               class="text-pole"
             >
-              <option value="system">{{ t('advancedDefinitions.roles.system') }}</option>
-              <option value="user">{{ t('advancedDefinitions.roles.user') }}</option>
-              <option value="assistant">{{ t('advancedDefinitions.roles.assistant') }}</option>
+              <option value="system">{{ t('characterEditor.advanced.roles.system') }}</option>
+              <option value="user">{{ t('characterEditor.advanced.roles.user') }}</option>
+              <option value="assistant">{{ t('characterEditor.advanced.roles.assistant') }}</option>
             </select>
           </div>
         </div>
         <div class="form-section">
-          <label>{{ t('advancedDefinitions.talkativeness') }}</label>
-          <small>{{ t('advancedDefinitions.talkativenessHint') }}</small>
+          <label>{{ t('characterEditor.advanced.talkativeness') }}</label>
+          <small>{{ t('characterEditor.advanced.talkativenessHint') }}</small>
           <input
             :value="formData.talkativeness"
             @input="updateValue('talkativeness', ($event.target as HTMLInputElement).valueAsNumber)"
@@ -380,28 +386,28 @@ function handleEditorSubmit({ value }: { value: string }) {
             step="0.05"
           />
           <div class="slider-hint">
-            <span>{{ t('advancedDefinitions.talkativenessShy') }}</span>
-            <span>{{ t('advancedDefinitions.talkativenessNormal') }}</span>
-            <span>{{ t('advancedDefinitions.talkativenessChatty') }}</span>
+            <span>{{ t('characterEditor.advanced.talkativenessShy') }}</span>
+            <span>{{ t('characterEditor.advanced.talkativenessNormal') }}</span>
+            <span>{{ t('characterEditor.advanced.talkativenessChatty') }}</span>
           </div>
         </div>
         <hr />
         <div class="form-section">
           <label>
-            <span>{{ t('advancedDefinitions.dialogueExamples') }}</span>
+            <span>{{ t('characterEditor.advanced.dialogueExamples') }}</span>
             <i
               class="editor-maximize-icon fa-solid fa-maximize"
               :title="t('characterEditor.expandEditor')"
-              @click="openMaximizeEditor('mes_example', t('advancedDefinitions.dialogueExamples'))"
+              @click="openMaximizeEditor('mes_example', t('characterEditor.advanced.dialogueExamples'))"
             ></i>
           </label>
-          <small>{{ t('advancedDefinitions.dialogueExamplesHint') }}</small>
+          <small>{{ t('characterEditor.advanced.dialogueExamplesHint') }}</small>
           <textarea
             :value="formData.mes_example"
             @input="updateValue('mes_example', ($event.target as HTMLTextAreaElement).value)"
             class="text-pole"
             rows="6"
-            :placeholder="t('advancedDefinitions.dialogueExamplesPlaceholder')"
+            :placeholder="t('characterEditor.advanced.dialogueExamplesPlaceholder')"
           ></textarea>
           <div class="token-counter">
             {{ t('common.tokens') }}: <span>{{ tokenCounts['mes_example'] || 0 }}</span>
@@ -411,8 +417,8 @@ function handleEditorSubmit({ value }: { value: string }) {
         <div class="inline-drawer">
           <div class="inline-drawer-header" @click="isPromptOverridesOpen = !isPromptOverridesOpen">
             <h4 class="inline-drawer-header__title">
-              {{ t('advancedDefinitions.promptOverrides') }}
-              <small>{{ t('advancedDefinitions.promptOverridesHint') }}</small>
+              {{ t('characterEditor.advanced.promptOverrides') }}
+              <small>{{ t('characterEditor.advanced.promptOverridesHint') }}</small>
             </h4>
             <i
               class="fa-solid fa-circle-chevron-down inline-drawer-header__icon"
@@ -430,14 +436,14 @@ function handleEditorSubmit({ value }: { value: string }) {
           >
             <div v-show="isPromptOverridesOpen">
               <div class="inline-drawer-content u-flex-col">
-                <small>{{ t('advancedDefinitions.promptHint') }}</small>
+                <small>{{ t('characterEditor.advanced.promptHint') }}</small>
                 <div>
                   <label>
-                    <span>{{ t('advancedDefinitions.mainPrompt') }}</span>
+                    <span>{{ t('characterEditor.advanced.mainPrompt') }}</span>
                     <i
                       class="editor-maximize-icon fa-solid fa-maximize"
                       :title="t('characterEditor.expandEditor')"
-                      @click="openMaximizeEditor('data.system_prompt', t('advancedDefinitions.mainPrompt'))"
+                      @click="openMaximizeEditor('data.system_prompt', t('characterEditor.advanced.mainPrompt'))"
                     ></i>
                   </label>
                   <textarea
@@ -445,7 +451,7 @@ function handleEditorSubmit({ value }: { value: string }) {
                     @input="updateValue('data.system_prompt', ($event.target as HTMLTextAreaElement).value)"
                     class="text-pole"
                     rows="3"
-                    :placeholder="t('advancedDefinitions.mainPromptPlaceholder')"
+                    :placeholder="t('characterEditor.advanced.mainPromptPlaceholder')"
                   ></textarea>
                   <div class="token-counter">
                     {{ t('common.tokens') }}: <span>{{ tokenCounts['data.system_prompt'] || 0 }}</span>
@@ -453,14 +459,14 @@ function handleEditorSubmit({ value }: { value: string }) {
                 </div>
                 <div>
                   <label>
-                    <span>{{ t('advancedDefinitions.postHistoryInstructions') }}</span>
+                    <span>{{ t('characterEditor.advanced.postHistoryInstructions') }}</span>
                     <i
                       class="editor-maximize-icon fa-solid fa-maximize"
                       :title="t('characterEditor.expandEditor')"
                       @click="
                         openMaximizeEditor(
                           'data.post_history_instructions',
-                          t('advancedDefinitions.postHistoryInstructions'),
+                          t('characterEditor.advanced.postHistoryInstructions'),
                         )
                       "
                     ></i>
@@ -470,7 +476,7 @@ function handleEditorSubmit({ value }: { value: string }) {
                     @input="updateValue('data.post_history_instructions', ($event.target as HTMLTextAreaElement).value)"
                     class="text-pole"
                     rows="3"
-                    :placeholder="t('advancedDefinitions.postHistoryInstructionsPlaceholder')"
+                    :placeholder="t('characterEditor.advanced.postHistoryInstructionsPlaceholder')"
                   ></textarea>
                   <div class="token-counter">
                     {{ t('common.tokens') }}: <span>{{ tokenCounts['data.post_history_instructions'] || 0 }}</span>
@@ -484,7 +490,8 @@ function handleEditorSubmit({ value }: { value: string }) {
         <div class="inline-drawer">
           <div class="inline-drawer-header" @click="isMetadataOpen = !isMetadataOpen">
             <h4 class="inline-drawer-header__title">
-              {{ t('advancedDefinitions.metadata') }} <small>{{ t('advancedDefinitions.metadataHint') }}</small>
+              {{ t('characterEditor.advanced.metadata') }}
+              <small>{{ t('characterEditor.advanced.metadataHint') }}</small>
             </h4>
             <i
               class="fa-solid fa-circle-chevron-down inline-drawer-header__icon"
@@ -502,37 +509,37 @@ function handleEditorSubmit({ value }: { value: string }) {
           >
             <div v-show="isMetadataOpen">
               <div class="inline-drawer-content u-flex-col">
-                <small>{{ t('advancedDefinitions.metadataOptional') }}</small>
+                <small>{{ t('characterEditor.advanced.metadataOptional') }}</small>
                 <div class="u-flex u-flex-nowrap">
                   <div class="u-w-full">
-                    <label>{{ t('advancedDefinitions.createdBy') }}</label>
+                    <label>{{ t('characterEditor.advanced.createdBy') }}</label>
                     <textarea
                       :value="formData.data.creator"
                       @input="updateValue('data.creator', ($event.target as HTMLTextAreaElement).value)"
                       class="text-pole"
                       rows="2"
-                      :placeholder="t('advancedDefinitions.createdByPlaceholder')"
+                      :placeholder="t('characterEditor.advanced.createdByPlaceholder')"
                     ></textarea>
                   </div>
                   <div class="u-w-full">
-                    <label>{{ t('advancedDefinitions.characterVersion') }}</label>
+                    <label>{{ t('characterEditor.advanced.characterVersion') }}</label>
                     <textarea
                       :value="formData.data.character_version"
                       @input="updateValue('data.character_version', ($event.target as HTMLTextAreaElement).value)"
                       class="text-pole"
                       rows="2"
-                      :placeholder="t('advancedDefinitions.characterVersionPlaceholder')"
+                      :placeholder="t('characterEditor.advanced.characterVersionPlaceholder')"
                     ></textarea>
                   </div>
                 </div>
                 <div class="u-flex u-flex-nowrap">
                   <div class="u-w-full">
                     <label>
-                      <span>{{ t('advancedDefinitions.creatorNotes') }}</span>
+                      <span>{{ t('characterEditor.advanced.creatorNotes') }}</span>
                       <i
                         class="editor-maximize-icon fa-solid fa-maximize"
                         :title="t('characterEditor.expandEditor')"
-                        @click="openMaximizeEditor('data.creator_notes', t('advancedDefinitions.creatorNotes'))"
+                        @click="openMaximizeEditor('data.creator_notes', t('characterEditor.advanced.creatorNotes'))"
                       ></i>
                     </label>
                     <textarea
@@ -540,16 +547,16 @@ function handleEditorSubmit({ value }: { value: string }) {
                       @input="updateValue('data.creator_notes', ($event.target as HTMLTextAreaElement).value)"
                       class="text-pole"
                       rows="4"
-                      :placeholder="t('advancedDefinitions.creatorNotesPlaceholder')"
+                      :placeholder="t('characterEditor.advanced.creatorNotesPlaceholder')"
                     ></textarea>
                   </div>
                   <div class="u-w-full">
-                    <label>{{ t('advancedDefinitions.tagsToEmbed') }}</label>
+                    <label>{{ t('characterEditor.advanced.tagsToEmbed') }}</label>
                     <textarea
                       v-model="joinedTags"
                       class="text-pole"
                       rows="4"
-                      :placeholder="t('advancedDefinitions.tagsToEmbedPlaceholder')"
+                      :placeholder="t('characterEditor.advanced.tagsToEmbedPlaceholder')"
                     ></textarea>
                   </div>
                 </div>
