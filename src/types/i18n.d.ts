@@ -61,8 +61,10 @@ export interface MessageSchema {
     pinToggle: string;
     docsLink: string;
     activeWorlds: string;
-    noWorldsActive: string;
+    activeWorldsHint: string;
     globalSettings: string;
+    activationSettings: string;
+    advancedSettings: string;
     expand: string;
     scanDepth: string;
     contextPercent: string;
@@ -77,6 +79,7 @@ export interface MessageSchema {
     maxRecursionStepsHint: string;
     maxRecursionStepsDisabledHint: string;
     insertionStrategy: string;
+    insertionStrategyHint: string;
     insertionStrategies: {
       sortedEvenly: string;
       characterLoreFirst: string;
@@ -103,12 +106,16 @@ export interface MessageSchema {
     duplicate: string;
     delete: string;
     newEntry: string;
+    newEntryInBook: string;
+    deleteBook: string;
     openAllEntries: string;
     closeAllEntries: string;
     fillEmptyMemos: string;
     applySorting: string;
     refresh: string;
     searchPlaceholder: string;
+    selectEntryPlaceholderTitle: string;
+    selectEntryPlaceholderText: string;
     sorting: {
       search: string;
       priority: string;
@@ -316,6 +323,7 @@ export interface MessageSchema {
     delete: string;
     of: string;
     search: string;
+    resetToDefaults: string;
   };
   pagination: {
     first: string;

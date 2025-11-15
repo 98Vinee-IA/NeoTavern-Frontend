@@ -1,8 +1,8 @@
-.world-entry {
-  border: 1px solid var(--theme-border-color);
-  border-radius: 10px;
-  padding: 5px;
-  margin-bottom: 5px;
+.world-entry-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 15px;
   transition:
     opacity var(--animation-duration-3x),
     filter var(--animation-duration-3x);
@@ -10,69 +10,20 @@
   &.is-disabled {
     opacity: 0.5;
     filter: grayscale(0.8);
-
-    &:hover {
-      opacity: 1;
-      filter: grayscale(0);
-    }
   }
 
-  .inline-drawer-header {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    padding: 0; // Override default padding
-  }
-
-  &__header-controls {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .inline-drawer-icon {
-      cursor: pointer;
-    }
-
-    .fa-toggle-on,
-    .fa-toggle-off {
-      cursor: pointer;
-      font-size: 1.2em;
-    }
-    .fa-toggle-on {
-      color: var(--theme-quote-color);
-    }
-
-    .text-pole {
-      margin: 0;
-      flex-grow: 1;
-    }
-
-    &__state-selector {
-      flex-grow: 0;
-      width: auto;
-    }
-
-    &__header-fields {
-      display: flex;
-      gap: 5px;
-
-      .text-pole {
-        width: 5em;
-        text-align: center;
-      }
-    }
-  }
-
-  &__actions {
-    display: flex;
-    gap: 5px;
-  }
-
-  &__content {
+  &__form {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    height: 100%;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    align-items: center;
   }
 
   &__section {
@@ -89,6 +40,7 @@
       opacity: 0.8;
       font-weight: bold;
       width: 100%;
+      margin-bottom: -5px;
     }
 
     .control-group {
@@ -103,7 +55,7 @@
   &__checkbox-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0 10px;
+    gap: 5px 15px;
     .checkbox-label {
       font-size: 0.9em;
     }
@@ -115,28 +67,7 @@
       padding: 5px;
     }
     .inline-drawer-content {
-      padding: 5px 10px;
-    }
-  }
-
-  .fa-circle-info {
-    opacity: 0.5;
-    cursor: help;
-  }
-
-  .unit {
-    position: absolute;
-    right: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.6;
-    pointer-events: none;
-    font-size: 0.9em;
-  }
-  .input-with-unit {
-    position: relative;
-    input {
-      padding-right: 2.5em;
+      padding: 10px;
     }
   }
 }

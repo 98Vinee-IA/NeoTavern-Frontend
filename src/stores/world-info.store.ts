@@ -8,6 +8,8 @@ import {
   POPUP_TYPE,
   POPUP_RESULT,
   type WorldInfoEntry,
+  WorldInfoPosition,
+  WorldInfoLogic,
 } from '../types';
 import * as api from '../api/world-info';
 import { toast } from '../composables/useToast';
@@ -40,24 +42,31 @@ export const useWorldInfoStore = defineStore('world-info', () => {
   const isPanelPinned = ref(false);
   const bookNames = ref<string[]>([]);
   const activeBookNames = ref<string[]>([]);
-  const isSettingsExpanded = ref(false);
-
   const worldInfoCache = ref<Record<string, WorldInfoBook>>({});
-  const editingBookName = ref<string | null>(null);
-  const editingBook = ref<WorldInfoBook | null>(null);
 
-  const searchTerm = ref('');
-  const sortOrder = ref('priority');
-
-  // Pagination state
-  const currentPage = ref(1);
-  const itemsPerPage = ref(25);
+  const selectedItemId = ref<'global-settings' | string | null>('global-settings');
+  const expandedBooks = ref<Set<string>>(new Set());
+  const browserSearchTerm = ref('');
 
   const settings = computed({
     get: () => settingsStore.settings.world_info_settings,
     set: (value) => {
       settingsStore.setSetting('world_info_settings', { ...value });
     },
+  });
+
+  const selectedEntry = computed<WorldInfoEntry | null>(() => {
+    if (typeof selectedItemId.value !== 'string' || !selectedItemId.value.includes('/')) return null;
+    const [bookName, entryUidStr] = selectedItemId.value.split('/');
+    const entryUid = parseInt(entryUidStr, 10);
+    const book = worldInfoCache.value[bookName];
+    return book?.entries.find((e) => e.uid === entryUid) ?? null;
+  });
+
+  const selectedBookForEntry = computed<WorldInfoBook | null>(() => {
+    if (!selectedEntry.value || typeof selectedItemId.value !== 'string') return null;
+    const [bookName] = selectedItemId.value.split('/');
+    return worldInfoCache.value[bookName] ?? null;
   });
 
   watch(
@@ -81,14 +90,10 @@ export const useWorldInfoStore = defineStore('world-info', () => {
         settings.value.world_info = {};
       }
       settings.value.world_info.globalSelect = newActive;
+      saveBookDebounced();
     },
     { deep: true },
   );
-
-  // Reset to page 1 when filters or book change to avoid invalid page states
-  watch([editingBookName, searchTerm, sortOrder], () => {
-    currentPage.value = 1;
-  });
 
   function getBookFromCache(name: string): WorldInfoBook | undefined {
     return worldInfoCache.value[name];
@@ -96,58 +101,68 @@ export const useWorldInfoStore = defineStore('world-info', () => {
 
   async function initialize() {
     try {
-      bookNames.value = await api.fetchAllWorldInfoNames();
-      // Pre-load active books into cache
-      for (const name of activeBookNames.value) {
-        if (!worldInfoCache.value[name]) {
-          const book = await api.fetchWorldInfoBook(name);
-          worldInfoCache.value[name] = book;
-        }
-      }
+      bookNames.value = (await api.fetchAllWorldInfoNames()).sort((a, b) => a.localeCompare(b));
     } catch (error) {
       console.error('Failed to load world info list:', error);
       toast.error('Could not load lorebooks.');
     }
   }
 
-  async function selectBookForEditing(name: string | null) {
-    if (!name) {
-      editingBookName.value = null;
-      editingBook.value = null;
-      return;
+  async function selectItem(id: 'global-settings' | string | null) {
+    if (id && id !== 'global-settings') {
+      const [bookName] = id.split('/');
+      if (!worldInfoCache.value[bookName]) {
+        await fetchBook(bookName);
+      }
     }
+    selectedItemId.value = id;
+  }
 
-    if (worldInfoCache.value[name]) {
-      editingBook.value = JSON.parse(JSON.stringify(worldInfoCache.value[name])); // Deep copy for editing
-      editingBookName.value = name;
-      return;
-    }
-
+  async function fetchBook(bookName: string) {
     try {
-      const book = await api.fetchWorldInfoBook(name);
-      worldInfoCache.value[name] = book;
-      editingBook.value = JSON.parse(JSON.stringify(book)); // Deep copy for editing
-      editingBookName.value = name;
+      const book = await api.fetchWorldInfoBook(bookName);
+      worldInfoCache.value[bookName] = book;
     } catch (error) {
-      console.error(`Failed to load book ${name} for editing:`, error);
-      toast.error(`Could not load lorebook: ${name}`);
-      editingBookName.value = null;
-      editingBook.value = null;
+      console.error(`Failed to load book ${bookName}:`, error);
+      toast.error(`Could not load lorebook: ${bookName}`);
     }
   }
 
-  const saveEditingBookDebounced = debounce(async () => {
-    if (editingBook.value) {
+  function toggleBookExpansion(bookName: string) {
+    if (expandedBooks.value.has(bookName)) {
+      expandedBooks.value.delete(bookName);
+    } else {
+      if (!worldInfoCache.value[bookName]) {
+        fetchBook(bookName);
+      }
+      expandedBooks.value.add(bookName);
+    }
+  }
+
+  const saveBookDebounced = debounce(async (book?: WorldInfoBook) => {
+    if (book) {
       try {
-        await api.saveWorldInfoBook(editingBook.value.name, editingBook.value);
-        worldInfoCache.value[editingBook.value.name] = JSON.parse(JSON.stringify(editingBook.value)); // Update cache
-        toast.success(`Saved lorebook: ${editingBook.value.name}`);
+        await api.saveWorldInfoBook(book.name, book);
+        worldInfoCache.value[book.name] = JSON.parse(JSON.stringify(book));
+        toast.success(`Saved lorebook: ${book.name}`);
       } catch (error) {
         console.error('Failed to save lorebook:', error);
         toast.error('Failed to save lorebook.');
       }
+    } else {
+      settingsStore.saveSettingsDebounced();
     }
   }, 1000);
+
+  function updateSelectedEntry(newEntryData: WorldInfoEntry) {
+    if (!selectedEntry.value || !selectedBookForEntry.value) return;
+    const book = selectedBookForEntry.value;
+    const index = book.entries.findIndex((e) => e.uid === newEntryData.uid);
+    if (index !== -1) {
+      book.entries[index] = { ...newEntryData };
+      saveBookDebounced(book);
+    }
+  }
 
   async function createNewBook() {
     const { result, value: newName } = await popupStore.show({
@@ -156,13 +171,12 @@ export const useWorldInfoStore = defineStore('world-info', () => {
       type: POPUP_TYPE.INPUT,
       inputValue: 'New Lorebook',
     });
-
     if (result === POPUP_RESULT.AFFIRMATIVE && newName) {
       const newBook: WorldInfoBook = { name: newName, entries: [] };
       try {
         await api.saveWorldInfoBook(newName, newBook);
         await initialize();
-        await selectBookForEditing(newName);
+        toggleBookExpansion(newName);
         toast.success(`Created lorebook: ${newName}`);
       } catch (error) {
         toast.error(`Failed to create lorebook.`);
@@ -170,9 +184,63 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     }
   }
 
-  async function deleteEditingBook() {
-    if (!editingBookName.value) return;
-    const name = editingBookName.value;
+  async function createNewEntry(bookName: string) {
+    const book = worldInfoCache.value[bookName];
+    if (!book) return;
+
+    const newUid = book.entries.length > 0 ? Math.max(...book.entries.map((e) => e.uid)) + 1 : 1;
+    const newEntry: WorldInfoEntry = {
+      uid: newUid,
+      key: [],
+      keysecondary: [],
+      comment: 'New Entry',
+      content: '',
+      constant: false,
+      vectorized: false,
+      selective: false,
+      selectiveLogic: WorldInfoLogic.AND_ANY,
+      addMemo: false,
+      order: 100,
+      position: WorldInfoPosition.BEFORE_CHAR,
+      disable: false,
+      ignoreBudget: false,
+      excludeRecursion: false,
+      preventRecursion: false,
+      matchPersonaDescription: false,
+      matchCharacterDescription: false,
+      matchCharacterPersonality: false,
+      matchCharacterDepthPrompt: false,
+      matchScenario: false,
+      matchCreatorNotes: false,
+      delayUntilRecursion: false,
+      probability: 100,
+      useProbability: false,
+      depth: 4,
+      outletName: '',
+      group: '',
+      groupOverride: false,
+      groupWeight: 100,
+      scanDepth: null,
+      caseSensitive: null,
+      matchWholeWords: null,
+      useGroupScoring: null,
+      automationId: '',
+      role: 0,
+      sticky: null,
+      cooldown: null,
+      delay: null,
+      characterFilterNames: [],
+      characterFilterTags: [],
+      characterFilterExclude: false,
+      triggers: [],
+    };
+
+    book.entries.unshift(newEntry);
+    await saveBookDebounced(book);
+    selectItem(`${bookName}/${newUid}`);
+  }
+
+  async function deleteBook(name: string) {
     const { result } = await popupStore.show({
       title: 'Confirm Deletion',
       content: `Are you sure you want to delete the lorebook "<b>${name}</b>"?`,
@@ -182,10 +250,10 @@ export const useWorldInfoStore = defineStore('world-info', () => {
       try {
         await api.deleteWorldInfoBook(name);
         delete worldInfoCache.value[name];
-        await initialize();
-        if (editingBookName.value === name) {
-          selectBookForEditing(null);
+        if (selectedItemId.value?.startsWith(`${name}/`)) {
+          selectItem('global-settings');
         }
+        await initialize();
         toast.success(`Deleted lorebook: ${name}`);
       } catch (error) {
         toast.error('Failed to delete lorebook.');
@@ -193,49 +261,41 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     }
   }
 
-  async function renameEditingBook() {
-    if (!editingBookName.value) return;
-    const oldName = editingBookName.value;
-    const { result, value: newName } = await popupStore.show({
-      title: 'Rename Lorebook',
-      content: 'Enter the new name:',
-      type: POPUP_TYPE.INPUT,
-      inputValue: oldName,
-    });
+  async function deleteSelectedEntry() {
+    if (!selectedEntry.value || !selectedBookForEntry.value) return;
+    const book = selectedBookForEntry.value;
+    const entry = selectedEntry.value;
 
-    if (result === POPUP_RESULT.AFFIRMATIVE && newName && newName !== oldName) {
-      try {
-        await api.renameWorldInfoBook(oldName, newName); // This needs a backend endpoint
-        delete worldInfoCache.value[oldName];
-        await initialize();
-        await selectBookForEditing(newName);
-        toast.success(`Renamed to ${newName}`);
-      } catch (error) {
-        toast.error(`Failed to rename lorebook.`);
+    const { result } = await popupStore.show({
+      title: 'Confirm Entry Deletion',
+      content: `Are you sure you want to delete the entry "<b>${entry.comment}</b>"?`,
+      type: POPUP_TYPE.CONFIRM,
+    });
+    if (result === POPUP_RESULT.AFFIRMATIVE) {
+      const index = book.entries.findIndex((e) => e.uid === entry.uid);
+      if (index !== -1) {
+        book.entries.splice(index, 1);
+        saveBookDebounced(book);
+        selectItem('global-settings');
       }
     }
-  }
-
-  async function duplicateEditingBook() {
-    // TODO
-    toast.info('Duplicate feature not yet implemented.');
   }
 
   async function importBook(file: File) {
     try {
       const { name } = await api.importWorldInfoBook(file);
       await initialize();
-      await selectBookForEditing(name);
+      await fetchBook(name);
+      toggleBookExpansion(name);
       toast.success(`Imported lorebook: ${name}`);
     } catch (error) {
       toast.error('Failed to import lorebook.');
     }
   }
 
-  async function exportEditingBook() {
-    if (!editingBookName.value) return;
+  async function exportBook(name: string) {
     try {
-      const book = await api.exportWorldInfoBook(editingBookName.value);
+      const book = await api.exportWorldInfoBook(name);
       const content = JSON.stringify(book, null, 2);
       downloadFile(content, `${book.name}.json`, 'application/json');
     } catch (error) {
@@ -243,91 +303,28 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     }
   }
 
-  const filteredEntries = computed(() => {
-    if (!editingBook.value?.entries) return [];
-
-    // Defensive check: backend might return an object instead of an array for entries
-    const entriesSource = Array.isArray(editingBook.value.entries)
-      ? editingBook.value.entries
-      : Object.values(editingBook.value.entries as Record<string, WorldInfoEntry>);
-
-    let entries: WorldInfoEntry[] = [...entriesSource];
-
-    // Filter
-    const lowerSearchTerm = searchTerm.value.toLowerCase();
-    if (lowerSearchTerm) {
-      entries = entries.filter(
-        (entry) =>
-          entry.comment.toLowerCase().includes(lowerSearchTerm) ||
-          entry.content.toLowerCase().includes(lowerSearchTerm) ||
-          entry.key.join(',').toLowerCase().includes(lowerSearchTerm),
-      );
-    }
-
-    // Sort
-    const [field, direction] = sortOrder.value.split(':');
-    const dir = direction === 'desc' ? -1 : 1;
-
-    const sortFn = (a: WorldInfoEntry, b: WorldInfoEntry): number => {
-      switch (field) {
-        case 'priority':
-          return (a.order ?? 100) - (b.order ?? 100);
-        case 'title':
-          return a.comment.localeCompare(b.comment) * dir;
-        case 'tokens':
-          return (a.content.length - b.content.length) * dir;
-        case 'depth':
-          return (a.depth - b.depth) * dir;
-        case 'order':
-          return (a.order - b.order) * dir;
-        case 'uid':
-          return (a.uid - b.uid) * dir;
-        case 'trigger':
-          return (a.probability - b.probability) * dir;
-        default:
-          return 0;
-      }
-    };
-
-    return entries.sort(sortFn);
-  });
-
-  const paginatedEntries = computed(() => {
-    const totalItems = filteredEntries.value.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage.value);
-
-    if (currentPage.value > totalPages && totalPages > 0) {
-      currentPage.value = totalPages;
-    }
-
-    const start = (currentPage.value - 1) * itemsPerPage.value;
-    const end = start + itemsPerPage.value;
-    return filteredEntries.value.slice(start, end);
-  });
-
   return {
     isPanelPinned,
     settings,
-    isSettingsExpanded,
     bookNames,
     activeBookNames,
-    editingBookName,
-    editingBook,
-    searchTerm,
-    sortOrder,
-    currentPage,
-    itemsPerPage,
+    worldInfoCache,
+    selectedItemId,
+    expandedBooks,
+    browserSearchTerm,
+    selectedEntry,
+    selectedBookForEntry,
     initialize,
-    selectBookForEditing,
-    saveEditingBookDebounced,
-    filteredEntries,
-    paginatedEntries,
+    selectItem,
+    toggleBookExpansion,
+    updateSelectedEntry,
     createNewBook,
-    deleteEditingBook,
-    renameEditingBook,
-    duplicateEditingBook,
-    importBook,
-    exportEditingBook,
+    createNewEntry,
+    deleteBook,
+    deleteSelectedEntry,
     getBookFromCache,
+    importBook,
+    exportBook,
+    saveBookDebounced,
   };
 });

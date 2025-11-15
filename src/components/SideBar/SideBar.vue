@@ -122,7 +122,10 @@ function toggleDrawer(drawerName: string) {
     <div class="nav-item__content" :class="{ active: activeDrawer === 'formatting' }">
       <!-- TODO: Formatting Content -->
     </div>
-    <div class="nav-item__content" :class="{ active: activeDrawer === 'world-info' }">
+    <div
+      class="nav-item__content"
+      :class="{ active: activeDrawer === 'world-info', wide: activeDrawer === 'world-info' }"
+    >
       <WorldInfoDrawer />
     </div>
     <div class="nav-item__content" :class="{ active: activeDrawer === 'user-settings' }">
