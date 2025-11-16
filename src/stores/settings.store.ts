@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { SendOnEnterOptions, DEFAULT_SAVE_EDIT_TIMEOUT } from '../constants';
+import { SendOnEnterOptions, DEFAULT_SAVE_EDIT_TIMEOUT, defaultPrompts, defaultPromptOrder } from '../constants';
 import { isMobile } from '../utils/browser';
 import { debounce } from '../utils/common';
 import {
@@ -57,9 +57,9 @@ function createDefaultSettings(): Settings {
       max_context: 16384,
       max_tokens: 500,
       stream: true,
+      prompts: defaultPrompts,
+      prompt_order: defaultPromptOrder,
     },
-    prompts: [],
-    prompt_order: { order: [] },
   };
   defaultSettings.worldInfo = defaultWorldInfoSettings;
   defaultSettings.account = {};
@@ -142,8 +142,6 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
       openrouter_model: oai.openrouter_model,
       reverse_proxy: oai.reverse_proxy,
       proxy_password: oai.proxy_password,
-      prompts: oai.prompts,
-      prompt_order: oai.prompt_order?.[0] ? { order: oai.prompt_order[0].order } : undefined,
       selected_sampler: oai.preset_settings_openai,
       samplers: {
         temperature: oai.temp_openai || 1.0,
@@ -157,6 +155,8 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
         max_context_unlocked: oai.max_context_unlocked || false,
         max_tokens: oai.openai_max_tokens || 500,
         stream: oai.stream_openai ?? true,
+        prompts: oai.prompts,
+        prompt_order: oai.prompt_order?.[0],
       },
     },
     worldInfo: legacy.world_info_settings,

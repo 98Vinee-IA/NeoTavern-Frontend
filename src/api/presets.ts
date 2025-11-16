@@ -20,6 +20,9 @@ export function migratePreset(legacyPreset: LegacyOaiPresetSettings): SamplerSet
   if (legacyPreset.openai_max_context !== undefined) newPreset.max_context = legacyPreset.openai_max_context;
   if (legacyPreset.openai_max_tokens !== undefined) newPreset.max_tokens = legacyPreset.openai_max_tokens;
   if (legacyPreset.stream_openai !== undefined) newPreset.stream = legacyPreset.stream_openai;
+  if (legacyPreset.prompts !== undefined) newPreset.prompts = legacyPreset.prompts;
+  if (legacyPreset.prompt_order !== undefined)
+    newPreset.prompt_order = { order: legacyPreset.prompt_order?.[0]?.order ?? [] };
   // TODO: Migrate other settings if needed
 
   // If there are no new keys, it means the preset was already in the new format.

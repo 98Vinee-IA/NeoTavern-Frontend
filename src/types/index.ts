@@ -384,6 +384,9 @@ export interface SamplerSettings {
   max_context_unlocked?: boolean;
   max_tokens: number;
   stream: boolean;
+
+  prompts?: Prompt[];
+  prompt_order?: PromptOrderConfig;
 }
 
 // --- World Info Types ---
@@ -585,9 +588,6 @@ export interface ExperimentalSettings {
     // Sampler settings
     selected_sampler?: string;
     samplers: SamplerSettings;
-    // Prompt construction settings
-    prompts?: Prompt[];
-    prompt_order?: PromptOrderConfig;
   };
   worldInfo: WorldInfoSettings;
   account: AccountStorageState;

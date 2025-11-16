@@ -62,7 +62,7 @@ export class PromptBuilder {
 
     // 2. Build non-history prompts and count their tokens
     const fixedPrompts: ApiChatMessage[] = [];
-    const promptOrderConfig = this.settings.prompt_order;
+    const promptOrderConfig = this.settings.samplers.prompt_order;
     if (!promptOrderConfig) {
       console.error('Default prompt order not found in settings.');
       return [];
@@ -71,7 +71,7 @@ export class PromptBuilder {
     const historyPlaceholder = { role: 'system', content: '[[CHAT_HISTORY_PLACEHOLDER]]' } as const;
 
     for (const promptConfig of enabledPrompts) {
-      const promptDefinition = this.settings.prompts?.find((p) => p.identifier === promptConfig.identifier);
+      const promptDefinition = this.settings.samplers.prompts?.find((p) => p.identifier === promptConfig.identifier);
       if (!promptDefinition) continue;
 
       if (promptDefinition.marker) {

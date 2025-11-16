@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, watch, computed } from 'vue';
-import type { ApiModel, SamplerSettings, Prompt, PromptOrderConfig } from '../types';
+import type { ApiModel, SamplerSettings, PromptOrderConfig } from '../types';
 import { POPUP_RESULT, POPUP_TYPE, chat_completion_sources } from '../types';
 import { fetchChatCompletionStatus } from '../api/connection';
 import { toast } from '../composables/useToast';
@@ -14,6 +14,7 @@ import {
 } from '../api/presets';
 import { usePopupStore } from './popup.store';
 import { downloadFile, readFileAsText } from '../utils/file';
+import { defaultPromptOrder, defaultPrompts } from '../constants';
 
 export const useApiStore = defineStore('api', () => {
   const { t } = useStrictI18n();
@@ -25,38 +26,6 @@ export const useApiStore = defineStore('api', () => {
   const presets = ref<Record<string, Preset[]>>({});
 
   const apiSettings = computed(() => settingsStore.settings.api);
-
-  const defaultPrompts: Prompt[] = [
-    {
-      name: 'Main Prompt',
-      system_prompt: true,
-      role: 'system',
-      content: "Write {{char}}'s next reply in a fictional chat between {{char}} and {{user}}.",
-      identifier: 'main',
-    },
-    { name: 'Post-History Instructions', system_prompt: true, role: 'system', content: '', identifier: 'jailbreak' },
-    { identifier: 'chatHistory', name: 'Chat History', system_prompt: true, marker: true },
-    { identifier: 'charDescription', name: 'Char Description', system_prompt: true, marker: true },
-    { identifier: 'charPersonality', name: 'Char Personality', system_prompt: true, marker: true },
-    { identifier: 'scenario', name: 'Scenario', system_prompt: true, marker: true },
-    { identifier: 'dialogueExamples', name: 'Chat Examples', system_prompt: true, marker: true },
-    { identifier: 'worldInfoAfter', name: 'World Info (after)', system_prompt: true, marker: true },
-    { identifier: 'worldInfoBefore', name: 'World Info (before)', system_prompt: true, marker: true },
-  ];
-
-  const defaultPromptOrder: PromptOrderConfig = {
-    order: [
-      { identifier: 'main', enabled: true },
-      { identifier: 'charDescription', enabled: true },
-      { identifier: 'charPersonality', enabled: true },
-      { identifier: 'scenario', enabled: true },
-      { identifier: 'dialogueExamples', enabled: true },
-      { identifier: 'worldInfoBefore', enabled: true },
-      { identifier: 'chatHistory', enabled: true },
-      { identifier: 'worldInfoAfter', enabled: true },
-      { identifier: 'jailbreak', enabled: true },
-    ],
-  };
 
   const activeModel = computed(() => {
     switch (apiSettings.value.chat_completion_source) {
@@ -306,20 +275,20 @@ export const useApiStore = defineStore('api', () => {
 
   // --- Prompt Management ---
   function updatePromptOrder(newOrder: PromptOrderConfig['order']) {
-    if (apiSettings.value.prompt_order) {
-      apiSettings.value.prompt_order.order = newOrder;
+    if (apiSettings.value.samplers.prompt_order) {
+      apiSettings.value.samplers.prompt_order.order = newOrder;
     }
   }
 
   function removePromptFromOrder(identifier: string) {
-    const promptOrder = apiSettings.value.prompt_order;
+    const promptOrder = apiSettings.value.samplers.prompt_order;
     if (promptOrder) {
       promptOrder.order = promptOrder.order.filter((p) => p.identifier !== identifier);
     }
   }
 
   function addPromptToOrder(identifier: string) {
-    const promptOrder = apiSettings.value.prompt_order;
+    const promptOrder = apiSettings.value.samplers.prompt_order;
     if (promptOrder) {
       if (promptOrder.order.some((p) => p.identifier === identifier)) return;
       promptOrder.order.push({ identifier, enabled: true });
@@ -327,22 +296,22 @@ export const useApiStore = defineStore('api', () => {
   }
 
   function togglePromptEnabled(identifier: string, enabled: boolean) {
-    const orderItem = apiSettings.value.prompt_order?.order.find((p) => p.identifier === identifier);
+    const orderItem = apiSettings.value.samplers.prompt_order?.order.find((p) => p.identifier === identifier);
     if (orderItem) {
       orderItem.enabled = enabled;
     }
   }
 
   function updatePromptContent(identifier: string, content: string) {
-    const prompt = apiSettings.value.prompts?.find((p) => p.identifier === identifier);
+    const prompt = apiSettings.value.samplers.prompts?.find((p) => p.identifier === identifier);
     if (prompt) {
       prompt.content = content;
     }
   }
 
   function resetPrompts() {
-    apiSettings.value.prompts = JSON.parse(JSON.stringify(defaultPrompts));
-    apiSettings.value.prompt_order = JSON.parse(JSON.stringify(defaultPromptOrder));
+    apiSettings.value.samplers.prompts = JSON.parse(JSON.stringify(defaultPrompts));
+    apiSettings.value.samplers.prompt_order = JSON.parse(JSON.stringify(defaultPromptOrder));
   }
 
   return {
