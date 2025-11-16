@@ -25,10 +25,14 @@ export interface MessageSchema {
       title: string;
       content: string;
     };
+    promptOrderTitle: string;
+    addSectionTitle: string;
+    selectToAdd: string;
+    addPrompt: string;
     promptItem: {
       enabled: string;
-      moveUp: string;
-      moveDown: string;
+      remove: string;
+      dragHandle: string;
       role: string;
       content: string;
     };

@@ -368,6 +368,21 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
+  function removePromptFromOrder(identifier: string) {
+    const promptOrder = oaiSettings.value.prompt_order?.[0];
+    if (promptOrder) {
+      promptOrder.order = promptOrder.order.filter((p) => p.identifier !== identifier);
+    }
+  }
+
+  function addPromptToOrder(identifier: string) {
+    const promptOrder = oaiSettings.value.prompt_order?.[0];
+    if (promptOrder) {
+      if (promptOrder.order.some((p) => p.identifier === identifier)) return;
+      promptOrder.order.push({ identifier, enabled: true });
+    }
+  }
+
   function togglePromptEnabled(identifier: string, enabled: boolean) {
     const orderItem = oaiSettings.value.prompt_order?.[0].order.find((p) => p.identifier === identifier);
     if (orderItem) {
@@ -405,6 +420,8 @@ export const useApiStore = defineStore('api', () => {
     importPreset,
     exportPreset,
     updatePromptOrder,
+    removePromptFromOrder,
+    addPromptToOrder,
     togglePromptEnabled,
     updatePromptContent,
     resetPrompts,

@@ -16,16 +16,20 @@
   },
   "promptManager": {
     "title": "Prompt Manager",
-    "description": "Control how the final prompt is constructed before being sent to the AI. Prompts are processed from top to bottom.",
+    "description": "Control how the final prompt is constructed before being sent to the AI. Drag and drop to reorder.",
     "resetAll": "Reset All to Default",
     "resetConfirm": {
       "title": "Confirm Reset",
       "content": "Are you sure you want to reset all prompt settings to their default values? This cannot be undone."
     },
+    "promptOrderTitle": "Prompt Order",
+    "addSectionTitle": "Add Prompt to Order",
+    "selectToAdd": "Select a prompt to add...",
+    "addPrompt": "Add",
     "promptItem": {
       "enabled": "Enabled",
-      "moveUp": "Move Up",
-      "moveDown": "Move Down",
+      "remove": "Remove from order",
+      "dragHandle": "Drag to reorder",
       "role": "Role",
       "content": "Content"
     }

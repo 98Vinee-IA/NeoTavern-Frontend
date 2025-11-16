@@ -81,33 +81,33 @@ export class PromptBuilder {
             break;
           case 'charDescription':
             if (this.character.description) {
-              fixedPrompts.push({ role: 'system', content: this.character.description });
+              fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: this.character.description });
             }
             break;
           case 'charPersonality':
             if (this.character.personality) {
-              fixedPrompts.push({ role: 'system', content: this.character.personality });
+              fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: this.character.personality });
             }
             break;
           case 'scenario':
             if (this.character.scenario) {
-              fixedPrompts.push({ role: 'system', content: this.character.scenario });
+              fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: this.character.scenario });
             }
             break;
           case 'dialogueExamples':
             if (this.character.mes_example) {
               const example = substitute(this.character.mes_example, this.character, this.playerName);
-              fixedPrompts.push({ role: 'system', content: example });
+              fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: example });
             }
             break;
           case 'worldInfoBefore':
             if (worldInfoBefore) {
-              fixedPrompts.push({ role: 'system', content: worldInfoBefore });
+              fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: worldInfoBefore });
             }
             break;
           case 'worldInfoAfter':
             if (worldInfoAfter) {
-              fixedPrompts.push({ role: 'system', content: worldInfoAfter });
+              fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: worldInfoAfter });
             }
             break;
         }

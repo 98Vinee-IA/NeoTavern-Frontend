@@ -18,6 +18,11 @@ const popupStore = usePopupStore();
 const dialog = ref<HTMLDialogElement | null>(null);
 const expandedPrompts = ref<Set<string>>(new Set());
 const { beforeEnter, enter, afterEnter, beforeLeave, leave, afterLeave } = slideTransitionHooks;
+const selectedPromptToAdd = ref<string | null>(null);
+
+// Drag & Drop state
+const draggedIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
 
 // Assuming the first prompt_order config is the one we're editing
 const promptOrderConfig = computed(() => apiStore.oaiSettings.prompt_order?.[0]);
@@ -32,6 +37,12 @@ const orderedPrompts = computed(() => {
       ...orderItem,
     };
   });
+});
+
+const unusedPrompts = computed(() => {
+  if (!promptOrderConfig.value || !apiStore.oaiSettings.prompts) return [];
+  const usedIdentifiers = new Set(promptOrderConfig.value.order.map((item) => item.identifier));
+  return apiStore.oaiSettings.prompts.filter((p) => !usedIdentifiers.has(p.identifier));
 });
 
 watch(
@@ -63,15 +74,54 @@ function toggleExpand(identifier: string) {
   }
 }
 
-function movePrompt(index: number, direction: 'up' | 'down') {
+function handleDragStart(index: number, event: DragEvent) {
+  draggedIndex.value = index;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+  }
+  (event.currentTarget as HTMLElement)?.classList.add('is-dragging');
+}
+
+function handleDragOver(index: number) {
+  if (index !== draggedIndex.value) {
+    dragOverIndex.value = index;
+  }
+}
+
+function handleDragLeave() {
+  dragOverIndex.value = null;
+}
+
+function handleDrop(targetIndex: number, event: DragEvent) {
+  (event.currentTarget as HTMLElement)?.classList.remove('is-dragging');
+  if (draggedIndex.value === null || draggedIndex.value === targetIndex) {
+    cleanupDrag();
+    return;
+  }
   if (!promptOrderConfig.value) return;
+
   const newOrder = [...promptOrderConfig.value.order];
-  const newIndex = direction === 'up' ? index - 1 : index + 1;
+  const [draggedItem] = newOrder.splice(draggedIndex.value, 1);
+  newOrder.splice(targetIndex, 0, draggedItem);
 
-  if (newIndex < 0 || newIndex >= newOrder.length) return;
-
-  [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
   apiStore.updatePromptOrder(newOrder);
+  cleanupDrag();
+}
+
+function cleanupDrag() {
+  draggedIndex.value = null;
+  dragOverIndex.value = null;
+}
+
+function removePromptFromOrder(identifier: string) {
+  apiStore.removePromptFromOrder(identifier);
+}
+
+function addSelectedPrompt() {
+  if (selectedPromptToAdd.value) {
+    apiStore.addPromptToOrder(selectedPromptToAdd.value);
+    selectedPromptToAdd.value = null; // Reset dropdown
+  }
 }
 
 function updateContent(identifier: string, content: string) {
@@ -106,9 +156,23 @@ async function handleReset() {
       </div>
       <small class="prompt-manager-popup__description">{{ t('promptManager.description') }}</small>
       <div class="prompt-manager-popup__content">
-        <div v-for="(prompt, index) in orderedPrompts" :key="prompt.identifier" class="prompt-item">
+        <h4>{{ t('promptManager.promptOrderTitle') }}</h4>
+        <div
+          v-for="(prompt, index) in orderedPrompts"
+          :key="prompt.identifier"
+          class="prompt-item"
+          :class="{ 'is-dragging-over': dragOverIndex === index }"
+          draggable="true"
+          :title="t('promptManager.promptItem.dragHandle')"
+          @dragstart="handleDragStart(index, $event)"
+          @dragover.prevent="handleDragOver(index)"
+          @dragleave="handleDragLeave()"
+          @drop.prevent="handleDrop(index, $event)"
+          @dragend="cleanupDrag"
+        >
           <div class="prompt-item__header" @click="toggleExpand(prompt.identifier)">
             <div class="prompt-item__name">
+              <i class="fa-solid fa-grip-vertical menu-button-icon drag-handle"></i>
               <i
                 class="fa-solid fa-chevron-right prompt-item__chevron"
                 :class="{ 'is-open': expandedPrompts.has(prompt.identifier) }"
@@ -125,16 +189,9 @@ async function handleReset() {
                 />
               </label>
               <i
-                class="menu-button-icon fa-solid fa-arrow-up"
-                :class="{ disabled: index === 0 }"
-                :title="t('promptManager.promptItem.moveUp')"
-                @click.stop="movePrompt(index, 'up')"
-              ></i>
-              <i
-                class="menu-button-icon fa-solid fa-arrow-down"
-                :class="{ disabled: index === orderedPrompts.length - 1 }"
-                :title="t('promptManager.promptItem.moveDown')"
-                @click.stop="movePrompt(index, 'down')"
+                class="menu-button-icon fa-solid fa-xmark remove"
+                :title="t('promptManager.promptItem.remove')"
+                @click.stop="removePromptFromOrder(prompt.identifier)"
               ></i>
             </div>
           </div>
@@ -151,7 +208,7 @@ async function handleReset() {
             <div v-show="expandedPrompts.has(prompt.identifier)">
               <div v-if="!prompt.marker" class="prompt-item__content">
                 <label>{{ t('promptManager.promptItem.role') }}</label>
-                <select class="text-pole" :value="prompt.role" disabled>
+                <select class="text-pole" :value="prompt.role">
                   <option value="system">System</option>
                   <option value="user">User</option>
                   <option value="assistant">Assistant</option>
@@ -169,6 +226,18 @@ async function handleReset() {
               </div>
             </div>
           </Transition>
+        </div>
+        <h4>{{ t('promptManager.addSectionTitle') }}</h4>
+        <div class="prompt-manager-popup__add-section">
+          <select class="text-pole" v-model="selectedPromptToAdd">
+            <option :value="null" disabled>{{ t('promptManager.selectToAdd') }}</option>
+            <option v-for="prompt in unusedPrompts" :key="prompt.identifier" :value="prompt.identifier">
+              {{ prompt.name }}
+            </option>
+          </select>
+          <button class="menu-button" @click="addSelectedPrompt" :disabled="!selectedPromptToAdd">
+            {{ t('promptManager.addPrompt') }}
+          </button>
         </div>
       </div>
       <div class="popup-controls">

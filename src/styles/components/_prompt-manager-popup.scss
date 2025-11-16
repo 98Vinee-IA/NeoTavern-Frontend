@@ -19,6 +19,24 @@
     padding-right: 5px; // space for scrollbar
     max-height: 60vh;
   }
+
+  h4 {
+    margin: 15px 0 5px 0;
+    opacity: 0.9;
+    border-bottom: 1px solid var(--theme-border-color);
+    padding-bottom: 5px;
+  }
+
+  &__add-section {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+
+    .text-pole {
+      flex-grow: 1;
+      margin: 0;
+    }
+  }
 }
 
 .prompt-item {
@@ -26,6 +44,18 @@
   border-radius: 5px;
   margin-bottom: 5px;
   background-color: var(--black-30a);
+  transition:
+    background-color var(--animation-duration-2x),
+    box-shadow var(--animation-duration-2x);
+
+  &.is-dragging {
+    opacity: 0.5;
+    background: var(--color-accent-cobalt-30a);
+  }
+
+  &.is-dragging-over {
+    box-shadow: 0 2px 0 var(--color-golden);
+  }
 
   &__header {
     display: flex;
@@ -59,15 +89,21 @@
   &__controls {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 10px;
 
     .menu-button-icon {
       font-size: 1em;
       padding: 3px;
 
-      &.disabled {
-        opacity: 0.2;
-        pointer-events: none;
+      &.drag-handle {
+        cursor: grab;
+        &:active {
+          cursor: grabbing;
+        }
+      }
+
+      &.remove:hover {
+        color: var(--color-warning);
       }
     }
   }
