@@ -27,6 +27,9 @@ export function migratePreset(legacyPreset: LegacyOaiPresetSettings): SamplerSet
       legacyPreset.prompt_order !== undefined
         ? { order: legacyPreset.prompt_order?.[0]?.order ?? [] }
         : defaultSamplerSettings.prompt_order,
+    seed: legacyPreset.seed ?? defaultSamplerSettings.seed,
+    n: legacyPreset.n ?? defaultSamplerSettings.n,
+    stop: defaultSamplerSettings.stop, // Legacy don't have it, I'm not sure what to do here
   };
 
   return newPreset;

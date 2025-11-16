@@ -42,13 +42,13 @@ export const useApiStore = defineStore('api', () => {
     const apiSettings = settingsStore.settings.api;
     switch (apiSettings.chat_completion_source) {
       case chat_completion_sources.OPENAI:
-        return apiSettings.openai_model;
+        return apiSettings.providers.openai.model;
       case chat_completion_sources.CLAUDE:
-        return apiSettings.claude_model;
+        return apiSettings.providers.claude.model;
       case chat_completion_sources.OPENROUTER:
-        return apiSettings.openrouter_model;
+        return apiSettings.providers.openrouter.model;
       default:
-        return apiSettings.openai_model;
+        return apiSettings.providers.openai.model;
     }
   });
 
@@ -93,13 +93,13 @@ export const useApiStore = defineStore('api', () => {
         const source = profile.chat_completion_source ?? settingsStore.settings.api.chat_completion_source;
         switch (source) {
           case 'openai':
-            settingsStore.settings.api.openai_model = profile.model;
+            settingsStore.settings.api.providers.openai.model = profile.model;
             break;
           case 'claude':
-            settingsStore.settings.api.claude_model = profile.model;
+            settingsStore.settings.api.providers.claude.model = profile.model;
             break;
           case 'openrouter':
-            settingsStore.settings.api.openrouter_model = profile.model;
+            settingsStore.settings.api.providers.openrouter.model = profile.model;
             break;
         }
       }
@@ -164,15 +164,16 @@ export const useApiStore = defineStore('api', () => {
         const availableModels = modelList.value.map((m) => m.id);
 
         if (source === chat_completion_sources.OPENAI) {
-          if (!availableModels.includes(apiSettings.openai_model ?? '')) {
-            settingsStore.settings.api.openai_model = availableModels.length > 0 ? availableModels[0] : 'gpt-4o';
+          if (!availableModels.includes(apiSettings.providers.openai.model ?? '')) {
+            settingsStore.settings.api.providers.openai.model =
+              availableModels.length > 0 ? availableModels[0] : 'gpt-4o';
           }
         } else if (source === chat_completion_sources.OPENROUTER) {
           if (
-            apiSettings.openrouter_model !== 'OR_Website' &&
-            !availableModels.includes(apiSettings.openrouter_model ?? '')
+            apiSettings.providers.openrouter.model !== 'OR_Website' &&
+            !availableModels.includes(apiSettings.providers.openrouter.model ?? '')
           ) {
-            settingsStore.settings.api.openrouter_model =
+            settingsStore.settings.api.providers.openrouter.model =
               availableModels.length > 0 ? availableModels[0] : 'OR_Website';
           }
         }

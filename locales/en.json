@@ -353,7 +353,8 @@
     "loadError": "Failed to load chat.",
     "generate": {
       "noPrompts": "No prompts were built for the AI. Please check your prompt settings.",
-      "errorFallback": "Failed to get a response from the AI."
+      "errorFallback": "Failed to get a response from the AI.",
+      "noModelError": "No model selected. Please check your API connection settings."
     },
     "buttons": {
       "confirmEdit": "Confirm edit",

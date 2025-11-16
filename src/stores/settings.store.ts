@@ -41,9 +41,20 @@ function createDefaultSettings(): Settings {
   defaultSettings.api = {
     main: 'openai',
     chat_completion_source: 'openai',
-    openai_model: 'gpt-4o',
-    claude_model: 'claude-3-5-sonnet-20240620',
-    openrouter_model: 'OR_Website',
+    providers: {
+      openai: {
+        model: 'gpt-4o',
+      },
+      claude: {
+        model: 'claude-3-5-sonnet-20240620',
+      },
+      openrouter: {
+        model: 'OR_Website',
+      },
+      google: {
+        model: '',
+      },
+    },
     reverse_proxy: '',
     proxy_password: '',
     selected_sampler: 'Default',
@@ -142,9 +153,27 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
     api: {
       main: legacy.main_api || 'openai',
       chat_completion_source: oai.chat_completion_source,
-      openai_model: oai.openai_model,
-      claude_model: oai.claude_model,
-      openrouter_model: oai.openrouter_model,
+      providers: {
+        openai: {
+          model: oai.openai_model || 'gpt-4o',
+        },
+        claude: {
+          model: oai.claude_model || 'claude-3-5-sonnet-20240620',
+          use_sysprompt: oai.claude_use_sysprompt,
+          assistant_prefill: oai.claude_assistant_prefill,
+        },
+        openrouter: {
+          model: oai.openrouter_model || 'OR_Website',
+          allow_fallbacks: oai.openrouter_allow_fallbacks,
+          middleout: oai.openrouter_middleout,
+          use_fallback: oai.openrouter_use_fallback,
+          providers: oai.openrouter_providers,
+        },
+        google: {
+          model: oai.google_model || '',
+          use_makersuite_sysprompt: oai.use_makersuite_sysprompt,
+        },
+      },
       reverse_proxy: oai.reverse_proxy,
       proxy_password: oai.proxy_password,
       selected_sampler: oai.preset_settings_openai,

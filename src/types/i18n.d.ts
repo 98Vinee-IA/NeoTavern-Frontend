@@ -357,6 +357,7 @@ export interface MessageSchema {
     generate: {
       noPrompts: string;
       errorFallback: string;
+      noModelError: string;
     };
     buttons: {
       confirmEdit: string;

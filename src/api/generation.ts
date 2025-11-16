@@ -1,5 +1,5 @@
 import { getRequestHeaders } from '../utils/api';
-import type { ChatCompletionSource, MessageRole, SamplerSettings } from '../types';
+import type { ChatCompletionSource, MessageRole, SamplerSettings, ExperimentalSettings } from '../types';
 import { chat_completion_sources } from '../types';
 
 export interface ApiChatMessage {
@@ -7,22 +7,43 @@ export interface ApiChatMessage {
   content: string;
 }
 
-export interface ChatCompletionPayload {
+export type ChatCompletionPayload = Partial<{
   stream: boolean;
   messages: ApiChatMessage[];
   model: string;
   chat_completion_source: string;
   max_tokens: number;
-  temperature?: number;
-  frequency_penalty?: number;
-  presence_penalty?: number;
-  repetition_penalty?: number;
-  top_p?: number;
-  top_k?: number;
-  top_a?: number;
-  min_p?: number;
-  // TODO: Add other parameters
-}
+  temperature: number;
+  frequency_penalty: number;
+  presence_penalty: number;
+  repetition_penalty: number;
+  top_p: number;
+  top_k: number;
+  top_a: number;
+  min_p: number;
+  stop: string[];
+  // TODO: logit_bias?: Record<string, number>;
+  n: number;
+  include_reasoning: boolean;
+  seed: number;
+  max_completion_tokens: number;
+
+  // Claude-specific
+  claude_use_sysprompt: boolean;
+  assistant_prefill: string;
+
+  // OpenRouter-specific
+  use_fallback: boolean;
+  provider: string[];
+  allow_fallbacks: boolean;
+  middleout: boolean;
+
+  // Google-specific
+  use_makersuite_sysprompt: boolean;
+
+  // Mistral-specific
+  safe_prompt: boolean;
+}>;
 
 export interface GenerationResponse {
   content: string;
@@ -39,15 +60,18 @@ export type BuildChatCompletionPayloadOptions = {
   messages: ApiChatMessage[];
   model: string;
   source: ChatCompletionSource;
+  apiSettings: ExperimentalSettings['api'];
+  playerName: string;
+  characterName: string;
 };
 export function buildChatCompletionPayload({
   samplerSettings,
   messages,
   model,
   source,
+  apiSettings,
 }: BuildChatCompletionPayloadOptions): ChatCompletionPayload {
-  // TODO: Add logic to only include parameters supported by the target API/model
-  return {
+  const payload: ChatCompletionPayload = {
     messages,
     model,
     chat_completion_source: source,
@@ -62,6 +86,141 @@ export function buildChatCompletionPayload({
     min_p: samplerSettings.min_p,
     top_a: samplerSettings.top_a,
   };
+
+  // --- Seed ---
+  const seedSupportedSources: ChatCompletionSource[] = [
+    chat_completion_sources.OPENAI,
+    chat_completion_sources.AZURE_OPENAI,
+    chat_completion_sources.OPENROUTER,
+    chat_completion_sources.MISTRALAI,
+    chat_completion_sources.CUSTOM,
+    chat_completion_sources.COHERE,
+    chat_completion_sources.GROQ,
+    chat_completion_sources.ELECTRONHUB,
+    chat_completion_sources.NANOGPT,
+    chat_completion_sources.XAI,
+    chat_completion_sources.POLLINATIONS,
+    chat_completion_sources.AIMLAPI,
+    chat_completion_sources.VERTEXAI,
+    chat_completion_sources.MAKERSUITE,
+  ];
+  if (samplerSettings.seed && samplerSettings.seed >= 0 && seedSupportedSources.includes(source)) {
+    payload.seed = samplerSettings.seed;
+  }
+
+  // --- Stop Sequences ---
+  if (samplerSettings.stop && samplerSettings.stop.length > 0) {
+    payload.stop = samplerSettings.stop;
+  }
+
+  // --- Vision Model Checks ---
+  const isVision = (m: string) => ['gpt', 'vision'].every((x) => m.includes(x));
+  if (isVision(model)) {
+    // delete payload.logit_bias; // TODO
+    delete payload.stop;
+    // delete payload.logprobs; // TODO
+  }
+
+  // --- Provider-Specific Logic ---
+  const providers = apiSettings.providers;
+  switch (source) {
+    case chat_completion_sources.CLAUDE:
+      payload.claude_use_sysprompt = providers.claude?.use_sysprompt;
+      payload.assistant_prefill = providers.claude?.assistant_prefill;
+      break;
+    case chat_completion_sources.OPENROUTER:
+      payload.use_fallback = providers.openrouter?.use_fallback;
+      payload.provider = providers.openrouter?.providers;
+      payload.allow_fallbacks = providers.openrouter?.allow_fallbacks;
+      payload.middleout = providers.openrouter?.middleout;
+      break;
+    case chat_completion_sources.MAKERSUITE:
+    case chat_completion_sources.VERTEXAI:
+      payload.use_makersuite_sysprompt = providers.google?.use_makersuite_sysprompt;
+      if (payload.stop) {
+        payload.stop = payload.stop.slice(0, 5).filter((x) => x.length >= 1 && x.length <= 16);
+      }
+      break;
+    case chat_completion_sources.MISTRALAI:
+      payload.safe_prompt = false;
+      break;
+    case chat_completion_sources.COHERE:
+      payload.top_p = Math.min(Math.max(payload.top_p ?? 0, 0.01), 0.99);
+      payload.frequency_penalty = Math.min(Math.max(payload.frequency_penalty ?? 0, 0), 1);
+      payload.presence_penalty = Math.min(Math.max(payload.presence_penalty ?? 0, 0), 1);
+      if (payload.stop) {
+        payload.stop = payload.stop.slice(0, 5);
+      }
+      break;
+    case chat_completion_sources.PERPLEXITY:
+      delete payload.stop;
+      break;
+    case chat_completion_sources.GROQ:
+      // delete payload.logprobs; // TODO
+      // delete payload.logit_bias; // TODO
+      delete payload.n;
+      break;
+    case chat_completion_sources.DEEPSEEK:
+      payload.top_p = payload.top_p || Number.EPSILON;
+      break;
+    case chat_completion_sources.XAI:
+      if (model.includes('grok-3-mini')) {
+        delete payload.presence_penalty;
+        delete payload.frequency_penalty;
+        delete payload.stop;
+      } else if (model.includes('grok-4') || model.includes('grok-code')) {
+        delete payload.presence_penalty;
+        delete payload.frequency_penalty;
+        if (!model.includes('grok-4-fast-non-reasoning')) {
+          delete payload.stop;
+        }
+      }
+      break;
+    case chat_completion_sources.POLLINATIONS:
+      delete payload.max_tokens;
+      break;
+    case chat_completion_sources.ZAI:
+      payload.top_p = payload.top_p || 0.01;
+      if (payload.stop) {
+        payload.stop = payload.stop.slice(0, 1);
+      }
+      delete payload.presence_penalty;
+      delete payload.frequency_penalty;
+      break;
+  }
+
+  // --- Model-Specific Logic ---
+  if (/^(o1|o3|o4)/.test(model)) {
+    payload.max_completion_tokens = payload.max_tokens;
+    delete payload.max_tokens;
+    // delete payload.logprobs; // TODO
+    delete payload.stop;
+    // delete payload.logit_bias; // TODO
+    delete payload.temperature;
+    delete payload.top_p;
+    delete payload.frequency_penalty;
+    delete payload.presence_penalty;
+    if (model.startsWith('o1')) {
+      payload.messages?.forEach((msg) => {
+        if (msg.role === 'system') msg.role = 'user';
+      });
+      delete payload.n;
+    }
+  } else if (/^gpt-5/.test(model)) {
+    payload.max_completion_tokens = payload.max_tokens;
+    delete payload.max_tokens;
+    // delete payload.logprobs; // TODO
+    if (!/chat-latest/.test(model)) {
+      delete payload.temperature;
+      delete payload.top_p;
+      delete payload.frequency_penalty;
+      delete payload.presence_penalty;
+      // delete payload.logit_bias; // TODO
+      delete payload.stop;
+    }
+  }
+
+  return payload;
 }
 
 function handleApiError(data: any): void {

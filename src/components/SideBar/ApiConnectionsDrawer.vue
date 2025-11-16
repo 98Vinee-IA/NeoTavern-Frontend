@@ -114,7 +114,7 @@ function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
           </div>
           <div class="api-connections-drawer__section">
             <h4>{{ t('apiConnections.openaiModel') }}</h4>
-            <select class="text-pole" v-model="settingsStore.settings.api.openai_model">
+            <select class="text-pole" v-model="settingsStore.settings.api.providers.openai.model">
               <optgroup :label="t('apiConnections.modelGroups.gpt4o')">
                 <option value="gpt-4o">gpt-4o</option>
                 <option value="gpt-4o-mini">gpt-4o-mini</option>
@@ -152,7 +152,7 @@ function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
           </div>
           <div class="api-connections-drawer__section">
             <h4>{{ t('apiConnections.claudeModel') }}</h4>
-            <select class="text-pole" v-model="settingsStore.settings.api.claude_model">
+            <select class="text-pole" v-model="settingsStore.settings.api.providers.claude.model">
               <option value="claude-3-5-sonnet-20240620">claude-3-5-sonnet-20240620</option>
               <option value="claude-3-opus-20240229">claude-3-opus-20240229</option>
               <option value="claude-3-haiku-20240307">claude-3-haiku-20240307</option>
@@ -184,7 +184,7 @@ function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
             <select
               v-show="hasOpenRouterGroupedModels"
               class="text-pole"
-              v-model="settingsStore.settings.api.openrouter_model"
+              v-model="settingsStore.settings.api.providers.openrouter.model"
             >
               <option value="OR_Website">{{ t('apiConnections.openrouterWebsite') }}</option>
               <optgroup v-for="(models, vendor) in apiStore.groupedOpenRouterModels" :key="vendor" :label="vendor">
@@ -196,7 +196,7 @@ function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
               type="text"
               class="text-pole"
               placeholder="google/gemini-pro-1.5"
-              v-model="settingsStore.settings.api.openrouter_model"
+              v-model="settingsStore.settings.api.providers.openrouter.model"
             />
           </div>
         </form>

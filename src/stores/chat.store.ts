@@ -221,12 +221,23 @@ export const useChatStore = defineStore('chat', () => {
         throw new Error(t('chat.generate.noPrompts'));
       }
 
-      const samplers = settingsStore.settings.api.samplers;
+      const settings = settingsStore.settings;
+
+      const activeModel = apiStore.activeModel;
+      if (!activeModel) {
+        toast.error(t('chat.generate.noModelError'));
+        console.error('generateResponse called without an active model for the selected source.');
+        return;
+      }
+
       const payload = buildChatCompletionPayload({
         messages,
-        model: apiStore.activeModel,
-        samplerSettings: samplers,
-        source: settingsStore.settings.api.chat_completion_source,
+        model: activeModel,
+        samplerSettings: settings.api.samplers,
+        source: settings.api.chat_completion_source,
+        apiSettings: settings.api,
+        playerName: uiStore.activePlayerName || 'User',
+        characterName: activeCharacter.name,
       });
 
       const handleGenerationResult = async (content: string, reasoning?: string) => {

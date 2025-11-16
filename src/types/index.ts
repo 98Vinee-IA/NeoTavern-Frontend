@@ -331,9 +331,10 @@ export interface AiConfigSection {
 // settings.oai_settings
 export interface LegacyOaiSettings {
   chat_completion_source: ChatCompletionSource;
-  openai_model: string;
-  claude_model: string;
-  openrouter_model: string;
+  openai_model?: string;
+  claude_model?: string;
+  openrouter_model?: string;
+  google_model?: string;
   reverse_proxy: string;
   proxy_password: string;
 
@@ -353,14 +354,24 @@ export interface LegacyOaiSettings {
   openai_max_tokens?: number;
   prompts?: LegacyOaiPrompt[];
   prompt_order?: LegacyOaiPromptOrderConfig[];
+
+  // Provider specific settings
+  claude_use_sysprompt?: boolean;
+  claude_assistant_prefill?: string;
+  use_makersuite_sysprompt?: boolean;
+  openrouter_allow_fallbacks?: boolean;
+  openrouter_middleout?: boolean;
+  openrouter_use_fallback?: boolean;
+  openrouter_providers?: string[];
 }
 
 // userResponse.openai_settings
 export interface LegacyOaiPresetSettings {
   chat_completion_source: ChatCompletionSource;
-  openai_model: string;
-  claude_model: string;
-  openrouter_model: string;
+  openai_model?: string;
+  claude_model?: string;
+  openrouter_model?: string;
+  google_model?: string;
   reverse_proxy: string;
   proxy_password: string;
 
@@ -377,8 +388,18 @@ export interface LegacyOaiPresetSettings {
   openai_max_context?: number;
   max_context_unlocked?: boolean;
   openai_max_tokens?: number;
+  seed?: number;
+  n?: number;
   prompts?: LegacyOaiPrompt[];
   prompt_order?: LegacyOaiPromptOrderConfig[];
+  // Provider specific settings
+  claude_use_sysprompt?: boolean;
+  assistant_prefill?: string;
+  use_makersuite_sysprompt?: boolean;
+  openrouter_allow_fallbacks?: boolean;
+  openrouter_middleout?: boolean;
+  openrouter_use_fallback?: boolean;
+  openrouter_providers?: string[];
 }
 
 export interface SamplerSettings {
@@ -394,6 +415,10 @@ export interface SamplerSettings {
   max_context_unlocked?: boolean;
   max_tokens: number;
   stream: boolean;
+
+  seed?: number;
+  stop?: string[];
+  n?: number;
 
   prompts?: Prompt[];
   prompt_order?: PromptOrderConfig;
@@ -552,6 +577,28 @@ export type AccountStorageKey =
 
 export type AccountStorageState = Partial<Record<AccountStorageKey, string>>;
 
+export interface ProviderSettings {
+  openai: {
+    model: string;
+  };
+  claude: {
+    model: string;
+    use_sysprompt?: boolean;
+    assistant_prefill?: string;
+  };
+  openrouter: {
+    model: string;
+    use_fallback?: boolean;
+    providers?: string[];
+    allow_fallbacks?: boolean;
+    middleout?: boolean;
+  };
+  google: {
+    model: string;
+    use_makersuite_sysprompt?: boolean;
+  };
+}
+
 /**
  * The new, organized settings structure for the experimental frontend.
  * This is the primary `Settings` type used throughout the application.
@@ -588,19 +635,14 @@ export interface ExperimentalSettings {
   };
   api: {
     main: string;
-    // Connection-specific settings
     chat_completion_source: ChatCompletionSource;
-    openai_model: string;
-    claude_model: string;
-    openrouter_model: string;
     reverse_proxy: string;
     proxy_password: string;
-    // Sampler settings
     selected_sampler?: string;
     samplers: SamplerSettings;
-    // Connection profiles
     connection_profiles: ConnectionProfile[];
     selected_connection_profile?: string;
+    providers: ProviderSettings;
   };
   worldInfo: WorldInfoSettings;
   account: AccountStorageState;
