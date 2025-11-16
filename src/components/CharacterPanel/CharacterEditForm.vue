@@ -168,6 +168,43 @@ function handleEditorSubmit({ value }: { value: string }) {
 <template>
   <div v-if="activeCharacter && formData.data" class="character-edit-form">
     <form id="character-editor-form" action="javascript:void(null);" method="post" enctype="multipart/form-data">
+      <div id="character-editor-header" class="character-edit-form__header">
+        <div id="character-editor-name-container" class="character-edit-form__header-main">
+          <h2 class="interactable" tabindex="0">{{ formData.name }}</h2>
+        </div>
+        <div class="character-edit-form__header-info">
+          <div id="character-editor-token-info" class="result_info" :title="t('characterEditor.tokenCounts.title')">
+            <div>
+              <strong id="character-editor-total-tokens" :title="t('characterEditor.tokenCounts.total')">{{
+                characterStore.totalTokens
+              }}</strong
+              >&nbsp;<span>{{ t('common.tokens') }}</span>
+            </div>
+            <div>
+              <small :title="t('characterEditor.tokenCounts.permanent')">
+                (<span id="character-editor-permanent-tokens">{{ characterStore.permanentTokens }}</span
+                >&nbsp;<span>{{ t('characterEditor.tokenCounts.permanent') }}</span
+                >)
+              </small>
+            </div>
+          </div>
+          <!-- TODO: Implement token warning visibility logic -->
+          <a
+            id="character-editor-token-warning"
+            class="menu-button-icon fa-solid fa-triangle-exclamation"
+            style="display: none"
+            href="https://docs.sillytavern.app/usage/core-concepts/characterdesign/#character-tokens"
+            target="_blank"
+            :title="t('characterEditor.tokenCounts.warningTooltip')"
+          ></a>
+          <i
+            id="character-editor-stats-button"
+            class="menu-button-icon fa-solid fa-ranking-star"
+            :title="t('characterEditor.stats.title')"
+          ></i>
+        </div>
+      </div>
+
       <div class="character-edit-form__avatar-name-block">
         <div class="character-edit-form__avatar-area">
           <label for="add_avatar_button" class="character-edit-form__avatar-label" :title="t('characterEditor.avatar')">

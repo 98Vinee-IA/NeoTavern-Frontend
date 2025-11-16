@@ -193,6 +193,29 @@ select.text-pole {
   }
 }
 
+.menu-button-icon {
+  color: var(--theme-text-color);
+  background-color: transparent;
+  border: none;
+  border-radius: 5px;
+  padding: 5px;
+  cursor: pointer;
+  transition:
+    background-color var(--animation-duration-2x),
+    opacity var(--animation-duration-2x);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  font-size: 1.2em;
+
+  &:not(.disabled):not([disabled]):hover,
+  &:not(.disabled):not([disabled]).active {
+    background-color: var(--white-20a);
+    opacity: 1;
+  }
+}
+
 .tags {
   display: flex;
   flex-wrap: nowrap;

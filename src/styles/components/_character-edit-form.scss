@@ -12,6 +12,48 @@
     gap: 15px;
   }
 
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 5px;
+    padding: 0 5px;
+
+    h2 {
+      margin: 0;
+      font-size: 1.5em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+  }
+
+  &__header-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
+    .result_info {
+      text-align: right;
+      cursor: default;
+      line-height: 1.2;
+
+      div:first-child {
+        font-size: 1.1em;
+      }
+      small {
+        opacity: 0.7;
+      }
+    }
+
+    .fa-triangle-exclamation {
+      color: var(--color-warning);
+    }
+  }
+
   &__main-content {
     display: flex;
     flex-direction: column;
@@ -25,7 +67,6 @@
     flex-wrap: nowrap;
     align-items: flex-start;
     gap: 10px;
-    margin-top: 5px;
   }
 
   &__avatar-area {

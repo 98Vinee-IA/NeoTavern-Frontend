@@ -402,6 +402,15 @@ export interface MessageSchema {
     expandEditor: string;
     descriptionPlaceholder: string;
     firstMessagePlaceholder: string;
+    tokenCounts: {
+      title: string;
+      total: string;
+      permanent: string;
+      warningTooltip: string;
+    };
+    stats: {
+      title: string;
+    };
     moreOptions: {
       linkWorldInfo: string;
       importCardLore: string;

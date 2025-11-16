@@ -399,6 +399,15 @@
     "expandEditor": "Expand the editor",
     "descriptionPlaceholder": "Describe your character's physical and mental traits here.",
     "firstMessagePlaceholder": "This will be the first message from the character that starts every chat.",
+    "tokenCounts": {
+      "title": "Token counts may be inaccurate and provided just for reference.",
+      "total": "Total tokens",
+      "permanent": "Permanent",
+      "warningTooltip": "About Token 'Limits'"
+    },
+    "stats": {
+      "title": "Click for stats!"
+    },
     "moreOptions": {
       "linkWorldInfo": "Link to World Info",
       "importCardLore": "Import Card Lore",
