@@ -5,6 +5,7 @@ import { chat_completion_sources, type ConnectionProfile } from '../../types';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useSettingsStore } from '../../stores/settings.store';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
+import { OpenrouterMiddleoutType } from '../../constants';
 
 const { t } = useStrictI18n();
 
@@ -25,6 +26,17 @@ const hasOpenRouterGroupedModels = computed(() => {
 function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
   apiStore.createConnectionProfile(profile);
 }
+
+const openrouterProvidersString = computed({
+  get: () => settingsStore.settings.api.provider_specific.openrouter.providers.join(','),
+  set: (value) => {
+    const newProviders = value
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    settingsStore.setSetting('api.provider_specific.openrouter.providers', newProviders);
+  },
+});
 </script>
 
 <template>
@@ -172,7 +184,7 @@ function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
         </form>
 
         <!-- OpenRouter Form -->
-        <form v-show="settingsStore.settings.api.chat_completion_source === chat_completion_sources.OPENROUTER">
+        <div v-show="settingsStore.settings.api.chat_completion_source === chat_completion_sources.OPENROUTER">
           <div class="api-connections-drawer__section">
             <h4>{{ t('apiConnections.openrouterKey') }}</h4>
             <div class="api-connections-drawer__input-group">
@@ -203,7 +215,34 @@ function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
               v-model="settingsStore.settings.api.selected_provider_models.openrouter"
             />
           </div>
-        </form>
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.openrouterOptions') }}</h4>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="settingsStore.settings.api.provider_specific.openrouter.use_fallback" />
+              <span>{{ t('apiConnections.openrouterUseFallback') }}</span>
+            </label>
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="settingsStore.settings.api.provider_specific.openrouter.allow_fallbacks"
+              />
+              <span>{{ t('apiConnections.openrouterAllowFallbacks') }}</span>
+            </label>
+            <!-- TODO: Provider list -->
+            <div class="range-block">
+              <div class="range-block-title">{{ t('apiConnections.openrouterFallbackProviders') }}</div>
+              <input type="text" class="text-pole" v-model="openrouterProvidersString" />
+            </div>
+            <div class="range-block">
+              <div class="range-block-title">{{ t('apiConnections.openrouterMiddleout') }}</div>
+              <select class="text-pole" v-model="settingsStore.settings.api.provider_specific.openrouter.middleout">
+                <option :value="OpenrouterMiddleoutType.ON">{{ t('apiConnections.middleout.on') }}</option>
+                <option :value="OpenrouterMiddleoutType.OFF">{{ t('apiConnections.middleout.off') }}</option>
+                <option :value="OpenrouterMiddleoutType.AUTO">{{ t('apiConnections.middleout.auto') }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
         <!-- MistralAI Form -->
         <form v-show="settingsStore.settings.api.chat_completion_source === chat_completion_sources.MISTRALAI">
@@ -240,6 +279,69 @@ function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
               <option value="gemma-7b-it">gemma-7b-it</option>
               <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
             </select>
+          </div>
+        </form>
+
+        <!-- Custom Form -->
+        <form v-show="settingsStore.settings.api.chat_completion_source === chat_completion_sources.CUSTOM">
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.customUrl') }}</h4>
+            <input type="text" class="text-pole" v-model="settingsStore.settings.api.provider_specific.custom.url" />
+          </div>
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.customModel') }}</h4>
+            <input type="text" class="text-pole" v-model="settingsStore.settings.api.selected_provider_models.custom" />
+          </div>
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.customKey') }}</h4>
+            <div class="api-connections-drawer__input-group">
+              <!-- TODO: Add secret management -->
+              <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Azure OpenAI Form -->
+        <form v-show="settingsStore.settings.api.chat_completion_source === chat_completion_sources.AZURE_OPENAI">
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.azureKey') }}</h4>
+            <div class="api-connections-drawer__input-group">
+              <!-- TODO: Add secret management -->
+              <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
+            </div>
+          </div>
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.azureBaseUrl') }}</h4>
+            <input
+              type="text"
+              class="text-pole"
+              v-model="settingsStore.settings.api.provider_specific.azure_openai.base_url"
+            />
+          </div>
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.azureDeploymentName') }}</h4>
+            <input
+              type="text"
+              class="text-pole"
+              v-model="settingsStore.settings.api.provider_specific.azure_openai.deployment_name"
+            />
+          </div>
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.azureApiVersion') }}</h4>
+            <input
+              type="text"
+              class="text-pole"
+              v-model="settingsStore.settings.api.provider_specific.azure_openai.api_version"
+            />
+          </div>
+          <div class="api-connections-drawer__section">
+            <h4>{{ t('apiConnections.azureModel') }}</h4>
+            <input
+              type="text"
+              class="text-pole"
+              placeholder="This is the model name inside your deployment"
+              v-model="settingsStore.settings.api.selected_provider_models.azure_openai"
+            />
           </div>
         </form>
 

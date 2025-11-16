@@ -355,6 +355,10 @@ export interface LegacyOaiSettings {
   zai_model?: string;
   reverse_proxy: string;
   proxy_password: string;
+  custom_url?: string;
+  azure_base_url?: string;
+  azure_deployment_name?: string;
+  azure_api_version?: string;
 
   // Generation settings
   preset_settings_openai?: string;
@@ -680,6 +684,14 @@ export interface ExperimentalSettings {
         providers: string[];
         allow_fallbacks: boolean;
         middleout: OpenrouterMiddleoutType;
+      };
+      custom: {
+        url: string;
+      };
+      azure_openai: {
+        base_url: string;
+        deployment_name: string;
+        api_version: string;
       };
     };
   };

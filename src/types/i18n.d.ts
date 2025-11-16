@@ -311,6 +311,22 @@ export interface MessageSchema {
     topA: {
       label: string;
     };
+    claude: {
+      useSysPrompt: {
+        label: string;
+        description: string;
+      };
+      assistantPrefill: {
+        label: string;
+        description: string;
+      };
+    };
+    google: {
+      useSysPrompt: {
+        label: string;
+        description: string;
+      };
+    };
   };
   userSettings: {
     title: string;
@@ -584,12 +600,20 @@ export interface MessageSchema {
     openrouterKey: string;
     mistralaiKey: string;
     groqKey: string;
+    customKey: string;
+    azureKey: string;
     manageKeys: string;
     keyPrivacy: string;
     openaiModel: string;
     claudeModel: string;
     mistralaiModel: string;
     groqModel: string;
+    customModel: string;
+    customUrl: string;
+    azureBaseUrl: string;
+    azureDeploymentName: string;
+    azureApiVersion: string;
+    azureModel: string;
     connect: string;
     connecting: string;
     sources: {
@@ -622,6 +646,16 @@ export interface MessageSchema {
     };
     openrouterModel: string;
     openrouterWebsite: string;
+    openrouterOptions: string;
+    openrouterUseFallback: string;
+    openrouterAllowFallbacks: string;
+    openrouterFallbackProviders: string;
+    openrouterMiddleout: string;
+    middleout: {
+      on: string;
+      off: string;
+      auto: string;
+    };
   };
   settings: {
     power_user: {

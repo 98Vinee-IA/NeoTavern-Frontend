@@ -196,6 +196,18 @@ onMounted(() => {
             />
           </div>
 
+          <!-- Textarea -->
+          <div v-if="item.widget === 'textarea' && item.id" class="range-block">
+            <div class="range-block-title">{{ item.label ? t(item.label) : '' }}</div>
+            <textarea
+              class="text-pole"
+              rows="3"
+              :value="settingsStore.getSetting(item.id)"
+              @input="settingsStore.setSetting(item.id, ($event.target as HTMLTextAreaElement).value)"
+            ></textarea>
+            <small v-if="item.description" class="toggle-description">{{ t(item.description) }}</small>
+          </div>
+
           <!-- Checkbox -->
           <div v-if="item.widget === 'checkbox' && item.id" class="range-block">
             <label class="checkbox-label">

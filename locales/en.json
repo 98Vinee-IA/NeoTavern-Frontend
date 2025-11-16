@@ -307,6 +307,22 @@
     },
     "topA": {
       "label": "Top A"
+    },
+    "claude": {
+      "useSysPrompt": {
+        "label": "Use System Prompt",
+        "description": "If enabled, the first system-role message will be used as Claude's system prompt."
+      },
+      "assistantPrefill": {
+        "label": "Assistant Prefill",
+        "description": "Text to pre-fill the assistant's response with. Usually `{'{{char}}'}:`"
+      }
+    },
+    "google": {
+      "useSysPrompt": {
+        "label": "Use System Prompt",
+        "description": "If enabled, the system prompt will be formatted in a way that is more compatible with Google models."
+      }
     }
   },
   "userSettings": {
@@ -581,12 +597,20 @@
     "openrouterKey": "OpenRouter API Key",
     "mistralaiKey": "MistralAI API Key",
     "groqKey": "Groq API Key",
+    "customKey": "API Key (Optional)",
+    "azureKey": "Azure API Key",
     "manageKeys": "Manage API keys",
     "keyPrivacy": "For privacy reasons, your API key will be hidden after you click 'Connect'.",
     "openaiModel": "OpenAI Model",
     "claudeModel": "Claude Model",
     "mistralaiModel": "MistralAI Model",
     "groqModel": "Groq Model",
+    "customModel": "Model Name",
+    "customUrl": "API Base URL",
+    "azureBaseUrl": "Base URL / Endpoint",
+    "azureDeploymentName": "Deployment Name",
+    "azureApiVersion": "API Version",
+    "azureModel": "Model Name",
     "connect": "Connect",
     "connecting": "Connecting",
     "sources": {
@@ -618,7 +642,17 @@
       "other": "Other Models"
     },
     "openrouterModel": "OpenRouter Model",
-    "openrouterWebsite": "Use OpenRouter website setting"
+    "openrouterWebsite": "Use OpenRouter website setting",
+    "openrouterOptions": "OpenRouter Options",
+    "openrouterUseFallback": "Use Fallback Models",
+    "openrouterAllowFallbacks": "Allow Fallbacks",
+    "openrouterFallbackProviders": "Fallback Providers (comma-separated)",
+    "openrouterMiddleout": "Middle-Out",
+    "middleout": {
+      "on": "On",
+      "off": "Off",
+      "auto": "Auto"
+    }
   },
   "settings": {
     "power_user": {

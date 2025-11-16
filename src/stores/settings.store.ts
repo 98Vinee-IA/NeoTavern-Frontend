@@ -61,6 +61,14 @@ function createDefaultSettings(): Settings {
         use_fallback: false,
         providers: [],
       },
+      custom: {
+        url: '',
+      },
+      azure_openai: {
+        base_url: '',
+        deployment_name: '',
+        api_version: '',
+      },
     },
   };
   defaultSettings.worldInfo = defaultWorldInfoSettings;
@@ -184,9 +192,17 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
       provider_specific: {
         openrouter: {
           allow_fallbacks: oai.openrouter_allow_fallbacks ?? true,
-          middleout: OpenrouterMiddleoutType.ON,
+          middleout: oai.openrouter_middleout ? OpenrouterMiddleoutType.ON : OpenrouterMiddleoutType.OFF,
           use_fallback: oai.openrouter_use_fallback ?? false,
           providers: oai.openrouter_providers ?? [],
+        },
+        custom: {
+          url: oai.custom_url ?? '',
+        },
+        azure_openai: {
+          base_url: oai.azure_base_url ?? '',
+          deployment_name: oai.azure_deployment_name ?? '',
+          api_version: oai.azure_api_version ?? '',
         },
       },
       samplers: {

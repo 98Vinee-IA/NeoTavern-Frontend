@@ -201,4 +201,30 @@ export const aiConfigDefinition: AiConfigSection[] = [
       },
     ],
   },
+  {
+    id: 'provider-specific-settings',
+    items: [
+      {
+        id: 'api.samplers.providers.claude.use_sysprompt',
+        widget: 'checkbox',
+        label: 'aiConfig.claude.useSysPrompt.label',
+        description: 'aiConfig.claude.useSysPrompt.description',
+        conditions: { source: 'claude' },
+      },
+      {
+        id: 'api.samplers.providers.claude.assistant_prefill',
+        widget: 'textarea',
+        label: 'aiConfig.claude.assistantPrefill.label',
+        description: 'aiConfig.claude.assistantPrefill.description',
+        conditions: { source: 'claude' },
+      },
+      {
+        id: 'api.samplers.providers.google.use_makersuite_sysprompt',
+        widget: 'checkbox',
+        label: 'aiConfig.google.useSysPrompt.label',
+        description: 'aiConfig.google.useSysPrompt.description',
+        conditions: { source: ['makersuite', 'vertexai'] },
+      },
+    ],
+  },
 ];
