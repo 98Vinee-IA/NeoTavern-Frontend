@@ -1,4 +1,4 @@
-import type { Prompt, PromptOrderConfig } from './types';
+import type { Prompt, PromptOrderConfig, SamplerSettings } from './types';
 
 export enum SendOnEnterOptions {
   DISABLED = -1,
@@ -60,4 +60,20 @@ export const defaultPromptOrder: PromptOrderConfig = {
     { identifier: 'worldInfoAfter', enabled: true },
     { identifier: 'jailbreak', enabled: true },
   ],
+};
+
+export const defaultSamplerSettings: SamplerSettings = {
+  temperature: 1.0,
+  frequency_penalty: 0,
+  presence_penalty: 0,
+  top_p: 1,
+  top_k: 0,
+  top_a: 0,
+  min_p: 0,
+  max_context: 4096,
+  max_context_unlocked: false,
+  max_tokens: 500,
+  stream: true,
+  prompts: defaultPrompts,
+  prompt_order: defaultPromptOrder,
 };

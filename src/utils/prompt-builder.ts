@@ -4,6 +4,7 @@ import { useUiStore } from '../stores/ui.store';
 import { useApiStore } from '../stores/api.store';
 import { useWorldInfoStore } from '../stores/world-info.store';
 import { WorldInfoProcessor } from './world-info-processor';
+import { defaultSamplerSettings } from '../constants';
 
 // TODO: Replace with a real API call to the backend for accurate tokenization
 async function getTokenCount(text: string): Promise<number> {
@@ -37,7 +38,7 @@ export class PromptBuilder {
 
     this.settings = apiStore.apiSettings;
     this.playerName = uiStore.activePlayerName || 'User';
-    this.maxContext = apiStore.apiSettings.samplers.max_context ?? 4096;
+    this.maxContext = apiStore.apiSettings.samplers.max_context ?? defaultSamplerSettings.max_context;
   }
 
   public async build(): Promise<ApiChatMessage[]> {

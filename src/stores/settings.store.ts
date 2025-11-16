@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { SendOnEnterOptions, DEFAULT_SAVE_EDIT_TIMEOUT, defaultPrompts, defaultPromptOrder } from '../constants';
+import {
+  SendOnEnterOptions,
+  DEFAULT_SAVE_EDIT_TIMEOUT,
+  defaultPrompts,
+  defaultPromptOrder,
+  defaultSamplerSettings,
+} from '../constants';
 import { isMobile } from '../utils/browser';
 import { debounce } from '../utils/common';
 import {
@@ -144,19 +150,19 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
       proxy_password: oai.proxy_password,
       selected_sampler: oai.preset_settings_openai,
       samplers: {
-        temperature: oai.temp_openai || 1.0,
-        frequency_penalty: oai.freq_pen_openai || 0,
-        presence_penalty: oai.pres_pen_openai || 0,
-        top_p: oai.top_p_openai || 1,
-        top_k: oai.top_k_openai || 0,
-        top_a: oai.top_a_openai || 0,
-        min_p: oai.min_p_openai || 0,
-        max_context: oai.openai_max_context || 4096,
-        max_context_unlocked: oai.max_context_unlocked || false,
-        max_tokens: oai.openai_max_tokens || 500,
-        stream: oai.stream_openai ?? true,
-        prompts: oai.prompts,
-        prompt_order: oai.prompt_order?.[0],
+        temperature: oai.temp_openai || defaultSamplerSettings.temperature,
+        frequency_penalty: oai.freq_pen_openai || defaultSamplerSettings.frequency_penalty,
+        presence_penalty: oai.pres_pen_openai || defaultSamplerSettings.presence_penalty,
+        top_p: oai.top_p_openai || defaultSamplerSettings.top_p,
+        top_k: oai.top_k_openai || defaultSamplerSettings.top_k,
+        top_a: oai.top_a_openai || defaultSamplerSettings.top_a,
+        min_p: oai.min_p_openai || defaultSamplerSettings.min_p,
+        max_context: oai.openai_max_context || defaultSamplerSettings.max_context,
+        max_context_unlocked: oai.max_context_unlocked || defaultSamplerSettings.max_context_unlocked,
+        max_tokens: oai.openai_max_tokens || defaultSamplerSettings.max_tokens,
+        stream: oai.stream_openai ?? defaultSamplerSettings.stream,
+        prompts: oai.prompts ?? defaultSamplerSettings.prompts,
+        prompt_order: oai.prompt_order?.[0] ?? defaultSamplerSettings.prompt_order,
       },
     },
     worldInfo: legacy.world_info_settings,

@@ -1,3 +1,4 @@
+import { defaultSamplerSettings } from '../constants';
 import type { LegacyOaiPresetSettings, SamplerSettings } from '../types';
 import { getRequestHeaders } from '../utils/api';
 import { fetchUserSettings } from './settings';
@@ -8,28 +9,23 @@ export interface Preset {
 }
 
 export function migratePreset(legacyPreset: LegacyOaiPresetSettings): SamplerSettings {
-  // @ts-ignore
-  const newPreset: SamplerSettings = {};
-  if (legacyPreset.temperature !== undefined) newPreset.temperature = legacyPreset.temperature;
-  if (legacyPreset.frequency_penalty !== undefined) newPreset.frequency_penalty = legacyPreset.frequency_penalty;
-  if (legacyPreset.presence_penalty !== undefined) newPreset.presence_penalty = legacyPreset.presence_penalty;
-  if (legacyPreset.top_p !== undefined) newPreset.top_p = legacyPreset.top_p;
-  if (legacyPreset.top_k !== undefined) newPreset.top_k = legacyPreset.top_k;
-  if (legacyPreset.top_a !== undefined) newPreset.top_a = legacyPreset.top_a;
-  if (legacyPreset.min_p !== undefined) newPreset.min_p = legacyPreset.min_p;
-  if (legacyPreset.openai_max_context !== undefined) newPreset.max_context = legacyPreset.openai_max_context;
-  if (legacyPreset.openai_max_tokens !== undefined) newPreset.max_tokens = legacyPreset.openai_max_tokens;
-  if (legacyPreset.stream_openai !== undefined) newPreset.stream = legacyPreset.stream_openai;
-  if (legacyPreset.prompts !== undefined) newPreset.prompts = legacyPreset.prompts;
-  if (legacyPreset.prompt_order !== undefined)
-    newPreset.prompt_order = { order: legacyPreset.prompt_order?.[0]?.order ?? [] };
-  // TODO: Migrate other settings if needed
-
-  // If there are no new keys, it means the preset was already in the new format.
-  if (Object.keys(newPreset).length === 0) {
-    // @ts-ignore
-    return legacyPreset as SamplerSettings;
-  }
+  const newPreset: SamplerSettings = {
+    temperature: legacyPreset.temperature ?? defaultSamplerSettings.temperature,
+    frequency_penalty: legacyPreset.frequency_penalty ?? defaultSamplerSettings.frequency_penalty,
+    presence_penalty: legacyPreset.presence_penalty ?? defaultSamplerSettings.presence_penalty,
+    top_p: legacyPreset.top_p ?? defaultSamplerSettings.top_p,
+    top_k: legacyPreset.top_k ?? defaultSamplerSettings.top_k,
+    top_a: legacyPreset.top_a ?? defaultSamplerSettings.top_a,
+    min_p: legacyPreset.min_p ?? defaultSamplerSettings.min_p,
+    max_context: legacyPreset.openai_max_context ?? defaultSamplerSettings.max_context,
+    max_tokens: legacyPreset.openai_max_tokens ?? defaultSamplerSettings.max_tokens,
+    stream: legacyPreset.stream_openai ?? defaultSamplerSettings.stream,
+    prompts: legacyPreset.prompts ?? defaultSamplerSettings.prompts,
+    prompt_order:
+      legacyPreset.prompt_order !== undefined
+        ? { order: legacyPreset.prompt_order?.[0]?.order ?? [] }
+        : defaultSamplerSettings.prompt_order,
+  };
 
   return newPreset;
 }
