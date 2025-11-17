@@ -135,7 +135,10 @@ function toggleDrawer(drawerName: string) {
     <div class="nav-item__content" :class="{ active: activeDrawer === 'backgrounds' }">
       <BackgroundsDrawer />
     </div>
-    <div class="nav-item__content" :class="{ active: activeDrawer === 'extensions' }">
+    <div
+      class="nav-item__content"
+      :class="{ active: activeDrawer === 'extensions', wide: activeDrawer === 'extensions' }"
+    >
       <ExtensionsDrawer />
     </div>
     <div class="nav-item__content" :class="{ active: activeDrawer === 'persona' }">

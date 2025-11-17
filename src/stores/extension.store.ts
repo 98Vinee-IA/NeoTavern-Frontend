@@ -1,21 +1,49 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { discoverExtensions, fetchManifest } from '../api/extensions';
 import type { ExtensionManifest } from '../types';
 import { loadScript, loadStyle } from '../utils/extension-loader';
+import { sanitizeSelector } from '../utils/dom';
 
-interface Extension {
+export interface Extension {
   name: string;
   type: string;
   manifest: ExtensionManifest;
   isActive: boolean;
+  containerId: string;
 }
 
 export const useExtensionStore = defineStore('extension', () => {
   const extensions = ref<Record<string, Extension>>({});
   const disabledExtensions = ref<string[]>([]); // This should be loaded from settings store
+  const searchTerm = ref('');
+  const selectedExtensionName = ref<string | null>(null);
+
+  const filteredExtensions = computed(() => {
+    const lowerSearch = searchTerm.value.toLowerCase();
+    return Object.values(extensions.value)
+      .filter((ext) => {
+        if (!lowerSearch) return true;
+        return (
+          ext.name.toLowerCase().includes(lowerSearch) ||
+          ext.manifest.display_name?.toLowerCase().includes(lowerSearch) ||
+          ext.manifest.author?.toLowerCase().includes(lowerSearch)
+        );
+      })
+      .sort((a, b) => (a.manifest.display_name ?? a.name).localeCompare(b.manifest.display_name ?? b.name));
+  });
+
+  const selectedExtension = computed<Extension | null>(() => {
+    return selectedExtensionName.value ? extensions.value[selectedExtensionName.value] : null;
+  });
+
+  function selectExtension(name: string | null) {
+    selectedExtensionName.value = name;
+  }
 
   async function initializeExtensions() {
+    if (Object.keys(extensions.value).length > 0) return; // Already initialized
+
     try {
       const discovered = await discoverExtensions();
       const manifestPromises = discovered.map(async (ext) => {
@@ -37,6 +65,7 @@ export const useExtensionStore = defineStore('extension', () => {
           type: ext.type,
           manifest: ext.manifest,
           isActive: false, // will be set by activation logic
+          containerId: `${sanitizeSelector(ext.name)}_container`,
         };
       }
       extensions.value = newExtensions;
@@ -67,5 +96,14 @@ export const useExtensionStore = defineStore('extension', () => {
     }
   }
 
-  return { extensions, disabledExtensions, initializeExtensions };
+  return {
+    extensions,
+    disabledExtensions,
+    searchTerm,
+    selectedExtensionName,
+    filteredExtensions,
+    selectedExtension,
+    selectExtension,
+    initializeExtensions,
+  };
 });

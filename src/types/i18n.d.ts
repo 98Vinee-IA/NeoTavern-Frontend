@@ -362,6 +362,7 @@ export interface MessageSchema {
     search: string;
     resetToDefaults: string;
     confirmDelete: string;
+    by: string;
   };
   popup: {
     cropAvatar: {
@@ -560,12 +561,15 @@ export interface MessageSchema {
     };
   };
   extensions: {
-    title: string;
     notifyUpdates: string;
     manage: string;
     install: string;
     managePopupNotImplemented: string;
     installPopupNotImplemented: string;
+    placeholder: {
+      title: string;
+      text: string;
+    };
   };
   apiConnections: {
     profile: string;

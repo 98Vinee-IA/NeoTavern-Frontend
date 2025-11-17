@@ -619,7 +619,8 @@ export type AccountStorageKey =
   | 'character_browser_collapsed'
   | 'character_browser_width'
   | 'worldinfo_browser_width'
-  | 'world_info_sort_order';
+  | 'world_info_sort_order'
+  | 'extensions_browser_width';
 
 export type AccountStorageState = Partial<Record<AccountStorageKey, string>>;
 
