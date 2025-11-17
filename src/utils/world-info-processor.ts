@@ -6,9 +6,11 @@ import {
   type WorldInfoSettings,
   WorldInfoLogic,
   WorldInfoPosition,
-  type MessageRole,
   type Persona,
+  type ProcessedWorldInfo,
+  type WorldInfoOptions,
 } from '../types';
+import { eventEmitter } from './event-emitter';
 
 // TODO: Replace with a real API call to the backend for accurate tokenization
 async function getTokenCount(text: string): Promise<number> {
@@ -96,26 +98,6 @@ class WorldInfoBuffer {
   }
 }
 
-export interface ProcessedWorldInfo {
-  worldInfoBefore: string;
-  worldInfoAfter: string;
-  anBefore: string[];
-  anAfter: string[];
-  emBefore: string[];
-  emAfter: string[];
-  depthEntries: { depth: number; role: MessageRole; entries: string[] }[];
-  outletEntries: Record<string, string[]>;
-}
-
-export type WorldInfoOptions = {
-  chat: ChatMessage[];
-  character: Character;
-  settings: WorldInfoSettings;
-  books: WorldInfoBook[];
-  persona: Persona;
-  maxContext: number;
-};
-
 // --- Main Processor ---
 export class WorldInfoProcessor {
   private chat: ChatMessage[];
@@ -135,6 +117,16 @@ export class WorldInfoProcessor {
   }
 
   public async process(): Promise<ProcessedWorldInfo> {
+    const options: WorldInfoOptions = {
+      chat: this.chat,
+      character: this.character,
+      settings: this.settings,
+      books: this.books,
+      persona: this.persona,
+      maxContext: this.maxContext,
+    };
+    await eventEmitter.emit('world-info:processing-started', options);
+
     const buffer = new WorldInfoBuffer(this.chat, this.settings, this.character, this.persona);
     let allActivatedEntries = new Set<WorldInfoEntry>();
     let continueScanning = true;
@@ -243,6 +235,7 @@ export class WorldInfoProcessor {
 
           currentContentForBudget += contentForBudget;
           allActivatedEntries.add(entry);
+          await eventEmitter.emit('world-info:entry-activated', entry);
 
           if (this.settings.world_info_recursive && !entry.preventRecursion) {
             newContentForRecursion += `\n${substitutedContent}`;
@@ -315,6 +308,7 @@ export class WorldInfoProcessor {
     result.worldInfoBefore = result.worldInfoBefore.trim();
     result.worldInfoAfter = result.worldInfoAfter.trim();
 
+    await eventEmitter.emit('world-info:processing-finished', result);
     return result;
   }
 }

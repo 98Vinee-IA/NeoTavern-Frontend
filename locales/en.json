@@ -394,7 +394,6 @@
     "extensions": "Extensions",
     "continue": "Continue the last message",
     "send": "Send a message",
-    "saveError": "Cannot save: No active character selected.",
     "loadError": "Failed to load chat.",
     "generate": {
       "noPrompts": "No prompts were built for the AI. Please check your prompt settings.",

@@ -7,6 +7,14 @@ export type SettingsPath = Path<Settings>;
 export type OaiSettingsPath = Path<LegacyOaiSettings>;
 // -----------------------------------------
 
+export enum EventPriority {
+  LOWEST = 10,
+  LOW = 30,
+  MEDIUM = 50,
+  HIGH = 70,
+  HIGHEST = 90,
+}
+
 export enum ReasoningEffort {
   AUTO = 'auto',
   MIN = 'min',
@@ -21,6 +29,22 @@ export enum GenerationMode {
   CONTINUE = 'continue',
   REGENERATE = 'regenerate',
   ADD_SWIPE = 'add_swipe',
+}
+
+export interface GenerationContext {
+  mode: GenerationMode;
+  character: Character;
+  history: ChatMessage[];
+  persona: Persona;
+  settings: {
+    sampler: SamplerSettings;
+    source: ChatCompletionSource;
+    model: string;
+    providerSpecific: Settings['api']['provider_specific'];
+  };
+  // Other relevant data available to the interceptor for read-only purposes or modification
+  playerName: string;
+  characterName: string;
 }
 
 export type MessageRole = 'user' | 'assistant' | 'system';
@@ -592,6 +616,33 @@ export interface WorldInfoSettings {
   world_info_max_recursion_steps: number;
 }
 
+export interface ProcessedWorldInfo {
+  worldInfoBefore: string;
+  worldInfoAfter: string;
+  anBefore: string[];
+  anAfter: string[];
+  emBefore: string[];
+  emAfter: string[];
+  depthEntries: { depth: number; role: MessageRole; entries: string[] }[];
+  outletEntries: Record<string, string[]>;
+}
+
+export type WorldInfoOptions = {
+  chat: ChatMessage[];
+  character: Character;
+  settings: WorldInfoSettings;
+  books: WorldInfoBook[];
+  persona: Persona;
+  maxContext: number;
+};
+
+export type PromtBuilderOptions = {
+  character: Character;
+  chatHistory: ChatMessage[];
+  samplerSettings: SamplerSettings;
+  persona: Persona;
+};
+
 // --- Persona Types ---
 export interface PersonaConnection {
   type: 'character' | 'group';
@@ -724,6 +775,7 @@ export interface ExperimentalSettings {
   };
   worldInfo: WorldInfoSettings;
   account: AccountStorageState;
+  extensionSettings: Record<string, object>;
 }
 
 /**

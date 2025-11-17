@@ -397,7 +397,6 @@ export interface MessageSchema {
     extensions: string;
     continue: string;
     send: string;
-    saveError: string;
     loadError: string;
     generate: {
       noPrompts: string;

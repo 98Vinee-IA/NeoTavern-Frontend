@@ -21,6 +21,7 @@ import { onlyUnique } from '../utils/array';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { getFirstMessage } from '../utils/chat';
 import { get } from 'lodash-es';
+import { eventEmitter } from '../utils/event-emitter';
 
 // TODO: Replace with a real API call to the backend for accurate tokenization
 async function getTokenCount(text: string): Promise<number> {
@@ -245,6 +246,7 @@ export const useCharacterStore = defineStore('character', () => {
       const index = characters.value.findIndex((c) => c.avatar === avatar);
       if (index !== -1) {
         characters.value[index] = updatedCharacter;
+        await eventEmitter.emit('character:updated', updatedCharacter, changes);
       } else {
         console.error(`Saved character with avatar ${avatar} not found in local list.`);
         toast.warning(t('character.save.syncWarning'));
@@ -328,19 +330,18 @@ export const useCharacterStore = defineStore('character', () => {
         const chatStore = useChatStore();
 
         if (chatStore.chat.length === 1 && chatStore.chat[0] && !chatStore.chat[0].is_user) {
-          const currentMessage = chatStore.chat[0];
           // Use a fresh copy of the character with the latest changes applied
           const updatedCharacterForGreeting = { ...activeCharacter.value, ...changes } as Character;
 
           // Re-evaluate the first message details, including swipes
           const newFirstMessageDetails = getFirstMessage(updatedCharacterForGreeting);
 
-          currentMessage.mes = newFirstMessageDetails.mes;
-          currentMessage.swipes = newFirstMessageDetails.swipes;
-          currentMessage.swipe_id = newFirstMessageDetails.swipe_id;
-          currentMessage.swipe_info = newFirstMessageDetails.swipe_info;
-
-          await chatStore.saveChat();
+          await chatStore.updateMessageObject(0, {
+            mes: newFirstMessageDetails.mes,
+            swipes: newFirstMessageDetails.swipes,
+            swipe_id: newFirstMessageDetails.swipe_id,
+            swipe_info: newFirstMessageDetails.swipe_info,
+          });
         }
       }
     }
@@ -369,6 +370,13 @@ export const useCharacterStore = defineStore('character', () => {
       if (data.file_name) {
         const avatarFileName = `${data.file_name}.png`;
         toast.success(t('character.import.success', { fileName: data.file_name }));
+
+        await refreshCharacters();
+        const importedChar = characters.value.find((c) => c.avatar === avatarFileName);
+        if (importedChar) {
+          await eventEmitter.emit('character:imported', importedChar);
+        }
+
         return avatarFileName;
       }
     } catch (error) {
@@ -468,6 +476,7 @@ export const useCharacterStore = defineStore('character', () => {
       const createdChar = await apiCreateCharacter(newCharData);
       toast.success(t('character.create.success', { name: createdChar.name }));
       await refreshCharacters();
+      await eventEmitter.emit('character:created', createdChar);
       highlightCharacter(createdChar.avatar);
     } catch (error) {
       console.error('Failed to create new character:', error);

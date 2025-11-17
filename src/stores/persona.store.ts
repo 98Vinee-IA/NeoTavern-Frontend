@@ -8,6 +8,7 @@ import { toast } from '../composables/useToast';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { usePopupStore } from './popup.store';
 import { getBase64Async } from '../utils/file';
+import { eventEmitter } from '../utils/event-emitter';
 
 export const usePersonaStore = defineStore('persona', () => {
   const { t } = useStrictI18n();
@@ -95,16 +96,18 @@ export const usePersonaStore = defineStore('persona', () => {
       // Sync back to legacy fields for compatibility with other parts of the app
       settingsStore.setLegacySetting('username', persona.name);
       settingsStore.setLegacySetting('user_avatar', persona.avatarId);
+      await eventEmitter.emit('persona:activated', persona);
     }
   }
 
-  function updateActivePersonaField<K extends keyof PersonaDescription>(field: K, value: PersonaDescription[K]) {
+  async function updateActivePersonaField<K extends keyof PersonaDescription>(field: K, value: PersonaDescription[K]) {
     if (!activePersona.value) return;
     const index = personas.value.findIndex((p) => p.avatarId === activePersona.value?.avatarId);
     if (index > -1) {
       const updatedPersona = { ...personas.value[index], [field]: value };
       personas.value.splice(index, 1, updatedPersona);
       // The change will be saved by the settings store watcher
+      await eventEmitter.emit('persona:updated', updatedPersona);
     }
   }
 
@@ -126,6 +129,7 @@ export const usePersonaStore = defineStore('persona', () => {
         // also update the main username if this is the active persona
         uiStore.activePlayerName = newName;
         settingsStore.setLegacySetting('username', newName);
+        await eventEmitter.emit('persona:updated', updatedPersona);
       }
     }
   }
@@ -177,6 +181,7 @@ export const usePersonaStore = defineStore('persona', () => {
         const nextPersona = personas.value.length > 0 ? personas.value[0].avatarId : null;
         await setActivePersona(nextPersona);
       }
+      await eventEmitter.emit('persona:deleted', avatarId);
     } catch (error) {
       console.error('Failed to delete persona:', error);
       toast.error(t('personaManagement.delete.error'));

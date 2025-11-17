@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   SendOnEnterOptions,
   DEFAULT_SAVE_EDIT_TIMEOUT,
@@ -24,11 +24,12 @@ import {
 } from '../api/settings';
 import { settingsDefinition } from '../settings-definition';
 import { toast } from '../composables/useToast';
-import { set, get, defaultsDeep, debounce, type DebouncedFunc } from 'lodash-es';
+import { set, get, defaultsDeep, debounce, type DebouncedFunc, cloneDeep } from 'lodash-es';
 import { useUiStore } from './ui.store';
 import type { ValueForPath } from '../types/utils';
 import { defaultWorldInfoSettings } from './world-info.store';
 import { migratePreset, saveExperimentalPreset } from '../api/presets';
+import { eventEmitter } from '../utils/event-emitter';
 
 type SettingsValue<P extends SettingsPath> = ValueForPath<Settings, P>;
 
@@ -240,6 +241,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
     },
     worldInfo: legacy.world_info_settings,
     account: legacy.account_storage,
+    extensionSettings: {}, // Since old extensions not going to work, start fresh
   };
   return migrated;
 }
@@ -250,6 +252,27 @@ export const useSettingsStore = defineStore('settings', () => {
   const definitions = ref<SettingDefinition[]>(settingsDefinition);
   // Keep a copy of the full legacy settings to preserve unsused fields on save
   const fullLegacySettings = ref<LegacySettings | null>(null);
+
+  // Watch for settings changes to emit events
+  watch(
+    settings,
+    (newValue, oldValue) => {
+      if (settingsInitializing.value) return;
+
+      const newCloned = cloneDeep(newValue);
+      const oldCloned = cloneDeep(oldValue);
+
+      definitions.value.forEach(async (def) => {
+        const path = def.id;
+        const newVal = get(newCloned, path);
+        const oldVal = get(oldCloned, path);
+        if (JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
+          await eventEmitter.emit('setting:changed', path, newVal, oldVal);
+        }
+      });
+    },
+    { deep: true },
+  );
 
   const shouldSendOnEnter = computed(() => {
     switch (settings.value.chat.sendOnEnter) {
@@ -325,8 +348,9 @@ export const useSettingsStore = defineStore('settings', () => {
       toast.error('Could not load user settings. Using defaults.');
       // The store already has defaults, so we can just continue safely.
     } finally {
-      Promise.resolve().then(() => {
+      Promise.resolve().then(async () => {
         settingsInitializing.value = false;
+        await eventEmitter.emit('app:loaded');
       });
     }
   }

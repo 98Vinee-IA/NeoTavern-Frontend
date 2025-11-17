@@ -1,8 +1,9 @@
-import type { Character, ChatMessage, Persona, SamplerSettings } from '../types';
+import type { Character, ChatMessage, Persona, SamplerSettings, PromtBuilderOptions } from '../types';
 import type { ApiChatMessage } from '../api/generation';
 import { useWorldInfoStore } from '../stores/world-info.store';
 import { WorldInfoProcessor } from './world-info-processor';
 import { defaultSamplerSettings } from '../constants';
+import { eventEmitter } from './event-emitter';
 
 // TODO: Replace with a real API call to the backend for accurate tokenization
 async function getTokenCount(text: string): Promise<number> {
@@ -16,13 +17,6 @@ function substitute(text: string, char: Character, user: string): string {
   if (!text) return '';
   return text.replace(/{{char}}/g, char.name).replace(/{{user}}/g, user);
 }
-
-export type PromtBuilderOptions = {
-  character: Character;
-  chatHistory: ChatMessage[];
-  samplerSettings: SamplerSettings;
-  persona: Persona;
-};
 
 export class PromptBuilder {
   private character: Character;
@@ -41,6 +35,13 @@ export class PromptBuilder {
   }
 
   public async build(): Promise<ApiChatMessage[]> {
+    const options: PromtBuilderOptions = {
+      character: this.character,
+      chatHistory: this.chatHistory,
+      samplerSettings: this.samplerSettings,
+      persona: this.persona,
+    };
+    await eventEmitter.emit('prompt:building-started', options);
     const finalMessages: ApiChatMessage[] = [];
     let currentTokenCount = 0;
 
@@ -160,6 +161,7 @@ export class PromptBuilder {
       }
     }
 
+    await eventEmitter.emit('prompt:built', finalMessages);
     return finalMessages;
   }
 }

@@ -83,12 +83,10 @@ export const useBackgroundStore = defineStore('background', () => {
       return;
     }
     chatStore.chatMetadata[BG_METADATA_KEY] = url;
-    chatStore.saveChat();
   }
 
   function unlockBackground() {
     delete chatStore.chatMetadata[BG_METADATA_KEY];
-    chatStore.saveChat();
   }
 
   async function handleUpload(file: File) {

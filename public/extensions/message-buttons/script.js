@@ -49,11 +49,11 @@
     addStarButtonToMessages();
   }
 
-  // Listen for the 'chat_entered' event to run setup on chat load.
-  events.on('chat_entered', handleChatEntered);
+  // Listen for the 'chat:entered' event to run setup on chat load.
+  events.on('chat:entered', handleChatEntered);
 
-  // Listen for the 'chat_changed' event to handle new messages (e.g., streaming).
-  // events.on('chat_changed', addStarButtonToMessages);
+  // Listen for the 'chat:updated' event to handle new messages (e.g., streaming).
+  // events.on('chat:updated', addStarButtonToMessages);
 
   console.log('Message Buttons extension loaded and listening for chat events.');
 })();

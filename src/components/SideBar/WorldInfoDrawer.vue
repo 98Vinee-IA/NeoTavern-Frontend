@@ -23,8 +23,8 @@ onMounted(() => {
   }
 });
 
-function updateEntry(newEntry: WorldInfoEntryType) {
-  worldInfoStore.updateSelectedEntry(newEntry);
+async function updateEntry(newEntry: WorldInfoEntryType) {
+  await worldInfoStore.updateSelectedEntry(newEntry);
 }
 
 function triggerImport() {

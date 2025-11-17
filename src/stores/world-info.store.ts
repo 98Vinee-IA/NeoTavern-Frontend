@@ -18,6 +18,7 @@ import { defaultsDeep } from 'lodash-es';
 import { usePopupStore } from './popup.store';
 import { downloadFile } from '../utils/file';
 import { useStrictI18n } from '../composables/useStrictI18n';
+import { eventEmitter } from '../utils/event-emitter';
 
 export const defaultWorldInfoSettings: WorldInfoSettings = {
   world_info: {},
@@ -200,6 +201,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
       try {
         await api.saveWorldInfoBook(book.name, book);
         worldInfoCache.value[book.name] = JSON.parse(JSON.stringify(book));
+        await eventEmitter.emit('world-info:book-updated', book);
         // Do not toast on every auto-save, it's too noisy.
       } catch (error) {
         console.error('Failed to save lorebook:', error);
@@ -210,13 +212,14 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     }
   }, 1000);
 
-  function updateSelectedEntry(newEntryData: WorldInfoEntry) {
+  async function updateSelectedEntry(newEntryData: WorldInfoEntry) {
     if (!selectedEntry.value || !selectedBookForEntry.value) return;
     const book = selectedBookForEntry.value;
     const index = book.entries.findIndex((e) => e.uid === newEntryData.uid);
     if (index !== -1) {
       book.entries[index] = { ...newEntryData };
       saveBookDebounced(book);
+      await eventEmitter.emit('world-info:entry-updated', book.name, newEntryData);
     }
   }
 
@@ -234,6 +237,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
         await initialize();
         toggleBookExpansion(newName);
         toast.success(`Created lorebook: ${newName}`);
+        await eventEmitter.emit('world-info:book-created', newName);
       } catch (error) {
         toast.error(`Failed to create lorebook.`);
       }
@@ -298,6 +302,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     book.entries.unshift(newEntry);
     saveBookDebounced(book);
     selectItem(`${bookName}/${newUid}`);
+    await eventEmitter.emit('world-info:entry-created', bookName, newEntry);
   }
 
   async function deleteBook(name: string) {
@@ -315,6 +320,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
         }
         await initialize();
         toast.success(`Deleted lorebook: ${name}`);
+        await eventEmitter.emit('world-info:book-deleted', name);
       } catch (error) {
         toast.error('Failed to delete lorebook.');
       }
@@ -337,6 +343,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
           selectedItemId.value = selectedItemId.value.replace(oldName, newName);
         }
         await initialize();
+        await eventEmitter.emit('world-info:book-renamed', oldName, newName);
       } catch (error) {
         toast.error('Failed to rename lorebook.');
       }
@@ -364,6 +371,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     if (!selectedEntry.value || !selectedBookForEntry.value) return;
     const book = selectedBookForEntry.value;
     const entry = selectedEntry.value;
+    const entryUid = entry.uid;
 
     const { result } = await popupStore.show({
       title: t('worldInfo.popup.deleteEntryTitle'),
@@ -376,6 +384,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
         book.entries.splice(index, 1);
         saveBookDebounced(book);
         selectItem('global-settings');
+        await eventEmitter.emit('world-info:entry-deleted', book.name, entryUid);
       }
     }
   }
@@ -403,6 +412,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
       await fetchBook(name);
       toggleBookExpansion(name);
       toast.success(`Imported lorebook: ${name}`);
+      await eventEmitter.emit('world-info:book-imported', name);
     } catch (error) {
       toast.error('Failed to import lorebook.');
     }
@@ -445,6 +455,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     deleteSelectedEntry,
     duplicateSelectedEntry,
     getBookFromCache,
+    fetchBook,
     importBook,
     exportBook,
     saveBookDebounced,
