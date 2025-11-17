@@ -1,41 +1,70 @@
 (function () {
   console.log('Loading Example Vue Component extension...');
 
-  if (!window.Vue) {
-    console.error('Vue is not available on the window object. This extension cannot run.');
+  // Ensure the API is ready
+  if (!window.SillyTavern || !window.SillyTavern.extensionAPI || !window.SillyTavern.vue) {
+    console.error('SillyTavern API or Vue not available. This extension cannot run.');
     return;
   }
-  const { createApp } = window.Vue;
+  const { createApp, ref } = window.SillyTavern.vue;
+  const { chat, ui, settings } = window.SillyTavern.extensionAPI;
 
+  // Define the Vue component
   const MyComponent = {
-    data() {
+    setup() {
+      const messageToSend = ref('');
+      const someSetting = ref(settings.get('chat.sendOnEnter'));
+
+      function sendMessage() {
+        if (!messageToSend.value.trim()) {
+          ui.showToast('Please enter a message.', 'warning');
+          return;
+        }
+        chat.sendMessage(messageToSend.value);
+        messageToSend.value = '';
+      }
+
+      function showToast() {
+        ui.showToast('Hello from the Vue component!', 'info');
+      }
+
       return {
-        message: 'Hello from a Vue component in an extension!',
+        messageToSend,
+        someSetting,
+        sendMessage,
+        showToast,
       };
     },
     template: `
-            <div class="example-vue-component" @click="greet">
-                <p>{{ message }}</p>
+      <div class="example-vue-component extension_container">
+        <div class="inline-drawer-header"><b>Vue Component Example</b></div>
+        <div class="inline-drawer-content">
+            <p>You can use modern tools like Vue to build your extension's UI. This gives you access to the full reactivity and component system of Vue.</p>
+            <p>Current "Send on Enter" setting: <code>{{ someSetting }}</code></p>
+            <div class="form-group">
+                <label>Send a message to the chat:</label>
+                <div class="input-with-button">
+                  <input type="text" class="text-pole" v-model="messageToSend" @keydown.enter="sendMessage" placeholder="Type here..." />
+                  <button class="menu-button" @click="sendMessage">Send</button>
+                </div>
             </div>
-        `,
-    methods: {
-      greet() {
-        alert('Clicked the Vue component!');
-      },
-    },
+            <button class="menu-button" @click="showToast">Show a Toast</button>
+        </div>
+      </div>
+    `,
   };
 
+  // Find the container and mount the component
   const interval = setInterval(() => {
-    const anchor = document.getElementById('character-search-form');
-    if (anchor && anchor.parentElement && !document.getElementById('example-vue-component-mount')) {
+    const container = document.getElementById('example-vue-component_container');
+    if (container) {
       clearInterval(interval);
 
-      const mountPoint = document.createElement('div');
-      mountPoint.id = 'example-vue-component-mount';
-      anchor.parentElement.insertBefore(mountPoint, anchor.nextSibling);
+      // Prevent re-mounting
+      if (container.childElementCount > 0) return;
 
-      createApp(MyComponent).mount('#example-vue-component-mount');
-      console.log('Example Vue Component extension loaded.');
+      createApp(MyComponent).mount(container);
+      console.log('Example Vue Component extension loaded and mounted.');
     }
   }, 100);
 })();

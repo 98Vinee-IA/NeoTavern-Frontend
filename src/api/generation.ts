@@ -14,36 +14,36 @@ export type ChatCompletionPayload = Partial<{
   model: string;
   chat_completion_source: string;
   max_tokens: number;
-  temperature: number;
-  frequency_penalty: number;
-  presence_penalty: number;
-  repetition_penalty: number;
-  top_p: number;
-  top_k: number;
-  top_a: number;
-  min_p: number;
-  stop: string[];
+  temperature?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  repetition_penalty?: number;
+  top_p?: number;
+  top_k?: number;
+  top_a?: number;
+  min_p?: number;
+  stop?: string[];
   // TODO: logit_bias?: Record<string, number>;
-  n: number;
-  include_reasoning: boolean;
-  seed: number;
-  max_completion_tokens: number;
+  n?: number;
+  include_reasoning?: boolean;
+  seed?: number;
+  max_completion_tokens?: number;
 
   // Claude-specific
   claude_use_sysprompt: boolean;
   assistant_prefill: string;
 
   // OpenRouter-specific
-  use_fallback: boolean;
-  provider: string[];
-  allow_fallbacks: boolean;
-  middleout: OpenrouterMiddleoutType;
+  use_fallback?: boolean;
+  provider?: string[];
+  allow_fallbacks?: boolean;
+  middleout?: OpenrouterMiddleoutType;
 
   // Google-specific
-  use_makersuite_sysprompt: boolean;
+  use_makersuite_sysprompt?: boolean;
 
   // Mistral-specific
-  safe_prompt: boolean;
+  safe_prompt?: boolean;
 }>;
 
 export interface GenerationResponse {

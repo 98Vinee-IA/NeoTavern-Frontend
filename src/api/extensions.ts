@@ -7,6 +7,7 @@ export async function discoverExtensions(): Promise<{ name: string; type: string
   return Promise.resolve([
     { name: 'example-button', type: 'local' },
     { name: 'example-vue-component', type: 'local' },
+    { name: 'message-buttons', type: 'local' },
   ]);
   /*
   const response = await fetch('/api/extensions/discover');

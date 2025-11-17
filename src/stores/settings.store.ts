@@ -8,7 +8,6 @@ import {
   OpenrouterMiddleoutType,
 } from '../constants';
 import { isMobile } from '../utils/browser';
-import { debounce } from '../utils/common';
 import {
   type Settings,
   type LegacySettings,
@@ -25,7 +24,7 @@ import {
 } from '../api/settings';
 import { settingsDefinition } from '../settings-definition';
 import { toast } from '../composables/useToast';
-import { set, get, defaultsDeep } from 'lodash-es';
+import { set, get, defaultsDeep, debounce, type DebouncedFunc } from 'lodash-es';
 import { useUiStore } from './ui.store';
 import type { ValueForPath } from '../types/utils';
 import { defaultWorldInfoSettings } from './world-info.store';
@@ -330,7 +329,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  const saveSettingsDebounced = debounce(async () => {
+  const saveSettingsDebounced: DebouncedFunc<() => Promise<void>> = debounce(async () => { // TODO: Should we remove our debounce and use lodash's debounce directly?
     if (settingsInitializing.value || !fullLegacySettings.value) return;
 
     const settingsToSave: LegacySettings = { ...fullLegacySettings.value };

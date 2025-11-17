@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { GenerationMode, type ChatMessage, type ChatMetadata } from '../types';
 import { usePromptStore } from './prompt.store';
 import { useCharacterStore } from './character.store';
@@ -22,6 +22,7 @@ import { getThumbnailUrl } from '../utils/image';
 import { default_user_avatar } from '../constants';
 import { useSettingsStore } from './settings.store';
 import { usePersonaStore } from './persona.store';
+import { eventEmitter } from '../utils/event-emitter';
 
 // TODO: Replace with a real API call to the backend for accurate tokenization
 async function getTokenCount(text: string): Promise<number> {
@@ -45,6 +46,16 @@ export const useChatStore = defineStore('chat', () => {
 
   const uiStore = useUiStore();
   const personaStore = usePersonaStore();
+
+  watch(
+    chat,
+    () => {
+      nextTick(() => {
+        eventEmitter.emit('chat_changed');
+      });
+    },
+    { deep: true },
+  );
 
   function getCurrentChatId() {
     // TODO: Integrate group store later
@@ -157,6 +168,9 @@ export const useChatStore = defineStore('chat', () => {
         const promptStore = usePromptStore();
         await promptStore.loadItemizedPrompts(currentChatId);
       }
+      nextTick(() => {
+        eventEmitter.emit('chat_entered', activeCharacter, activeChatFile.value);
+      });
     } catch (error) {
       console.error('Failed to refresh chat:', error);
       toast.error(t('chat.loadError'));
