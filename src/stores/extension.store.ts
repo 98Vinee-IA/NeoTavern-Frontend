@@ -6,18 +6,25 @@ import { loadScript, loadStyle } from '../utils/extension-loader';
 import { sanitizeSelector } from '../utils/dom';
 
 export interface Extension {
-  name: string;
+  id: string;
   type: string;
   manifest: ExtensionManifest;
   isActive: boolean;
   containerId: string;
 }
 
+/**
+ * Generates a consistent DOM ID for an extension container.
+ */
+export function getExtensionContainerId(extensionId: string): string {
+  return `extension-root-${sanitizeSelector(extensionId)}`;
+}
+
 export const useExtensionStore = defineStore('extension', () => {
   const extensions = ref<Record<string, Extension>>({});
   const disabledExtensions = ref<string[]>([]); // This should be loaded from settings store
   const searchTerm = ref('');
-  const selectedExtensionName = ref<string | null>(null);
+  const selectedExtensionId = ref<string | null>(null);
 
   const filteredExtensions = computed(() => {
     const lowerSearch = searchTerm.value.toLowerCase();
@@ -25,20 +32,20 @@ export const useExtensionStore = defineStore('extension', () => {
       .filter((ext) => {
         if (!lowerSearch) return true;
         return (
-          ext.name.toLowerCase().includes(lowerSearch) ||
+          ext.id.toLowerCase().includes(lowerSearch) ||
           ext.manifest.display_name?.toLowerCase().includes(lowerSearch) ||
           ext.manifest.author?.toLowerCase().includes(lowerSearch)
         );
       })
-      .sort((a, b) => (a.manifest.display_name ?? a.name).localeCompare(b.manifest.display_name ?? b.name));
+      .sort((a, b) => (a.manifest.display_name ?? a.id).localeCompare(b.manifest.display_name ?? b.id));
   });
 
   const selectedExtension = computed<Extension | null>(() => {
-    return selectedExtensionName.value ? extensions.value[selectedExtensionName.value] : null;
+    return selectedExtensionId.value ? extensions.value[selectedExtensionId.value] : null;
   });
 
-  function selectExtension(name: string | null) {
-    selectedExtensionName.value = name;
+  function selectExtension(id: string | null) {
+    selectedExtensionId.value = id;
   }
 
   async function initializeExtensions() {
@@ -60,12 +67,14 @@ export const useExtensionStore = defineStore('extension', () => {
 
       const newExtensions: Record<string, Extension> = {};
       for (const ext of results) {
-        newExtensions[ext.name] = {
-          name: ext.name,
+        // The name in the manifest (or folder name) is the ID
+        const id = ext.name;
+        newExtensions[id] = {
+          id: id,
           type: ext.type,
           manifest: ext.manifest,
           isActive: false, // will be set by activation logic
-          containerId: `${sanitizeSelector(ext.name)}_container`,
+          containerId: getExtensionContainerId(id),
         };
       }
       extensions.value = newExtensions;
@@ -79,18 +88,18 @@ export const useExtensionStore = defineStore('extension', () => {
   async function activateExtensions() {
     // Basic activation logic. A full implementation would check dependencies, versions etc.
     for (const ext of Object.values(extensions.value)) {
-      if (!disabledExtensions.value.includes(ext.name)) {
+      if (!disabledExtensions.value.includes(ext.id)) {
         try {
           if (ext.manifest.css) {
-            await loadStyle(ext.name, ext.manifest.css);
+            await loadStyle(ext.id, ext.manifest.css);
           }
           if (ext.manifest.js) {
-            await loadScript(ext.name, ext.manifest.js);
+            await loadScript(ext.id, ext.manifest.js);
           }
           ext.isActive = true;
-          console.debug(`Activated extension: ${ext.name}`);
+          console.debug(`Activated extension: ${ext.id}`);
         } catch (error) {
-          console.error(`Failed to activate extension ${ext.name}:`, error);
+          console.error(`Failed to activate extension ${ext.id}:`, error);
         }
       }
     }
@@ -100,10 +109,11 @@ export const useExtensionStore = defineStore('extension', () => {
     extensions,
     disabledExtensions,
     searchTerm,
-    selectedExtensionName,
+    selectedExtensionId,
     filteredExtensions,
     selectedExtension,
     selectExtension,
     initializeExtensions,
+    getExtensionContainerId,
   };
 });

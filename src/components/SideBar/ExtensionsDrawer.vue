@@ -58,14 +58,14 @@ onMounted(() => {
       <div class="extensions-panel__list">
         <div
           v-for="extension in extensionStore.filteredExtensions"
-          :key="extension.name"
+          :key="extension.id"
           class="extension-item"
-          :class="{ 'is-active': extensionStore.selectedExtensionName === extension.name }"
-          @click="extensionStore.selectExtension(extension.name)"
+          :class="{ 'is-active': extensionStore.selectedExtensionId === extension.id }"
+          @click="extensionStore.selectExtension(extension.id)"
         >
           <i class="extension-item__icon fa-solid fa-puzzle-piece"></i>
           <div class="extension-item__content">
-            <div class="extension-item__name">{{ extension.manifest.display_name || extension.name }}</div>
+            <div class="extension-item__name">{{ extension.manifest.display_name || extension.id }}</div>
             <div v-if="extension.manifest.author" class="extension-item__author">
               {{ t('common.by') }} {{ extension.manifest.author }}
             </div>
@@ -89,12 +89,12 @@ onMounted(() => {
         <p>{{ t('extensions.placeholder.text') }}</p>
       </div>
 
-      <template v-for="extension in Object.values(extensionStore.extensions)" :key="extension.name">
-        <div v-show="extensionStore.selectedExtensionName === extension.name">
+      <template v-for="extension in Object.values(extensionStore.extensions)" :key="extension.id">
+        <div v-show="extensionStore.selectedExtensionId === extension.id">
           <div class="extension-content">
             <div class="extension-content__header">
               <h3>
-                <span>{{ extension.manifest.display_name || extension.name }}</span>
+                <span>{{ extension.manifest.display_name || extension.id }}</span>
                 <span v-if="extension.manifest.version" class="version">v{{ extension.manifest.version }}</span>
               </h3>
             </div>

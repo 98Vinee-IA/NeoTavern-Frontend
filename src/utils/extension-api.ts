@@ -37,10 +37,13 @@ import { WorldInfoProcessor } from './world-info-processor';
 import { useApiStore } from '../stores/api.store';
 import { useWorldInfoStore } from '../stores/world-info.store';
 import { default_avatar, GenerationMode } from '../constants';
+import { getExtensionContainerId } from '../stores/extension.store';
+import type { ExtensionMetadata } from '../types/ExtensionAPI';
 
 import * as Vue from 'vue';
 import i18n from '../i18n';
 import pinia from '../stores';
+import type { MountableComponent } from '../types/ExtensionAPI';
 
 /**
  * Helper to deep clone an object to prevent accidental mutation of state.
@@ -59,7 +62,7 @@ function deepClone<T>(obj: T): T {
  * A registry of standard, mountable Vue components that can be used by extensions.
  * We use dynamic imports to avoid circular dependencies and load components on demand.
  */
-const mountableComponents: Record<string, () => Promise<any>> = {
+const mountableComponents: Record<MountableComponent, () => Promise<any>> = {
   ConnectionProfileSelector: () => import('../components/Common/ConnectionProfileSelector.vue'),
 };
 
@@ -69,6 +72,12 @@ const mountableComponents: Record<string, () => Promise<any>> = {
  * ensuring stability and preventing extensions from breaking on internal refactors.
  */
 const baseExtensionAPI: ExtensionAPI = {
+  // Base API does not have specific metadata, this is overridden in proxy
+  meta: {
+    id: '',
+    containerId: '',
+  },
+
   /**
    * Functions related to chat management.
    */
@@ -552,7 +561,7 @@ const baseExtensionAPI: ExtensionAPI = {
      */
     mountComponent: async (
       container: HTMLElement,
-      componentName: string,
+      componentName: MountableComponent,
       props: Record<string, any>,
     ): Promise<void> => {
       if (!container) {
@@ -647,19 +656,24 @@ const baseExtensionAPI: ExtensionAPI = {
 
 /**
  * Creates a proxy for the extension API that scopes settings access to the specific extension.
- * @param extensionName The unique name of the extension.
+ * @param extensionId The unique ID of the extension (manifest.name).
  */
-function createScopedApiProxy(extensionName: string): ExtensionAPI {
+function createScopedApiProxy(extensionId: string): ExtensionAPI {
   const settingsStore = useSettingsStore();
+
+  const meta: ExtensionMetadata = {
+    id: extensionId,
+    containerId: getExtensionContainerId(extensionId),
+  };
 
   const scopedSettings = {
     get: (path: string): any => {
-      const fullPath = `extensionSettings.${extensionName}.${path}`;
+      const fullPath = `extensionSettings.${extensionId}.${path}`;
       const value = settingsStore.getSetting(fullPath as SettingsPath);
       return deepClone(value);
     },
     set: (path: string, value: any): void => {
-      const fullPath = `extensionSettings.${extensionName}.${path}`;
+      const fullPath = `extensionSettings.${extensionId}.${path}`;
       settingsStore.setSetting(fullPath as SettingsPath, value);
     },
     getGlobal: baseExtensionAPI.settings.getGlobal,
@@ -676,8 +690,8 @@ function createScopedApiProxy(extensionName: string): ExtensionAPI {
         if (prop === 'abort') {
           return (reason?: any) => {
             const taggedReason = reason
-              ? `[Extension: ${extensionName}] ${typeof reason === 'string' ? reason : JSON.stringify(reason)}`
-              : `[Extension: ${extensionName}] Aborted by extension`;
+              ? `[Extension: ${extensionId}] ${typeof reason === 'string' ? reason : JSON.stringify(reason)}`
+              : `[Extension: ${extensionId}] Aborted by extension`;
             return target.abort(taggedReason);
           };
         }
@@ -742,6 +756,7 @@ function createScopedApiProxy(extensionName: string): ExtensionAPI {
 
   return {
     ...baseExtensionAPI,
+    meta,
     settings: scopedSettings,
     events: scopedEvents,
   };
@@ -749,12 +764,12 @@ function createScopedApiProxy(extensionName: string): ExtensionAPI {
 
 globalThis.SillyTavern = {
   vue: Vue,
-  registerExtension: (extensionName: string, initCallback: (extensionName: string, api: ExtensionAPI) => void) => {
+  registerExtension: (extensionId: string, initCallback: (extensionId: string, api: ExtensionAPI) => void) => {
     try {
-      const api = createScopedApiProxy(extensionName);
-      initCallback(extensionName, api);
+      const api = createScopedApiProxy(extensionId);
+      initCallback(extensionId, api);
     } catch (error) {
-      console.error(`[Extension] Failed to initialize extension "${extensionName}":`, error);
+      console.error(`[Extension] Failed to initialize extension "${extensionId}":`, error);
     }
   },
 };

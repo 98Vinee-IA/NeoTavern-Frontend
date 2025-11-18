@@ -62,6 +62,7 @@ export const useChatStore = defineStore('chat', () => {
       uiStore.isChatSaving = true;
       const chatToSave = [
         {
+          character_name: activeCharacter.name,
           chat_metadata: chatMetadata.value,
         },
         ...chat.value,

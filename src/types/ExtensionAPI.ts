@@ -18,7 +18,23 @@ export interface LlmGenerationOptions {
   signal?: AbortSignal;
 }
 
+export enum MountableComponent {
+  ConnectionProfileSelector = 'ConnectionProfileSelector',
+}
+
+export interface ExtensionMetadata {
+  /** The unique ID of the extension (from manifest.name) */
+  id: string;
+  /** The DOM ID of the container element allocated for this extension */
+  containerId: string;
+}
+
 export interface ExtensionAPI {
+  /**
+   * Metadata about the current extension instance.
+   */
+  meta: ExtensionMetadata;
+
   chat: {
     sendMessage: (messageText: string, options?: { triggerGeneration?: boolean }) => Promise<void>;
     getHistory: () => readonly ChatMessage[];
@@ -84,7 +100,11 @@ export interface ExtensionAPI {
     openPanel: (panelName: MenuType) => void;
     closePanel: () => void;
     showPopup: (options: PopupShowOptions) => Promise<{ result: number; value: any }>;
-    mountComponent: (container: HTMLElement, componentName: string, props: Record<string, any>) => Promise<void>;
+    mountComponent: (
+      container: HTMLElement,
+      componentName: MountableComponent,
+      props: Record<string, any>,
+    ) => Promise<void>;
   };
   events: {
     on: <E extends keyof ExtensionEventMap>(
