@@ -28,7 +28,7 @@ export interface ExtensionEventMap {
   // Character Events
   'character:created': [character: Character];
   'character:updated': [character: Character, changes: Partial<Character>];
-  'character:deleted': [avatar: string]; // TODO: Since it is not exist, not used yet
+  'character:deleted': [avatar: string];
   'character:imported': [character: Character];
 
   // Persona Events

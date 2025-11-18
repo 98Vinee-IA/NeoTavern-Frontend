@@ -466,6 +466,13 @@ export interface MessageSchema {
       success: string;
       error: string;
     };
+    delete: {
+      confirmTitle: string;
+      confirmMessage: string;
+      deleteChats: string;
+      success: string;
+      error: string;
+    };
     tokenWarning: string;
   };
   characterPanel: {
@@ -512,6 +519,7 @@ export interface MessageSchema {
     description: string;
     firstMessage: string;
     expandEditor: string;
+    namePlaceholder: string;
     descriptionPlaceholder: string;
     firstMessagePlaceholder: string;
     tokenCounts: {
@@ -575,6 +583,9 @@ export interface MessageSchema {
         user: string;
         assistant: string;
       };
+    };
+    validation: {
+      nameRequired: string;
     };
   };
   extensions: {

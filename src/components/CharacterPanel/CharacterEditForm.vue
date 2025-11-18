@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, nextTick } from 'vue';
+import { ref, watch, computed, nextTick, onUnmounted } from 'vue';
 import { useCharacterStore } from '../../stores/character.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import type { Character, MessageRole } from '../../types';
@@ -9,8 +9,15 @@ import { getThumbnailUrl } from '../../utils/image';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { slideTransitionHooks } from '../../utils/dom';
 import { get, set } from 'lodash-es';
-import { depth_prompt_depth_default, depth_prompt_role_default, talkativeness_default } from '../../constants';
+import {
+  default_avatar,
+  depth_prompt_depth_default,
+  depth_prompt_role_default,
+  talkativeness_default,
+} from '../../constants';
 import type { Path, ValueForPath } from '../../types/utils';
+import { toast } from '../../composables/useToast';
+import { usePopupStore } from '../../stores/popup.store';
 
 type CharacterFormData = Omit<Character, 'data'> & {
   data: Omit<NonNullable<Character['data']>, 'depth_prompt'> & {
@@ -27,8 +34,10 @@ type CharacterFormDataPath = Path<CharacterFormData>;
 const { t } = useStrictI18n();
 const characterStore = useCharacterStore();
 const settingsStore = useSettingsStore();
+const popupStore = usePopupStore();
 const tokenCounts = computed(() => characterStore.tokenCounts.fields);
 const activeCharacter = computed(() => characterStore.activeCharacter);
+const isCreating = computed(() => characterStore.isCreating);
 
 const formData = ref<CharacterFormData>({} as CharacterFormData);
 const isUpdatingFromStore = ref(false);
@@ -36,7 +45,7 @@ const isUpdatingFromStore = ref(false);
 // --- State for new features ---
 const isPeeking = ref(false);
 const isSpoilerModeActive = computed(() => settingsStore.settings.character.spoilerFreeMode);
-const areDetailsHidden = computed(() => isSpoilerModeActive.value && !isPeeking.value);
+const areDetailsHidden = computed(() => isSpoilerModeActive.value && !isPeeking.value && !isCreating.value);
 
 // --- Drawer States ---
 const isCreatorNotesOpen = ref(false);
@@ -59,6 +68,11 @@ const editorPopupValue = ref('');
 const editingFieldName = ref<EditableField | null>(null);
 const editorPopupOptions = ref<PopupOptions>({});
 const editorPopupTitle = ref('');
+
+// --- Creation State ---
+const avatarPreviewUrl = ref<string | null>(null);
+const selectedAvatarFile = ref<File | null>(null);
+const isSubmitting = ref(false);
 
 // --- Transition Hooks ---
 const { beforeEnter, enter, afterEnter, beforeLeave, leave, afterLeave } = slideTransitionHooks;
@@ -100,12 +114,18 @@ watch(
         characterStore.calculateAllTokens(charCopy);
         isPeeking.value = false;
 
+        if (!isCreating.value) {
+          revokePreviewUrl();
+          selectedAvatarFile.value = null;
+        }
+
         nextTick(() => {
           isUpdatingFromStore.value = false;
         });
       }
     } else {
       formData.value = { data: {} } as CharacterFormData;
+      revokePreviewUrl();
     }
   },
   { immediate: true, deep: true },
@@ -117,16 +137,10 @@ watch(
     if (isUpdatingFromStore.value) return;
     if (oldData && Object.keys(oldData).length === 0) return; // Prevent saving on initial hydration
 
-    // Legacy sync: sync root fields with their counterparts in `data` if they exist.
-    if (newData.data) {
-      for (const key in newData) {
-        if (key !== 'data' && Object.prototype.hasOwnProperty.call(newData, key)) {
-          if (typeof newData.data[key] !== 'undefined') newData.data[key] = newData[key as keyof typeof newData];
-          if (newData.data.extensions && typeof newData.data.extensions[key] !== 'undefined') {
-            newData.data.extensions[key] = newData[key as keyof typeof newData];
-          }
-        }
-      }
+    // If creating, update the draft in store but don't call save API
+    if (isCreating.value) {
+      characterStore.saveActiveCharacter(newData); // This updates the draft state in store without API call
+      return;
     }
 
     if (newData.avatar === oldData?.avatar) {
@@ -136,6 +150,10 @@ watch(
   },
   { deep: true },
 );
+
+onUnmounted(() => {
+  revokePreviewUrl();
+});
 
 // --- Methods ---
 function updateValue<P extends CharacterFormDataPath>(path: P, value: ValueForPath<CharacterFormData, P>) {
@@ -163,6 +181,104 @@ function handleEditorSubmit({ value }: { value: string }) {
     set(formData.value, editingFieldName.value, value);
   }
 }
+
+function revokePreviewUrl() {
+  if (avatarPreviewUrl.value) {
+    URL.revokeObjectURL(avatarPreviewUrl.value);
+    avatarPreviewUrl.value = null;
+  }
+}
+
+function handleAvatarFileChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+
+    // If in creation mode, show preview
+    if (isCreating.value) {
+      revokePreviewUrl();
+      avatarPreviewUrl.value = URL.createObjectURL(file);
+      selectedAvatarFile.value = file;
+      // Also update name if empty
+      if (!formData.value.name) {
+        const name = file.name.replace(/\.[^/.]+$/, '');
+        updateValue('name', name);
+      }
+    } else {
+      // TODO: Implement avatar update for existing characters via store
+    }
+  }
+}
+
+async function handleCreate() {
+  if (!formData.value.name) {
+    toast.error(t('characterEditor.validation.nameRequired'));
+    return;
+  }
+  if (!selectedAvatarFile.value) {
+    try {
+      const res = await fetch(default_avatar);
+      const blob = await res.blob();
+      selectedAvatarFile.value = new File([blob], 'avatar.png', { type: 'image/png' });
+    } catch (e) {
+      alert('Please select an avatar.');
+      return;
+    }
+  }
+
+  isSubmitting.value = true;
+  try {
+    await characterStore.createNewCharacter(formData.value as Character, selectedAvatarFile.value);
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+async function handleDelete() {
+  const charName = formData.value.name;
+  const avatar = formData.value.avatar;
+
+  const RESULT_CANCEL = -1;
+  const RESULT_DELETE_ONLY = 1;
+  const RESULT_DELETE_WITH_CHATS = 2;
+
+  const result = await popupStore.show({
+    title: t('character.delete.confirmTitle'),
+    content: t('character.delete.confirmMessage', { name: charName }),
+    type: POPUP_TYPE.TEXT,
+    okButton: false,
+    cancelButton: false,
+    customButtons: [
+      {
+        text: t('common.cancel'),
+        result: RESULT_CANCEL,
+      },
+      {
+        text: t('common.delete'),
+        result: RESULT_DELETE_ONLY,
+        classes: 'menu-button--danger',
+      },
+      {
+        text: t('character.delete.deleteChats'),
+        result: RESULT_DELETE_WITH_CHATS,
+        classes: 'menu-button--danger',
+      },
+    ],
+  });
+
+  if (result.result === RESULT_DELETE_ONLY) {
+    await characterStore.deleteCharacter(avatar, false);
+  } else if (result.result === RESULT_DELETE_WITH_CHATS) {
+    await characterStore.deleteCharacter(avatar, true);
+  }
+}
+
+const displayAvatarUrl = computed(() => {
+  if (isCreating.value && avatarPreviewUrl.value) {
+    return avatarPreviewUrl.value;
+  }
+  return getThumbnailUrl('avatar', formData.value.avatar);
+});
 </script>
 
 <template>
@@ -170,7 +286,14 @@ function handleEditorSubmit({ value }: { value: string }) {
     <form id="character-editor-form" action="javascript:void(null);" method="post" enctype="multipart/form-data">
       <div id="character-editor-header" class="character-edit-form__header">
         <div id="character-editor-name-container" class="character-edit-form__header-main">
-          <h2 class="interactable" tabindex="0">{{ formData.name }}</h2>
+          <h2 v-show="!isCreating" class="interactable" tabindex="0">{{ formData.name }}</h2>
+          <input
+            v-show="isCreating"
+            v-model="formData.name"
+            class="text-pole"
+            :placeholder="t('characterEditor.namePlaceholder')"
+            style="font-size: 1.2em; font-weight: bold"
+          />
         </div>
         <div class="character-edit-form__header-info">
           <div id="character-editor-token-info" class="result_info" :title="t('characterEditor.tokenCounts.title')">
@@ -190,6 +313,7 @@ function handleEditorSubmit({ value }: { value: string }) {
           </div>
           <!-- TODO: Implement token warning visibility logic -->
           <a
+            v-show="!isCreating"
             id="character-editor-token-warning"
             class="menu-button-icon fa-solid fa-triangle-exclamation"
             style="display: none"
@@ -198,6 +322,7 @@ function handleEditorSubmit({ value }: { value: string }) {
             :title="t('characterEditor.tokenCounts.warningTooltip')"
           ></a>
           <i
+            v-show="!isCreating"
             id="character-editor-stats-button"
             class="menu-button-icon fa-solid fa-ranking-star"
             :title="t('characterEditor.stats.title')"
@@ -210,15 +335,34 @@ function handleEditorSubmit({ value }: { value: string }) {
           <label for="add_avatar_button" class="character-edit-form__avatar-label" :title="t('characterEditor.avatar')">
             <img
               id="character-editor-avatar"
-              :src="getThumbnailUrl('avatar', formData.avatar)"
+              :src="displayAvatarUrl"
               :alt="`${formData.name} Avatar`"
               class="character-edit-form__avatar-img"
             />
-            <input hidden type="file" id="add_avatar_button" name="avatar" accept="image/*" />
+            <input
+              hidden
+              type="file"
+              id="add_avatar_button"
+              name="avatar"
+              accept="image/*"
+              @change="handleAvatarFileChange"
+            />
           </label>
         </div>
         <div class="character-edit-form__controls">
-          <div class="character-edit-form__buttons">
+          <!-- Creation Controls -->
+          <div v-show="isCreating" class="character-edit-form__buttons">
+            <button class="menu-button menu-button--confirm" @click="handleCreate" :disabled="isSubmitting">
+              <i v-show="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
+              {{ t('common.save') }}
+            </button>
+            <button class="menu-button" @click="characterStore.cancelCreating" :disabled="isSubmitting">
+              {{ t('common.cancel') }}
+            </button>
+          </div>
+
+          <!-- Existing Character Controls -->
+          <div v-show="!isCreating" class="character-edit-form__buttons">
             <div
               @click="toggleFavorite"
               class="menu-button fa-solid fa-star"
@@ -230,9 +374,14 @@ function handleEditorSubmit({ value }: { value: string }) {
             <div class="menu-button fa-solid fa-face-smile" :title="t('characterEditor.personas')"></div>
             <div class="menu-button fa-solid fa-file-export" :title="t('characterEditor.export')"></div>
             <div class="menu-button fa-solid fa-clone" :title="t('characterEditor.duplicate')"></div>
-            <div class="menu-button fa-solid fa-skull menu-button--danger" :title="t('characterEditor.delete')"></div>
+            <div
+              class="menu-button fa-solid fa-skull menu-button--danger"
+              :title="t('characterEditor.delete')"
+              @click="handleDelete"
+            ></div>
           </div>
-          <label>
+
+          <label v-show="!isCreating">
             <select class="text-pole">
               <option value="default" disabled selected>{{ t('characterEditor.more') }}</option>
               <option>{{ t('characterEditor.moreOptions.linkWorldInfo') }}</option>
@@ -290,8 +439,8 @@ function handleEditorSubmit({ value }: { value: string }) {
           <div v-show="isCreatorNotesOpen">
             <div class="inline-drawer-content">
               <!-- TODO: We should make sure this is sanitized when we loading the character -->
-              <div v-if="formData.data.creator_notes" v-html="formData.data.creator_notes"></div>
-              <div v-else>{{ t('characterEditor.noCreatorNotes') }}</div>
+              <div v-show="formData.data.creator_notes" v-html="formData.data.creator_notes"></div>
+              <div v-show="!formData.data.creator_notes">{{ t('characterEditor.noCreatorNotes') }}</div>
             </div>
           </div>
         </Transition>

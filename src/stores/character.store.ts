@@ -3,10 +3,11 @@ import { ref, computed } from 'vue';
 import type { Character, Entity } from '../types';
 import {
   fetchAllCharacters,
-  saveCharacter,
+  saveCharacter as apiSaveCharacter,
   fetchCharacterByAvatar,
   importCharacter as apiImportCharacter,
   createCharacter as apiCreateCharacter,
+  deleteCharacter as apiDeleteCharacter,
 } from '../api/characters';
 import DOMPurify from 'dompurify';
 import { humanizedDateTime } from '../utils/date';
@@ -15,12 +16,21 @@ import { useChatStore } from './chat.store';
 import { useGroupStore } from './group.store';
 import { useUiStore } from './ui.store';
 import { debounce } from '../utils/common';
-import { DEFAULT_PRINT_TIMEOUT, DEFAULT_SAVE_EDIT_TIMEOUT, DebounceTimeout } from '../constants';
+import {
+  CHARACTER_FIELD_MAPPINGS,
+  DEFAULT_CHARACTER,
+  DEFAULT_PRINT_TIMEOUT,
+  DEFAULT_SAVE_EDIT_TIMEOUT,
+  DebounceTimeout,
+  depth_prompt_depth_default,
+  depth_prompt_role_default,
+  talkativeness_default,
+} from '../constants';
 import { useSettingsStore } from './settings.store';
 import { onlyUnique } from '../utils/array';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { getFirstMessage } from '../utils/chat';
-import { get } from 'lodash-es';
+import { get, set, defaultsDeep } from 'lodash-es';
 import { eventEmitter } from '../utils/event-emitter';
 
 // TODO: Replace with a real API call to the backend for accurate tokenization
@@ -49,7 +59,13 @@ export const useCharacterStore = defineStore('character', () => {
   const searchTerm = ref('');
   const sortOrder = ref('name:asc');
 
+  const isCreating = ref(false);
+  const draftCharacter = ref<Character | null>(null);
+
   const activeCharacter = computed<Character | null>(() => {
+    if (isCreating.value && draftCharacter.value) {
+      return draftCharacter.value;
+    }
     if (activeCharacterIndex.value !== null && characters.value[activeCharacterIndex.value]) {
       return characters.value[activeCharacterIndex.value];
     }
@@ -161,12 +177,9 @@ export const useCharacterStore = defineStore('character', () => {
 
     const total = Object.values(newFieldCounts).reduce((sum, count) => sum + count, 0);
 
-    // TODO: Refine the definition of "permanent" tokens.
-    // Currently, this assumes all definition fields are permanent, which is true for the editor view.
-    // However, for prompt construction, this might differ based on settings.
     tokenCounts.value = {
       total: total,
-      permanent: total,
+      permanent: total, // TODO: Refine permanent token logic
       fields: newFieldCounts,
     };
 
@@ -182,7 +195,7 @@ export const useCharacterStore = defineStore('character', () => {
   async function refreshCharacters() {
     try {
       const newCharacters = await fetchAllCharacters();
-      const previousAvatar = activeCharacter.value?.avatar;
+      const previousAvatar = !isCreating.value ? activeCharacter.value?.avatar : null;
 
       for (const char of newCharacters) {
         char.name = DOMPurify.sanitize(char.name);
@@ -197,12 +210,10 @@ export const useCharacterStore = defineStore('character', () => {
       if (previousAvatar) {
         const newIndex = characters.value.findIndex((c) => c.avatar === previousAvatar);
         if (newIndex !== -1) {
-          if (activeCharacterIndex.value !== newIndex) {
-            await selectCharacterById(newIndex);
-          }
+          activeCharacterIndex.value = newIndex;
         } else {
           toast.error(t('character.fetch.error'));
-          setTimeout(() => location.reload(), 3000);
+          activeCharacterIndex.value = null;
         }
       }
       // TODO: refreshGroups()
@@ -216,6 +227,12 @@ export const useCharacterStore = defineStore('character', () => {
 
   async function selectCharacterById(index: number) {
     if (characters.value[index] === undefined) return;
+
+    // If we were creating, cancel it
+    if (isCreating.value) {
+      cancelCreating();
+    }
+
     const uiStore = useUiStore();
     if (uiStore.isChatSaving) {
       toast.info(t('character.switch.wait'));
@@ -229,8 +246,6 @@ export const useCharacterStore = defineStore('character', () => {
       activeCharacterIndex.value = index;
       await chatStore.setActiveChatFile(activeCharacter.value!.chat!);
     }
-    // If the same character is clicked, do nothing.
-    // The UI is now persistent, so no need to switch views.
   }
 
   async function updateAndSaveCharacter(avatar: string, changes: Partial<Character>) {
@@ -238,7 +253,7 @@ export const useCharacterStore = defineStore('character', () => {
 
     const dataToSave = { ...changes, avatar };
     try {
-      await saveCharacter(dataToSave);
+      await apiSaveCharacter(dataToSave);
 
       const updatedCharacter = await fetchCharacterByAvatar(avatar);
       updatedCharacter.name = DOMPurify.sanitize(updatedCharacter.name);
@@ -258,67 +273,54 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   async function saveActiveCharacter(characterData: Partial<Character>) {
+    // Cannot auto-save if we are in creation mode
+    if (isCreating.value) {
+      // We update the draft state here
+      if (draftCharacter.value) {
+        Object.assign(draftCharacter.value, characterData);
+        // Re-calculate tokens for the draft
+        calculateAllTokens(draftCharacter.value);
+      }
+      return;
+    }
+
     const avatar = activeCharacter.value?.avatar;
     if (!avatar || !activeCharacter.value) {
       toast.error(t('character.save.noActive'));
-      console.error('Attempted to save character without an active character reference.');
       return;
     }
 
     const oldCharacter = activeCharacter.value;
-    const changes: Partial<Character> & { data?: any } = {};
+    const changes: Record<string, any> = {};
 
-    for (const key in characterData) {
-      const typedKey = key as keyof Character;
-      const newValue = characterData[typedKey];
-      const oldValue = oldCharacter[typedKey];
+    // 1. Map specific fields based on CHARACTER_FIELD_MAPPINGS
+    for (const [frontendKey, backendPath] of Object.entries(CHARACTER_FIELD_MAPPINGS)) {
+      const newValue = get(characterData, frontendKey);
+      const oldValue = get(oldCharacter, frontendKey);
 
-      if (typedKey === 'data') {
-        // Handle 'data' object with a granular diff
-        const dataChanges: Record<string, any> = {};
-        const newData = (newValue || {}) as Record<string, any>;
-        const oldData = (oldValue || {}) as Record<string, any>;
+      // Only add if the value is present in the update data and different
+      if (newValue !== undefined && JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+        set(changes, backendPath, newValue);
+        set(changes, frontendKey, newValue);
+      }
+    }
 
-        // Check all keys from both old and new data to catch additions, changes, and removals
-        const allDataKeys = new Set([...Object.keys(newData), ...Object.keys(oldData)]);
+    // 2. Handle 'data' object changes generally (for fields not in mapping but still relevant)
+    if (characterData.data) {
+      const backendDataPath = 'data';
+      const newData = characterData.data;
+      const oldData = oldCharacter.data || {};
 
-        for (const subKey of allDataKeys) {
-          const newSubValue = newData[subKey];
-          const oldSubValue = oldData[subKey];
+      const ignoreKeys = ['extensions']; // Handled via mapping or specific logic
 
-          // Special handling for 'extensions' objects, which is similar to 'data'
-          if (subKey === 'extensions') {
-            const newExt = (newSubValue || {}) as Record<string, any>;
-            const oldExt = (oldSubValue || {}) as Record<string, any>;
+      for (const key in newData) {
+        if (ignoreKeys.includes(key)) continue;
 
-            const allExtKeys = new Set([...Object.keys(newExt), ...Object.keys(oldExt)]);
+        const newSubValue = newData[key];
+        const oldSubValue = oldData[key];
 
-            for (const extKey of allExtKeys) {
-              const newExtValue = newExt[extKey];
-              const oldExtValue = oldExt[extKey];
-
-              if (JSON.stringify(newExtValue) !== JSON.stringify(oldExtValue)) {
-                dataChanges[subKey] = dataChanges[subKey] || {};
-                dataChanges[subKey][extKey] = newExtValue;
-              }
-            }
-            continue;
-          }
-
-          // A robust stringify comparison handles primitives, arrays, and nested objects within 'data'.
-          if (JSON.stringify(newSubValue) !== JSON.stringify(oldSubValue)) {
-            dataChanges[subKey] = newSubValue;
-          }
-        }
-
-        if (Object.keys(dataChanges).length > 0) {
-          changes.data = dataChanges;
-        }
-      } else {
-        // Handle all other top-level properties (including arrays like 'tags')
-        if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
-          // @ts-ignore - This is safe because we're iterating over keys of characterData
-          changes[typedKey] = newValue;
+        if (JSON.stringify(newSubValue) !== JSON.stringify(oldSubValue)) {
+          set(changes, `${backendDataPath}.${key}`, newSubValue);
         }
       }
     }
@@ -328,14 +330,9 @@ export const useCharacterStore = defineStore('character', () => {
 
       if ('first_mes' in changes && changes.first_mes !== undefined) {
         const chatStore = useChatStore();
-
-        if (chatStore.chat.length === 1 && chatStore.chat[0] && !chatStore.chat[0].is_user) {
-          // Use a fresh copy of the character with the latest changes applied
-          const updatedCharacterForGreeting = { ...activeCharacter.value, ...changes } as Character;
-
-          // Re-evaluate the first message details, including swipes
+        if (chatStore.chat.length === 1 && !chatStore.chat[0].is_user) {
+          const updatedCharacterForGreeting = { ...activeCharacter.value, ...characterData } as Character;
           const newFirstMessageDetails = getFirstMessage(updatedCharacterForGreeting);
-
           await chatStore.updateMessageObject(0, {
             mes: newFirstMessageDetails.mes,
             swipes: newFirstMessageDetails.swipes,
@@ -440,9 +437,7 @@ export const useCharacterStore = defineStore('character', () => {
       toast.success(
         t('character.import.tagsImportedMessage', { characterName: character.name, tags: tagsToImport.join(', ') }),
         t('character.import.tagsImported'),
-        {
-          timeout: 6000,
-        },
+        { timeout: 6000 },
       );
     }
   }
@@ -454,33 +449,130 @@ export const useCharacterStore = defineStore('character', () => {
       return;
     }
 
-    // select the character to show it in the editor
     await selectCharacterById(charIndex);
     highlightedAvatar.value = avatarFileName;
 
-    // The component will watch `highlightedAvatar` and handle scrolling/animation.
-    // Reset after a delay.
     setTimeout(() => {
       highlightedAvatar.value = null;
     }, 5000);
   }
 
-  async function createNewCharacter() {
-    const newCharData: Partial<Character> = {
-      name: 'New Character',
-      description: '',
-      first_mes: '',
-    };
+  function startCreating() {
+    // Clear active selection
+    activeCharacterIndex.value = null;
+
+    // Prepare draft with defaults
+    draftCharacter.value = defaultsDeep({}, DEFAULT_CHARACTER) as Character;
+
+    // Set creation mode
+    isCreating.value = true;
+
+    // Calculate tokens for empty draft
+    calculateAllTokens(draftCharacter.value);
+  }
+
+  function cancelCreating() {
+    isCreating.value = false;
+    draftCharacter.value = null;
+  }
+
+  async function createNewCharacter(character: Character, file: File) {
+    const uiStore = useUiStore();
+    const groupStore = useGroupStore();
+
+    if (groupStore.isGroupGenerating || uiStore.isSendPress) {
+      toast.error(t('character.import.abortedMessage'));
+      return;
+    }
+
+    const formData = new FormData();
+    // Basic fields
+    formData.append('ch_name', character.name);
+    formData.append('avatar', file);
+    formData.append('fav', String(character.fav || false));
+    formData.append('description', character.description || '');
+    formData.append('first_mes', character.first_mes || '');
+
+    // Empty fields for compatibility with SillyTavern backend
+    formData.append('json_data', '');
+    formData.append('avatar_url', '');
+    formData.append('chat', '');
+    formData.append('create_date', '');
+    formData.append('last_mes', '');
+    formData.append('world', '');
+
+    // Advanced fields
+    formData.append('system_prompt', character.data?.system_prompt || '');
+    formData.append('post_history_instructions', character.data?.post_history_instructions || '');
+    formData.append('creator', character.data?.creator || '');
+    formData.append('character_version', character.data?.character_version || '');
+    formData.append('creator_notes', character.data?.creator_notes || '');
+    formData.append('tags', (character.tags || []).join(','));
+    formData.append('personality', character.personality || '');
+    formData.append('scenario', character.scenario || '');
+
+    // Depth Prompt (Flattened structure)
+    formData.append('depth_prompt_prompt', character.data?.depth_prompt?.prompt || '');
+    formData.append('depth_prompt_depth', String(character.data?.depth_prompt?.depth ?? depth_prompt_depth_default));
+    formData.append('depth_prompt_role', character.data?.depth_prompt?.role || depth_prompt_role_default);
+
+    formData.append('talkativeness', String(character.talkativeness ?? talkativeness_default));
+    formData.append('mes_example', character.mes_example || '');
+    formData.append('extensions', JSON.stringify({}));
+
     try {
-      // TODO: This API endpoint doesn't exist yet and will fail.
-      const createdChar = await apiCreateCharacter(newCharData);
-      toast.success(t('character.create.success', { name: createdChar.name }));
-      await refreshCharacters();
-      await eventEmitter.emit('character:created', createdChar);
-      highlightCharacter(createdChar.avatar);
+      const result = await apiCreateCharacter(formData);
+
+      if (result && result.file_name) {
+        toast.success(t('character.create.success', { name: character.name }));
+
+        await refreshCharacters();
+
+        const newCharIndex = characters.value.findIndex((c) => c.avatar === result.file_name);
+        if (newCharIndex !== -1) {
+          isCreating.value = false;
+          draftCharacter.value = null;
+          await selectCharacterById(newCharIndex);
+          const createdChar = characters.value[newCharIndex];
+          await eventEmitter.emit('character:created', createdChar);
+          highlightCharacter(createdChar.avatar);
+        }
+      }
     } catch (error) {
       console.error('Failed to create new character:', error);
       toast.error(t('character.create.error'));
+    }
+  }
+
+  async function deleteCharacter(avatar: string, deleteChats: boolean) {
+    try {
+      const charName = characters.value.find((c) => c.avatar === avatar)?.name || avatar;
+
+      if (activeCharacter.value?.avatar === avatar) {
+        const chatStore = useChatStore();
+        await chatStore.clearChat();
+      }
+
+      await apiDeleteCharacter(avatar, deleteChats);
+
+      const index = characters.value.findIndex((c) => c.avatar === avatar);
+      if (index !== -1) {
+        characters.value.splice(index, 1);
+      }
+
+      if (activeCharacterIndex.value !== null && characters.value.length > 0) {
+        if (activeCharacterIndex.value >= characters.value.length) {
+          activeCharacterIndex.value = null;
+        }
+      }
+
+      activeCharacterIndex.value = null;
+
+      toast.success(t('character.delete.success', { name: charName }));
+      await eventEmitter.emit('character:deleted', avatar);
+    } catch (error) {
+      console.error('Failed to delete character:', error);
+      toast.error(t('character.delete.error'));
     }
   }
 
@@ -496,6 +588,8 @@ export const useCharacterStore = defineStore('character', () => {
     itemsPerPage,
     searchTerm,
     sortOrder,
+    isCreating,
+    draftCharacter,
     refreshCharacters,
     selectCharacterById,
     saveActiveCharacter,
@@ -509,6 +603,9 @@ export const useCharacterStore = defineStore('character', () => {
     importTagsForCharacters,
     highlightedAvatar,
     highlightCharacter,
+    startCreating,
+    cancelCreating,
     createNewCharacter,
+    deleteCharacter,
   };
 });

@@ -21,14 +21,6 @@ export interface CustomPopupButton {
   isDefault?: boolean;
 }
 
-export interface CustomPopupInput {
-  id: string;
-  label: string;
-  tooltip?: string;
-  defaultState?: boolean | string;
-  type?: 'checkbox' | 'text';
-}
-
 export interface PopupOptions {
   okButton?: I18nKey | boolean;
   cancelButton?: I18nKey | boolean;
@@ -36,7 +28,6 @@ export interface PopupOptions {
   wide?: boolean;
   large?: boolean;
   customButtons?: CustomPopupButton[];
-  customInputs?: CustomPopupInput[];
   defaultResult?: number;
   cropImage?: string;
 }

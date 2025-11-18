@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue';
 import type { PropType } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useSettingsStore } from '../../stores/settings.store';
-import { POPUP_TYPE, POPUP_RESULT, type CustomPopupButton, type CustomPopupInput } from '../../types';
+import { POPUP_TYPE, POPUP_RESULT, type CustomPopupButton } from '../../types';
 import 'cropperjs';
 import type { I18nKey } from '../../types/i18n';
 
@@ -28,7 +28,6 @@ const props = defineProps({
   wide: { type: Boolean, default: false },
   large: { type: Boolean, default: false },
   customButtons: { type: Array as PropType<CustomPopupButton[]>, default: undefined },
-  customInputs: { type: Array as PropType<CustomPopupInput[]>, default: undefined },
   defaultResult: { type: Number },
   cropImage: { type: String },
 });

@@ -463,6 +463,13 @@
       "success": "New character created: {name}",
       "error": "Failed to create character."
     },
+    "delete": {
+      "confirmTitle": "Delete Character",
+      "confirmMessage": "Are you sure you want to delete \"{name}\"?",
+      "deleteChats": "Delete associated chats",
+      "success": "Character deleted.",
+      "error": "Failed to delete character."
+    },
     "tokenWarning": "Character definition is large ({tokens} tokens), using over {percentage}% of your context window. This may impact performance and context limits."
   },
   "characterPanel": {
@@ -509,6 +516,7 @@
     "description": "Description",
     "firstMessage": "First message",
     "expandEditor": "Expand the editor",
+    "namePlaceholder": "Enter character name here",
     "descriptionPlaceholder": "Describe your character's physical and mental traits here.",
     "firstMessagePlaceholder": "This will be the first message from the character that starts every chat.",
     "tokenCounts": {
@@ -572,6 +580,9 @@
         "user": "User",
         "assistant": "Assistant"
       }
+    },
+    "validation": {
+      "nameRequired": "Character name is required."
     }
   },
   "extensions": {

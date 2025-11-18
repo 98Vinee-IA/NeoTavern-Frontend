@@ -47,7 +47,7 @@ watch(
 const activeCharacter = computed(() => characterStore.activeCharacter);
 
 function createNew() {
-  characterStore.createNewCharacter();
+  characterStore.startCreating();
 }
 
 function triggerImport() {

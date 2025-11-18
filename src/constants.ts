@@ -1,4 +1,10 @@
-import { type ChatCompletionSource, type Prompt, type PromptOrderConfig, type SamplerSettings } from './types';
+import {
+  type Character,
+  type ChatCompletionSource,
+  type Prompt,
+  type PromptOrderConfig,
+  type SamplerSettings,
+} from './types';
 
 export enum OpenrouterMiddleoutType {
   AUTO = 'auto',
@@ -141,4 +147,43 @@ export const defaultProviderModels: Record<ChatCompletionSource, string> = {
   pollinations: 'openai',
   xai: 'grok-3-beta',
   zai: 'glm-4.6',
+};
+
+/**
+ * Root mapping with data paths for editing
+ */
+export const CHARACTER_FIELD_MAPPINGS: Record<string, string> = {
+  name: 'data.name',
+  description: 'data.description',
+  personality: 'data.personality',
+  scenario: 'data.scenario',
+  first_mes: 'data.first_mes',
+  mes_example: 'data.mes_example',
+  talkativeness: 'data.extensions.talkativeness',
+  fav: 'data.extensions.fav',
+  tags: 'data.tags',
+};
+
+export const DEFAULT_CHARACTER: Partial<Character> = {
+  name: '',
+  description: '',
+  first_mes: '',
+  avatar: 'none',
+  chat: '',
+  talkativeness: talkativeness_default,
+  fav: false,
+  tags: [],
+  data: {
+    creator_notes: '',
+    system_prompt: '',
+    post_history_instructions: '',
+    alternate_greetings: [],
+    character_version: '',
+    creator: '',
+    depth_prompt: {
+      prompt: '',
+      depth: depth_prompt_depth_default,
+      role: depth_prompt_role_default,
+    },
+  },
 };

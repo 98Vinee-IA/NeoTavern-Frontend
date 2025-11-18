@@ -2,8 +2,10 @@ import { getRequestHeaders } from '../utils/api';
 import type { Character } from '../types';
 import { useUiStore } from '../stores/ui.store';
 
+const API_BASE = '/api/characters';
+
 export async function fetchAllCharacters(): Promise<Character[]> {
-  const response = await fetch('/api/characters/all', {
+  const response = await fetch(`${API_BASE}/all`, {
     method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify({}),
@@ -18,7 +20,7 @@ export async function fetchAllCharacters(): Promise<Character[]> {
 }
 
 export async function fetchCharacterByAvatar(avatar: string): Promise<Character> {
-  const response = await fetch('/api/characters/get', {
+  const response = await fetch(`${API_BASE}/get`, {
     method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify({ avatar_url: avatar }),
@@ -32,19 +34,19 @@ export async function fetchCharacterByAvatar(avatar: string): Promise<Character>
 }
 
 export async function saveCharacter(character: Partial<Character> & { avatar: string }): Promise<void> {
-  if (!character.avatar) {
-    throw new Error('`character.avatar` (character filename) is required to save character data.');
-  }
-
-  await fetch('/api/characters/merge-attributes', {
+  const response = await fetch(`${API_BASE}/merge-attributes`, {
     method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify(character),
     cache: 'no-cache',
   });
+
+  if (!response.ok) {
+    throw new Error('Failed to save character');
+  }
 }
 
-export async function importCharacter(file: File): Promise<{ file_name: string }> {
+export async function importCharacter(file: File): Promise<{ file_name: string; name: string }> {
   const uiStore = useUiStore();
   const format = file.name.split('.').pop()?.toLowerCase() ?? '';
   const formData = new FormData();
@@ -52,7 +54,7 @@ export async function importCharacter(file: File): Promise<{ file_name: string }
   formData.append('file_type', format);
   formData.append('user_name', uiStore.activePlayerName || '');
 
-  const response = await fetch('/api/characters/import', {
+  const response = await fetch(`${API_BASE}/import`, {
     method: 'POST',
     body: formData,
     headers: getRequestHeaders({ omitContentType: true }),
@@ -72,7 +74,31 @@ export async function importCharacter(file: File): Promise<{ file_name: string }
   return data;
 }
 
-export async function createCharacter(character: Partial<Character>): Promise<Character> {
-  // TODO: Implement this endpoint on the backend.
-  return Promise.reject(new Error('Not implemented'));
+export async function createCharacter(formData: FormData): Promise<{ file_name: string }> {
+  const response = await fetch(`${API_BASE}/create`, {
+    method: 'POST',
+    headers: getRequestHeaders({ omitContentType: true }),
+    body: formData,
+    cache: 'no-cache',
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Creation request did not succeed.');
+  }
+
+  return { file_name: await response.text() };
+}
+
+export async function deleteCharacter(avatar: string, deleteChats: boolean): Promise<void> {
+  const response = await fetch(`${API_BASE}/delete`, {
+    method: 'POST',
+    headers: getRequestHeaders(),
+    body: JSON.stringify({ avatar_url: avatar, delete_chats: deleteChats }),
+    cache: 'no-cache',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete character');
+  }
 }
