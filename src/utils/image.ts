@@ -17,6 +17,11 @@ export function getThumbnailUrl(type: ThumbnailType, file: string | undefined): 
     const timestamp = Date.now();
     return `/thumbnail?type=avatar&file=${encodeURIComponent(file)}&t=${timestamp}`;
   }
+  if (type === 'bg') {
+    // TODO: This is also hacky, so you know what that means
+    const timestamp = Date.now();
+    return `/thumbnail?type=bg&file=${encodeURIComponent(file)}&t=${timestamp}`;
+  }
   return `/thumbnail?type=avatar&file=${encodeURIComponent(file)}`;
 }
 
