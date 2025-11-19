@@ -6,7 +6,7 @@ import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useSettingsStore } from '../../stores/settings.store';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
 import ConnectionProfileSelector from '../Common/ConnectionProfileSelector.vue';
-import { OpenrouterMiddleoutType } from '../../constants';
+import { OpenrouterMiddleoutType, TokenizerType } from '../../constants';
 
 const { t } = useStrictI18n();
 
@@ -465,6 +465,35 @@ const openrouterProvidersString = computed({
         </form>
 
         <!-- TODO: Add forms for other sources -->
+
+        <!-- Tokenizer Selection -->
+        <div class="api-connections-drawer__section">
+          <h4>{{ t('apiConnections.tokenizer') }}</h4>
+            <select
+                class="text-pole"
+                :value="settingsStore.settings.api.tokenizer"
+                @change="
+                settingsStore.setSetting('api.tokenizer', ($event.target as HTMLSelectElement).value as any)
+                "
+            >
+              <option :value="TokenizerType.AUTO">{{ t('apiConnections.tokenizers.auto') }}</option>
+              <option :value="TokenizerType.GPT4O">{{ t('apiConnections.tokenizers.gpt4o') }}</option>
+              <option :value="TokenizerType.GPT35">{{ t('apiConnections.tokenizers.gpt35') }}</option>
+              <option :value="TokenizerType.GPT2">{{ t('apiConnections.tokenizers.gpt2') }}</option>
+              <option :value="TokenizerType.GEMMA">{{ t('apiConnections.tokenizers.gemma') }}</option>
+              <option :value="TokenizerType.DEEPSEEK">{{ t('apiConnections.tokenizers.deepseek') }}</option>
+              <option :value="TokenizerType.LLAMA">{{ t('apiConnections.tokenizers.llama') }}</option>
+              <option :value="TokenizerType.LLAMA3">{{ t('apiConnections.tokenizers.llama3') }}</option>
+              <option :value="TokenizerType.MISTRAL">{{ t('apiConnections.tokenizers.mistral') }}</option>
+              <option :value="TokenizerType.NEMO">{{ t('apiConnections.tokenizers.nemo') }}</option>
+              <option :value="TokenizerType.CLAUDE">{{ t('apiConnections.tokenizers.claude') }}</option>
+              <option :value="TokenizerType.JAMBA">{{ t('apiConnections.tokenizers.jamba') }}</option>
+              <option :value="TokenizerType.COMMANDR">{{ t('apiConnections.tokenizers.commandr') }}</option>
+              <option :value="TokenizerType.COMMANDA">{{ t('apiConnections.tokenizers.commanda') }}</option>
+              <option :value="TokenizerType.QWEN2">{{ t('apiConnections.tokenizers.qwen2') }}</option>
+              <option :value="TokenizerType.YI">{{ t('apiConnections.tokenizers.yi') }}</option>
+            </select>
+        </div>
 
         <div class="api-connections-drawer__section">
           <div class="api-connections-drawer__actions">

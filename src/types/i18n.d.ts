@@ -691,6 +691,25 @@ export interface MessageSchema {
       off: string;
       auto: string;
     };
+    tokenizer: string;
+    tokenizers: {
+      auto: string;
+      llama: string;
+      llama3: string;
+      mistral: string;
+      yi: string;
+      claude: string;
+      gemma: string;
+      jamba: string;
+      qwen2: string;
+      commandr: string;
+      commanda: string;
+      nemo: string;
+      deepseek: string;
+      gpt2: string;
+      gpt35: string;
+      gpt4o: string;
+    };
   };
   settings: {
     power_user: {

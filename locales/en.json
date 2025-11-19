@@ -687,6 +687,25 @@
       "on": "On",
       "off": "Off",
       "auto": "Auto"
+    },
+    "tokenizer": "Tokenizer",
+    "tokenizers": {
+        "auto": "Auto (recommended)",
+        "llama": "Llama 1/2",
+        "llama3": "Llama 3",
+        "mistral": "Mistral V1",
+        "yi": "Yi",
+        "claude": "Claude 1/2",
+        "gemma": "Gemma / Gemini",
+        "jamba": "Jamba",
+        "qwen2": "Qwen2",
+        "commandr": "Command-R",
+        "commanda": "Command-A",
+        "nemo": "Mistral Nemo",
+        "deepseek": "DeepSeek V3/R1",
+        "gpt2": "GPT-2",
+        "gpt35": "GPT-3.5-Turbo / GPT-4",
+        "gpt4o": "GPT-4o / GPT-5"
     }
   },
   "settings": {
