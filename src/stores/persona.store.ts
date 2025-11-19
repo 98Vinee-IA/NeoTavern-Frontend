@@ -2,13 +2,18 @@ import { defineStore } from 'pinia';
 import { ref, computed, toRaw, nextTick } from 'vue';
 import { useSettingsStore } from './settings.store';
 import { useUiStore } from './ui.store';
-import { fetchAllPersonaAvatars, deletePersonaAvatar, uploadPersonaAvatar } from '../api/personas';
+import {
+  fetchAllPersonaAvatars,
+  deletePersonaAvatar,
+  uploadPersonaAvatar as apiUploadPersonaAvatar,
+} from '../api/personas';
 import { type Persona, type PersonaDescription, POPUP_TYPE, POPUP_RESULT } from '../types';
 import { toast } from '../composables/useToast';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { usePopupStore } from './popup.store';
 import { getBase64Async } from '../utils/file';
 import { eventEmitter } from '../utils/event-emitter';
+import { default_user_avatar } from '@/constants';
 
 export const usePersonaStore = defineStore('persona', () => {
   const { t } = useStrictI18n();
@@ -134,11 +139,11 @@ export const usePersonaStore = defineStore('persona', () => {
     }
   }
 
-  async function changeActivePersonaAvatar(file: File) {
-    if (!activePersonaId.value) return;
+  async function uploadPersonaAvatar(avatar: string | null, file: File, skipCrop = false) {
+    if (!avatar) return;
 
     let cropData;
-    if (!settingsStore.settings.ui.avatars.neverResize) {
+    if (!settingsStore.settings.ui.avatars.neverResize && !skipCrop) {
       const dataUrl = await getBase64Async(file);
       const { result, value } = await popupStore.show({
         title: t('popup.cropAvatar.title'),
@@ -152,10 +157,10 @@ export const usePersonaStore = defineStore('persona', () => {
 
     const formData = new FormData();
     formData.append('avatar', file);
-    formData.append('overwrite_name', activePersonaId.value);
+    formData.append('overwrite_name', avatar);
 
     try {
-      await uploadPersonaAvatar(formData, cropData);
+      await apiUploadPersonaAvatar(formData, cropData);
       lastAvatarUpdate.value = Date.now();
       toast.success('Avatar updated successfully.');
     } catch (error) {
@@ -189,6 +194,23 @@ export const usePersonaStore = defineStore('persona', () => {
     }
   }
 
+  async function createPersona() {
+    const newAvatarId = `persona_${Date.now()}.png`;
+    const res = await fetch(default_user_avatar);
+    const blob = await res.blob();
+    const defaultPersonaAvatar = new File([blob], 'avatar.png', { type: 'image/png' });
+    await uploadPersonaAvatar(newAvatarId, defaultPersonaAvatar, true);
+    const newPersona: Persona = {
+      ...createDefaultDescription(),
+      avatarId: newAvatarId,
+      name: '[Unnamed Persona]',
+    };
+    personas.value.push(newPersona);
+    await setActivePersona(newAvatarId);
+    await nextTick();
+    await eventEmitter.emit('persona:created', newPersona);
+  }
+
   return {
     personas,
     activePersonaId,
@@ -199,7 +221,8 @@ export const usePersonaStore = defineStore('persona', () => {
     setActivePersona,
     updateActivePersonaField,
     updateActivePersonaName,
-    changeActivePersonaAvatar,
+    uploadPersonaAvatar,
     deletePersona,
+    createPersona,
   };
 });

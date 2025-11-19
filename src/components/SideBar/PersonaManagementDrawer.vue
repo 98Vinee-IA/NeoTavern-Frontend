@@ -67,7 +67,7 @@ async function handleAvatarChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (file) {
-    await personaStore.changeActivePersonaAvatar(file);
+    await personaStore.uploadPersonaAvatar(personaStore.activePersonaId, file);
   }
   // Reset input to allow selecting the same file again
   if (input) input.value = '';
@@ -109,7 +109,7 @@ onMounted(() => {
       <!-- Left Column -->
       <div class="persona-drawer-column--left">
         <div class="persona-drawer-list-controls">
-          <div class="menu-button">
+          <div class="menu-button" @click="personaStore.createPersona">
             <i class="fa-solid fa-person-circle-question fa-fw"></i>
             <span>{{ t('personaManagement.create') }}</span>
           </div>

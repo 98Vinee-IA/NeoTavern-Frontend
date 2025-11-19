@@ -36,7 +36,7 @@ export interface ExtensionEventMap {
   'character:imported': [character: Character];
 
   // Persona Events
-  'persona:created': [persona: Persona]; // TODO: Since it is not exist, not used yet
+  'persona:created': [persona: Persona];
   'persona:updated': [persona: Persona];
   'persona:deleted': [avatarId: string];
   'persona:activated': [persona: Persona | null];
