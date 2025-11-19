@@ -560,13 +560,13 @@ const baseExtensionAPI: ExtensionAPI = {
     /**
      * Registers a custom sidebar component to the right sidebar area.
      */
-    registerSidebar: (
+    registerSidebar: async (
       id: string,
       component: Vue.Component | null,
       side: 'left' | 'right',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       options: { title?: string; icon?: string; props?: Record<string, any> } = {},
-    ): void => {
+    ): Promise<string> => {
       // If no component is provided, use the Vanilla DOM adapter.
       // The 'id' passed here will be used as the DOM ID for the container <div>.
       const effectiveComponent = component || VanillaSidebar;
@@ -582,6 +582,9 @@ const baseExtensionAPI: ExtensionAPI = {
         },
         side,
       );
+
+      await Vue.nextTick();
+      return id;
     },
 
     /**
@@ -826,13 +829,13 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
      * Registers a sidebar but scoped to the extension ID if needed (though UI store registry is global).
      * We pass the extension ID as a prefix if we wanted to, but for now, let's keep it clean.
      */
-    registerSidebar: (
+    registerSidebar: async (
       id: string,
       component: Vue.Component | null,
       side: 'left' | 'right',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       options: { title?: string; icon?: string; props?: Record<string, any> } = {},
-    ): void => {
+    ): Promise<string> => {
       const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
 
       // Apply Vanilla Adapter logic
@@ -850,6 +853,9 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
         },
         side,
       );
+
+      await Vue.nextTick();
+      return namespacedId;
     },
     openSidebar: (id: string): void => {
       const store = useUiStore();

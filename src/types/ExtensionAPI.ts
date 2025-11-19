@@ -155,7 +155,7 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
       side: 'left' | 'right',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       options?: { title?: string; icon?: string; props?: Record<string, any> },
-    ) => void;
+    ) => Promise<string>;
 
     /**
      * Opens a specific sidebar view.
