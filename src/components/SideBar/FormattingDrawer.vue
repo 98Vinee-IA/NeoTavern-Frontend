@@ -6,12 +6,12 @@ const { t } = useStrictI18n();
 
 <template>
   <div class="formatting-drawer">
-    <div class="formatting-drawer__header">
+    <div class="formatting-drawer-header">
       <h3>{{ t('formatting.title') }}</h3>
     </div>
-    <small class="formatting-drawer__description">{{ t('formatting.description') }}</small>
+    <small class="formatting-drawer-description">{{ t('formatting.description') }}</small>
 
-    <div class="formatting-drawer__content">
+    <div class="formatting-drawer-content">
       <!-- Placeholder for future formatting options -->
       <p>Formatting options will be available here in a future update.</p>
     </div>

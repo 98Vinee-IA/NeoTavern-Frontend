@@ -39,9 +39,9 @@ onMounted(() => {
       <div ref="dragHandleEl" class="fa-fw fa-solid fa-grip drag-grabber"></div>
       <div class="fa-fw fa-solid fa-circle-xmark drag-close" @click="close"></div>
     </div>
-    <div class="zoomed-avatar__container">
+    <div class="zoomed-avatar-container">
       <!-- TODO: Implement zoomed_avatar_magnification -->
-      <img class="zoomed-avatar__img" :src="avatar.src" :alt="`${avatar.charName} Zoomed Avatar`" />
+      <img class="zoomed-avatar-img" :src="avatar.src" :alt="`${avatar.charName} Zoomed Avatar`" />
     </div>
   </div>
 </template>

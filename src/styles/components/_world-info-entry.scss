@@ -12,21 +12,21 @@
     filter: grayscale(0.8);
   }
 
-  &__form {
+  &-form {
     display: flex;
     flex-direction: column;
     gap: 15px;
     height: 100%;
   }
 
-  &__grid {
+  &-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 10px;
     align-items: center;
   }
 
-  &__section {
+  &-section {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
@@ -56,13 +56,13 @@
     }
   }
 
-  &__label--with-uid {
+  &-label--with-uid {
     display: flex;
     justify-content: space-between;
     width: 100%;
   }
 
-  &__checkbox-grid {
+  &-checkbox-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 5px 15px;

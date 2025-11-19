@@ -58,9 +58,9 @@ const filteredBookNames = computed(() => {
 <template>
   <div class="character-panel world-info-drawer" :class="{ 'is-collapsed': isBrowserCollapsed }">
     <!-- Left Pane: Lorebook Browser -->
-    <div ref="browserPane" class="character-panel__browser">
-      <div class="character-panel__browser-header world-info-controls">
-        <div class="world-info-controls__row">
+    <div ref="browserPane" class="character-panel-browser">
+      <div class="character-panel-browser-header world-info-controls">
+        <div class="world-info-controls-row">
           <div
             class="menu-button fa-solid fa-plus"
             :title="t('worldInfo.newWorld')"
@@ -74,7 +74,7 @@ const filteredBookNames = computed(() => {
             @click="worldInfoStore.refresh"
           ></div>
         </div>
-        <div class="world-info-controls__row">
+        <div class="world-info-controls-row">
           <input
             v-model="worldInfoStore.browserSearchTerm"
             class="text-pole"
@@ -91,15 +91,15 @@ const filteredBookNames = computed(() => {
         </div>
       </div>
 
-      <div class="character-panel__character-list">
+      <div class="character-panel-character-list">
         <div
           class="browser-item"
           :class="{ 'is-active': worldInfoStore.selectedItemId === 'global-settings' }"
           @click="worldInfoStore.selectItem('global-settings')"
         >
-          <div class="browser-item__content">
-            <i class="fa-solid fa-cogs browser-item__icon"></i>
-            <span class="browser-item__name">{{ t('worldInfo.globalSettings') }}</span>
+          <div class="browser-item-content">
+            <i class="fa-solid fa-cogs browser-item-icon"></i>
+            <span class="browser-item-name">{{ t('worldInfo.globalSettings') }}</span>
           </div>
         </div>
 
@@ -107,14 +107,14 @@ const filteredBookNames = computed(() => {
 
         <div v-for="bookName in filteredBookNames" :key="bookName" class="lorebook-group">
           <div class="browser-item is-book" @click="worldInfoStore.toggleBookExpansion(bookName)">
-            <div class="browser-item__content">
+            <div class="browser-item-content">
               <i
-                class="fa-solid fa-chevron-right browser-item__chevron"
+                class="fa-solid fa-chevron-right browser-item-chevron"
                 :class="{ 'is-open': worldInfoStore.expandedBooks.has(bookName) }"
               ></i>
-              <span class="browser-item__name">{{ bookName }}</span>
+              <span class="browser-item-name">{{ bookName }}</span>
             </div>
-            <div class="browser-item__actions">
+            <div class="browser-item-actions">
               <i
                 class="fa-solid fa-plus"
                 :title="t('worldInfo.newEntryInBook', { bookName })"
@@ -154,9 +154,9 @@ const filteredBookNames = computed(() => {
             TODO: What about pagination for large books?
           -->
           <Transition name="grid-slide">
-            <div v-if="worldInfoStore.expandedBooks.has(bookName)" class="lorebook-group__entries">
+            <div v-if="worldInfoStore.expandedBooks.has(bookName)" class="lorebook-group-entries">
               <div>
-                <div v-if="worldInfoStore.loadingBooks.has(bookName)" class="lorebook-group__loading">
+                <div v-if="worldInfoStore.loadingBooks.has(bookName)" class="lorebook-group-loading">
                   <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
                 <div v-else>
@@ -167,8 +167,8 @@ const filteredBookNames = computed(() => {
                     :class="{ 'is-active': worldInfoStore.selectedItemId === `${bookName}/${entry.uid}` }"
                     @click="worldInfoStore.selectItem(`${bookName}/${entry.uid}`)"
                   >
-                    <div class="browser-item__content">
-                      <span class="browser-item__name">{{ entry.comment || '[Untitled Entry]' }}</span>
+                    <div class="browser-item-content">
+                      <span class="browser-item-name">{{ entry.comment || '[Untitled Entry]' }}</span>
                     </div>
                   </div>
                 </div>
@@ -180,21 +180,21 @@ const filteredBookNames = computed(() => {
     </div>
 
     <!-- Divider -->
-    <div ref="dividerEl" class="character-panel__divider">
-      <div class="character-panel__collapse-toggle" @click="isBrowserCollapsed = !isBrowserCollapsed">
+    <div ref="dividerEl" class="character-panel-divider">
+      <div class="character-panel-collapse-toggle" @click="isBrowserCollapsed = !isBrowserCollapsed">
         <i class="fa-solid" :class="isBrowserCollapsed ? 'fa-angles-right' : 'fa-angles-left'"></i>
       </div>
     </div>
 
     <!-- Right Pane: Editor -->
-    <div class="character-panel__editor">
+    <div class="character-panel-editor">
       <WorldInfoGlobalSettings v-show="worldInfoStore.selectedItemId === 'global-settings'" />
       <WorldInfoEntryEditor
         v-show="worldInfoStore.selectedEntry"
         :model-value="worldInfoStore.selectedEntry ?? undefined"
         @update:model-value="updateEntry"
       />
-      <div v-show="!worldInfoStore.selectedEntry" class="character-panel__editor-placeholder">
+      <div v-show="!worldInfoStore.selectedEntry" class="character-panel-editor-placeholder">
         <div class="placeholder-icon fa-solid fa-book-atlas"></div>
         <h2 class="placeholder-title">{{ t('worldInfo.selectEntryPlaceholderTitle') }}</h2>
         <p class="placeholder-text">{{ t('worldInfo.selectEntryPlaceholderText') }}</p>

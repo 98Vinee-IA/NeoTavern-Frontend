@@ -25,28 +25,28 @@
     }
   }
 
-  .browser-item__content {
+  .browser-item-content {
     display: flex;
     align-items: center;
     gap: 8px;
     overflow: hidden;
   }
 
-  .browser-item__icon {
+  .browser-item-icon {
     flex-shrink: 0;
   }
 
-  .browser-item__name {
+  .browser-item-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .browser-item__chevron {
+  .browser-item-chevron {
     transition: transform var(--animation-duration-2x);
   }
 
-  .browser-item__chevron.is-open {
+  .browser-item-chevron.is-open {
     transform: rotate(90deg);
   }
 
@@ -60,7 +60,7 @@
     font-size: 0.95em;
   }
 
-  .browser-item__actions {
+  .browser-item-actions {
     display: flex;
     gap: 8px;
     opacity: 0;
@@ -71,18 +71,18 @@
     }
   }
 
-  .browser-item:hover .browser-item__actions {
+  .browser-item:hover .browser-item-actions {
     opacity: 0.7;
   }
 
-  .lorebook-group__entries {
+  .lorebook-group-entries {
     padding-left: 10px;
     border-left: 1px solid var(--black-50a);
     margin-left: 12px;
     display: grid;
   }
 
-  .lorebook-group__loading {
+  .lorebook-group-loading {
     text-align: center;
     padding: 10px;
     opacity: 0.7;
@@ -94,7 +94,7 @@
     flex-direction: column;
     gap: 5px;
 
-    &__row {
+    &-row {
       display: flex;
       gap: 5px;
       align-items: center;

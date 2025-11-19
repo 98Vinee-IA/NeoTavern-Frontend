@@ -250,11 +250,11 @@ select.text-pole {
     padding: 3px 5px;
   }
 
-  &__title {
+  &-title {
     flex-grow: 1;
   }
 
-  &__icon {
+  &-icon {
     transition: transform var(--animation-duration-2x);
 
     &.is-open {

@@ -8,7 +8,7 @@
   min-width: 100px;
   min-height: 100px;
 
-  &__messages {
+  &-messages {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
@@ -20,14 +20,14 @@
     gap: 15px;
   }
 
-  &__form-container {
+  &-form-container {
     white-space: nowrap;
     margin: 1px auto 0 auto;
     z-index: 30;
     width: 100%;
   }
 
-  &__typing-indicator {
+  &-typing-indicator {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -74,7 +74,7 @@
   background-color: var(--theme-background-tint);
   position: relative; // For options menu positioning
 
-  &__inner {
+  &-inner {
     width: 100%;
     display: flex;
     flex-direction: row;
@@ -82,24 +82,24 @@
     font-size: var(--font-size-main);
   }
 
-  &__actions-left {
+  &-actions-left {
     padding-left: 2px;
     order: 1;
   }
 
-  &__actions-right {
+  &-actions-right {
     padding-right: 2px;
     order: 3;
   }
 
-  &__actions-left,
-  &__actions-right {
+  &-actions-left,
+  &-actions-right {
     display: flex;
     flex-wrap: wrap;
     align-content: center;
   }
 
-  &__button {
+  &-button {
     width: var(--send-form-height);
     height: var(--send-form-height);
     margin: 0;
@@ -152,7 +152,7 @@
   display: flex;
   flex-direction: column;
 
-  &__item {
+  &-item {
     display: flex;
     align-items: center;
     gap: 10px;

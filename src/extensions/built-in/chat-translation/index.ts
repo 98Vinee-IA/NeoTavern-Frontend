@@ -17,13 +17,13 @@ export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
   }
 
   const injectSingleButton = (messageElement: HTMLElement, messageIndex: number) => {
-    const buttonsContainer = messageElement.querySelector('.message__buttons');
+    const buttonsContainer = messageElement.querySelector('.message-buttons');
     if (!buttonsContainer) return;
 
     if (buttonsContainer.querySelector('.translation-button')) return;
 
     const btn = document.createElement('i');
-    btn.className = 'message__button fa-solid fa-globe translation-button';
+    btn.className = 'message-button fa-solid fa-globe translation-button';
     btn.title = 'Translate Message';
     btn.style.cursor = 'pointer';
 

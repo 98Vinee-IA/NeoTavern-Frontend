@@ -198,40 +198,40 @@ function moveDown() {
 
 <template>
   <div class="message" :class="{ 'is-user': message.is_user, 'is-bot': !message.is_user }" :data-message-index="index">
-    <div class="message__avatar-wrapper">
-      <div class="message__avatar" style="cursor: pointer" @click="handleAvatarClick">
+    <div class="message-avatar-wrapper">
+      <div class="message-avatar" style="cursor: pointer" @click="handleAvatarClick">
         <img :src="avatarUrls.thumbnail" :alt="`${displayName} Avatar`" />
       </div>
-      <div class="message__id">#{{ index }}</div>
-      <div v-if="message.extra?.reasoning_duration" class="message__timer">
+      <div class="message-id">#{{ index }}</div>
+      <div v-if="message.extra?.reasoning_duration" class="message-timer">
         {{ message.extra.reasoning_duration.toFixed(1) }}s
       </div>
-      <div v-if="message.extra?.token_count" class="message__token-count">{{ message.extra.token_count }}t</div>
+      <div v-if="message.extra?.token_count" class="message-token-count">{{ message.extra.token_count }}t</div>
     </div>
 
-    <div class="message__main">
-      <div class="message__header">
-        <div class="message__name-block">
-          <span class="message__name">{{ displayName }}</span>
-          <small class="message__timestamp">{{ formattedTimestamp }}</small>
+    <div class="message-main">
+      <div class="message-header">
+        <div class="message-name-block">
+          <span class="message-name">{{ displayName }}</span>
+          <small class="message-timestamp">{{ formattedTimestamp }}</small>
         </div>
 
         <!-- Buttons for Normal Mode -->
-        <div v-show="!isEditing" class="message__buttons">
+        <div v-show="!isEditing" class="message-buttons">
           <!-- TODO: Implement extra buttons dropdown -->
-          <i class="message__button fa-solid fa-ellipsis" title="Message Actions"></i>
+          <i class="message-button fa-solid fa-ellipsis" title="Message Actions"></i>
           <!-- TODO: Implement bookmark button -->
-          <i class="message__button fa-solid fa-flag" title="Bookmark"></i>
-          <i class="message__button fa-solid fa-pencil" title="Edit" @click="startEditing"></i>
+          <i class="message-button fa-solid fa-flag" title="Bookmark"></i>
+          <i class="message-button fa-solid fa-pencil" title="Edit" @click="startEditing"></i>
           <i
-            class="message__button fa-solid fa-trash-can delete"
+            class="message-button fa-solid fa-trash-can delete"
             :title="t('chat.buttons.deleteMessage')"
             @click="handleDeleteClick"
           ></i>
         </div>
 
         <!-- Buttons for Editing Mode -->
-        <div v-show="isEditing" class="message__edit-actions">
+        <div v-show="isEditing" class="message-edit-actions">
           <button
             class="menu-button confirm fa-solid fa-check"
             :title="t('chat.buttons.confirmEdit')"
@@ -258,20 +258,20 @@ function moveDown() {
         </div>
       </div>
 
-      <div v-if="!isEditing && hasReasoning" class="message__reasoning">
-        <div class="message__reasoning-header" @click="isReasoningCollapsed = !isReasoningCollapsed">
+      <div v-if="!isEditing && hasReasoning" class="message-reasoning">
+        <div class="message-reasoning-header" @click="isReasoningCollapsed = !isReasoningCollapsed">
           <span>{{ t('chat.reasoning.title') }}</span>
           <i class="fa-solid" :class="isReasoningCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
         </div>
         <transition name="expand">
-          <div v-show="!isReasoningCollapsed" class="message__reasoning-content" v-html="formattedReasoning"></div>
+          <div v-show="!isReasoningCollapsed" class="message-reasoning-content" v-html="formattedReasoning"></div>
         </transition>
       </div>
 
-      <div v-show="!isEditing" class="message__content" v-html="formattedContent"></div>
-      <div v-show="isEditing" class="message__edit-area">
+      <div v-show="!isEditing" class="message-content" v-html="formattedContent"></div>
+      <div v-show="isEditing" class="message-edit-area">
         <transition name="expand">
-          <div v-show="isEditingReasoning" class="message__reasoning-edit-area">
+          <div v-show="isEditingReasoning" class="message-reasoning-edit-area">
             <label>{{ t('chat.reasoning.title') }}</label>
             <textarea v-model="editedReasoning" class="text-pole"></textarea>
           </div>
@@ -279,8 +279,8 @@ function moveDown() {
         <textarea v-model="editedContent" class="text-pole"></textarea>
       </div>
 
-      <div v-if="canSwipe" class="message__footer">
-        <div class="message__swipe-controls">
+      <div v-if="canSwipe" class="message-footer">
+        <div class="message-swipe-controls">
           <i
             class="swipe-arrow fa-solid fa-chevron-left"
             :title="t('chat.buttons.swipeLeft')"

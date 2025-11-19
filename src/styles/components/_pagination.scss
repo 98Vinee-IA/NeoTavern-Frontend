@@ -6,16 +6,16 @@
   padding: 5px;
   font-size: 0.9em;
 
-  &__nav {
+  &-nav {
     white-space: nowrap;
   }
 
-  &__pages {
+  &-pages {
     display: flex;
     gap: 5px;
   }
 
-  &__size-changer {
+  &-size-changer {
     select {
       margin: 0;
       padding-top: 2px;

@@ -284,8 +284,8 @@ const displayAvatarUrl = computed(() => {
 <template>
   <div v-show="activeCharacter && formData.data" class="character-edit-form">
     <form id="character-editor-form" action="javascript:void(null);" method="post" enctype="multipart/form-data">
-      <div id="character-editor-header" class="character-edit-form__header">
-        <div id="character-editor-name-container" class="character-edit-form__header-main">
+      <div id="character-editor-header" class="character-edit-form-header">
+        <div id="character-editor-name-container" class="character-edit-form-header-main">
           <h2 v-show="!isCreating" class="interactable" tabindex="0">{{ formData.name }}</h2>
           <input
             v-show="isCreating"
@@ -295,7 +295,7 @@ const displayAvatarUrl = computed(() => {
             style="font-size: 1.2em; font-weight: bold"
           />
         </div>
-        <div class="character-edit-form__header-info">
+        <div class="character-edit-form-header-info">
           <div id="character-editor-token-info" class="result_info" :title="t('characterEditor.tokenCounts.title')">
             <div>
               <strong id="character-editor-total-tokens" :title="t('characterEditor.tokenCounts.total')">{{
@@ -330,14 +330,14 @@ const displayAvatarUrl = computed(() => {
         </div>
       </div>
 
-      <div class="character-edit-form__avatar-name-block">
-        <div class="character-edit-form__avatar-area">
-          <label for="add_avatar_button" class="character-edit-form__avatar-label" :title="t('characterEditor.avatar')">
+      <div class="character-edit-form-avatar-name-block">
+        <div class="character-edit-form-avatar-area">
+          <label for="add_avatar_button" class="character-edit-form-avatar-label" :title="t('characterEditor.avatar')">
             <img
               id="character-editor-avatar"
               :src="displayAvatarUrl"
               :alt="`${formData.name} Avatar`"
-              class="character-edit-form__avatar-img"
+              class="character-edit-form-avatar-img"
             />
             <input
               id="add_avatar_button"
@@ -349,9 +349,9 @@ const displayAvatarUrl = computed(() => {
             />
           </label>
         </div>
-        <div class="character-edit-form__controls">
+        <div class="character-edit-form-controls">
           <!-- Creation Controls -->
-          <div v-show="isCreating" class="character-edit-form__buttons">
+          <div v-show="isCreating" class="character-edit-form-buttons">
             <button class="menu-button menu-button--confirm" :disabled="isSubmitting" @click="handleCreate">
               <i v-show="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
               {{ t('common.save') }}
@@ -362,7 +362,7 @@ const displayAvatarUrl = computed(() => {
           </div>
 
           <!-- Existing Character Controls -->
-          <div v-show="!isCreating" class="character-edit-form__buttons">
+          <div v-show="!isCreating" class="character-edit-form-buttons">
             <div
               class="menu-button fa-solid fa-star"
               :class="{ 'is-favorite': formData.fav }"
@@ -398,7 +398,7 @@ const displayAvatarUrl = computed(() => {
         </div>
       </div>
 
-      <div class="character-edit-form__tags-block">
+      <div class="character-edit-form-tags-block">
         <div class="tag-controls">
           <input class="text-pole" :placeholder="t('characterEditor.searchTags')" />
           <div class="menu-button fa-solid fa-tags" :title="t('characterEditor.viewAllTags')"></div>
@@ -411,7 +411,7 @@ const displayAvatarUrl = computed(() => {
       <!-- Creator's Notes Inline Drawer -->
       <div class="inline-drawer">
         <div class="inline-drawer-header" @click="isCreatorNotesOpen = !isCreatorNotesOpen">
-          <span class="inline-drawer-header__title">{{ t('characterEditor.creatorNotes') }}</span>
+          <span class="inline-drawer-header-title">{{ t('characterEditor.creatorNotes') }}</span>
           <div
             class="menu-button fa-solid fa-palette fa-fw"
             :title="t('characterEditor.toggleStyles')"
@@ -423,7 +423,7 @@ const displayAvatarUrl = computed(() => {
             @click.stop="peekSpoilerMode"
           ></div>
           <i
-            class="fa-solid fa-circle-chevron-down inline-drawer-header__icon"
+            class="fa-solid fa-circle-chevron-down inline-drawer-header-icon"
             :class="{ 'is-open': isCreatorNotesOpen }"
           ></i>
         </div>
@@ -448,7 +448,7 @@ const displayAvatarUrl = computed(() => {
 
       <small v-show="areDetailsHidden">{{ t('characterEditor.detailsHidden') }}</small>
 
-      <div v-show="!areDetailsHidden" class="character-edit-form__main-content">
+      <div v-show="!areDetailsHidden" class="character-edit-form-main-content">
         <div class="form-section form-section--text-area" data-field-name="description">
           <label for="description_textarea">
             <span>{{ t('characterEditor.description') }}</span>
@@ -534,7 +534,7 @@ const displayAvatarUrl = computed(() => {
           </div>
         </div>
         <div class="form-section character-note" data-field-name="data.depth_prompt.prompt">
-          <div class="character-note__main">
+          <div class="character-note-main">
             <label>
               <span>{{ t('characterEditor.advanced.characterNote') }}</span>
               <i
@@ -552,7 +552,7 @@ const displayAvatarUrl = computed(() => {
               @input="updateValue('data.depth_prompt.prompt', ($event.target as HTMLTextAreaElement).value)"
             ></textarea>
           </div>
-          <div class="character-note__controls">
+          <div class="character-note-controls">
             <label>{{ t('characterEditor.advanced.depth') }}</label>
             <!-- @vue-ignore -->
             <input
@@ -618,12 +618,12 @@ const displayAvatarUrl = computed(() => {
         <hr />
         <div class="inline-drawer">
           <div class="inline-drawer-header" @click="isPromptOverridesOpen = !isPromptOverridesOpen">
-            <h4 class="inline-drawer-header__title">
+            <h4 class="inline-drawer-header-title">
               {{ t('characterEditor.advanced.promptOverrides') }}
               <small>{{ t('characterEditor.advanced.promptOverridesHint') }}</small>
             </h4>
             <i
-              class="fa-solid fa-circle-chevron-down inline-drawer-header__icon"
+              class="fa-solid fa-circle-chevron-down inline-drawer-header-icon"
               :class="{ 'is-open': isPromptOverridesOpen }"
             ></i>
           </div>
@@ -691,12 +691,12 @@ const displayAvatarUrl = computed(() => {
         <hr />
         <div class="inline-drawer">
           <div class="inline-drawer-header" @click="isMetadataOpen = !isMetadataOpen">
-            <h4 class="inline-drawer-header__title">
+            <h4 class="inline-drawer-header-title">
               {{ t('characterEditor.advanced.metadata') }}
               <small>{{ t('characterEditor.advanced.metadataHint') }}</small>
             </h4>
             <i
-              class="fa-solid fa-circle-chevron-down inline-drawer-header__icon"
+              class="fa-solid fa-circle-chevron-down inline-drawer-header-icon"
               :class="{ 'is-open': isMetadataOpen }"
             ></i>
           </div>

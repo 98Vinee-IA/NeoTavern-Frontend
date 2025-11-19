@@ -63,30 +63,30 @@ onMounted(() => {
 
 <template>
   <div class="ai-config-drawer">
-    <div class="ai-config-drawer__header">
+    <div class="ai-config-drawer-header">
       <div
         :title="t('characterPanel.pinToggle')"
         class="menu-button-icon"
         :class="isPanelPinned ? 'fa-lock' : 'fa-unlock'"
         @click="isPanelPinned = !isPanelPinned"
       ></div>
-      <div class="ai-config-drawer__manual-input-note">{{ t('aiConfig.manualInputNote') }}</div>
+      <div class="ai-config-drawer-manual-input-note">{{ t('aiConfig.manualInputNote') }}</div>
       <a
-        class="ai-config-drawer__docs-link fa-solid fa-circle-question"
+        class="ai-config-drawer-docs-link fa-solid fa-circle-question"
         href="https://docs.sillytavern.app/usage/common-settings/"
         target="_blank"
         :title="t('aiConfig.docsLinkTooltip')"
       ></a>
     </div>
 
-    <div class="ai-config-drawer__content">
+    <div class="ai-config-drawer-content">
       <template v-for="section in visibleSections" :key="section.id">
-        <div v-for="item in getVisibleItems(section)" :key="item.id || item.widget" class="ai-config-drawer__item">
+        <div v-for="item in getVisibleItems(section)" :key="item.id || item.widget" class="ai-config-drawer-item">
           <!-- Preset Manager -->
           <div v-if="item.widget === 'preset-manager' && item.id" class="preset-manager">
             <div class="standout-header">
               <strong>{{ item.label ? t(item.label) : '' }}</strong>
-              <div class="preset-manager__actions">
+              <div class="preset-manager-actions">
                 <div
                   class="menu-button-icon fa-solid fa-file-import"
                   :title="t('aiConfig.presets.import')"
@@ -104,7 +104,7 @@ onMounted(() => {
                 ></div>
               </div>
             </div>
-            <div class="preset-manager__controls">
+            <div class="preset-manager-controls">
               <select
                 class="text-pole"
                 :value="settingsStore.getSetting(item.id)"

@@ -11,7 +11,7 @@
   z-index: 3005;
 }
 
-.side-bar__nav {
+.side-bar-nav {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -22,7 +22,7 @@
 }
 
 .nav-item {
-  &__toggle {
+  &-toggle {
     background: none;
     border: none;
     padding: 0;
@@ -31,7 +31,7 @@
     color: var(--theme-text-color);
   }
 
-  &__icon {
+  &-icon {
     font-size: var(--side-bar-icon-size);
     padding: 3px 1px;
     opacity: 0.3;
@@ -46,7 +46,7 @@
     }
   }
 
-  &__content {
+  &-content {
     display: none;
     position: fixed;
     top: 0;

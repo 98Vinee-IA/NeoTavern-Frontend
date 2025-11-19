@@ -11,7 +11,7 @@ export function activate(api: ExtensionAPI) {
 
   const mountWidget = () => {
     // Target the top of the extensions panel browser list for visibility
-    const targetParent = document.querySelector('.extensions-panel__browser-header');
+    const targetParent = document.querySelector('.extensions-panel-browser-header');
 
     if (!targetParent || container) return;
 
@@ -26,7 +26,7 @@ export function activate(api: ExtensionAPI) {
   };
 
   // Attempt to mount immediately or wait for app load
-  if (document.querySelector('.extensions-panel__browser-header')) {
+  if (document.querySelector('.extensions-panel-browser-header')) {
     mountWidget();
   } else {
     const unbind = api.events.on('app:loaded', () => {

@@ -37,8 +37,8 @@ function changeItemsPerPage(event: Event) {
 
 <template>
   <div v-if="totalItems > 0" class="pagination">
-    <div class="pagination__nav">{{ startItem }}-{{ endItem }} {{ t('common.of') }} {{ totalItems }}</div>
-    <div class="pagination__pages">
+    <div class="pagination-nav">{{ startItem }}-{{ endItem }} {{ t('common.of') }} {{ totalItems }}</div>
+    <div class="pagination-pages">
       <div
         class="menu-button fa-solid fa-angles-left"
         :class="{ disabled: !canGoBack }"
@@ -64,7 +64,7 @@ function changeItemsPerPage(event: Event) {
         @click="changePage(totalPages)"
       ></div>
     </div>
-    <div class="pagination__size-changer">
+    <div class="pagination-size-changer">
       <select :value="itemsPerPage" class="text-pole" @change="changeItemsPerPage">
         <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
           {{ t('pagination.perPage', { count: option }) }}

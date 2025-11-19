@@ -21,12 +21,12 @@ onUnmounted(() => {
 
 <template>
   <div class="clock-widget">
-    <div class="clock-widget__icon">
+    <div class="clock-widget-icon">
       <i class="fa-regular fa-clock"></i>
     </div>
-    <div class="clock-widget__content">
-      <div class="clock-widget__label">{{ t('common.of') }} Time</div>
-      <div class="clock-widget__time">{{ time }}</div>
+    <div class="clock-widget-content">
+      <div class="clock-widget-label">{{ t('common.of') }} Time</div>
+      <div class="clock-widget-time">{{ time }}</div>
     </div>
   </div>
 </template>
@@ -43,24 +43,24 @@ onUnmounted(() => {
   color: var(--theme-text-color);
 }
 
-.clock-widget__icon {
+.clock-widget-icon {
   font-size: 1.5rem;
   margin-right: 10px;
   color: var(--theme-emphasis-color);
 }
 
-.clock-widget__content {
+.clock-widget-content {
   display: flex;
   flex-direction: column;
 }
 
-.clock-widget__label {
+.clock-widget-label {
   font-size: 0.7rem;
   text-transform: uppercase;
   opacity: 0.7;
 }
 
-.clock-widget__time {
+.clock-widget-time {
   font-size: 1.1rem;
   font-weight: bold;
   font-family: var(--font-family-mono);

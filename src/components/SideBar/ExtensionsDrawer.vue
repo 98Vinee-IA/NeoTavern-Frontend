@@ -36,8 +36,8 @@ onMounted(() => {
 <template>
   <div id="extensions-panel" class="extensions-panel" :class="{ 'is-collapsed': isBrowserCollapsed }">
     <!-- Left Pane: Extension Browser -->
-    <div id="extensions-browser" ref="browserPane" class="extensions-panel__browser">
-      <div class="extensions-panel__browser-header">
+    <div id="extensions-browser" ref="browserPane" class="extensions-panel-browser">
+      <div class="extensions-panel-browser-header">
         <div style="display: flex; gap: 5px">
           <div class="menu-button" :title="t('extensions.manage')" @click="manageExtensions">
             <i class="fa-solid fa-cubes"></i>
@@ -53,7 +53,7 @@ onMounted(() => {
         <input v-model="extensionStore.searchTerm" class="text-pole" type="search" :placeholder="t('common.search')" />
       </div>
 
-      <div class="extensions-panel__list">
+      <div class="extensions-panel-list">
         <div
           v-for="extension in extensionStore.filteredExtensions"
           :key="extension.id"
@@ -62,14 +62,14 @@ onMounted(() => {
           :data-extension-id="extension.id"
           @click="extensionStore.selectExtension(extension.id)"
         >
-          <i class="extension-item__icon fa-solid fa-puzzle-piece"></i>
-          <div class="extension-item__content">
-            <div class="extension-item__name">{{ extension.manifest.display_name || extension.id }}</div>
-            <div v-if="extension.manifest.author" class="extension-item__author">
+          <i class="extension-item-icon fa-solid fa-puzzle-piece"></i>
+          <div class="extension-item-content">
+            <div class="extension-item-name">{{ extension.manifest.display_name || extension.id }}</div>
+            <div v-if="extension.manifest.author" class="extension-item-author">
               {{ t('common.by') }} {{ extension.manifest.author }}
             </div>
           </div>
-          <div class="extension-item__actions">
+          <div class="extension-item-actions">
             <label class="toggle-switch" @click.stop>
               <input
                 type="checkbox"
@@ -84,15 +84,15 @@ onMounted(() => {
     </div>
 
     <!-- Divider -->
-    <div ref="dividerEl" class="extensions-panel__divider">
-      <div class="extensions-panel__collapse-toggle" @click="isBrowserCollapsed = !isBrowserCollapsed">
+    <div ref="dividerEl" class="extensions-panel-divider">
+      <div class="extensions-panel-collapse-toggle" @click="isBrowserCollapsed = !isBrowserCollapsed">
         <i class="fa-solid" :class="isBrowserCollapsed ? 'fa-angles-right' : 'fa-angles-left'"></i>
       </div>
     </div>
 
     <!-- Right Pane: Editor -->
-    <div id="extensions-editor" class="extensions-panel__editor">
-      <div v-show="!extensionStore.selectedExtension" class="extensions-panel__placeholder">
+    <div id="extensions-editor" class="extensions-panel-editor">
+      <div v-show="!extensionStore.selectedExtension" class="extensions-panel-placeholder">
         <div class="placeholder-icon fa-solid fa-puzzle-piece"></div>
         <h2 class="placeholder-title">{{ t('extensions.placeholder.title') }}</h2>
         <p>{{ t('extensions.placeholder.text') }}</p>
@@ -101,13 +101,13 @@ onMounted(() => {
       <template v-for="extension in Object.values(extensionStore.extensions)" :key="extension.id">
         <div v-show="extensionStore.selectedExtensionId === extension.id">
           <div class="extension-content">
-            <div class="extension-content__header">
+            <div class="extension-content-header">
               <h3>
                 <span>{{ extension.manifest.display_name || extension.id }}</span>
                 <span v-if="extension.manifest.version" class="version">v{{ extension.manifest.version }}</span>
               </h3>
             </div>
-            <p v-if="extension.manifest.description" class="extension-content__description">
+            <p v-if="extension.manifest.description" class="extension-content-description">
               {{ extension.manifest.description }}
             </p>
 

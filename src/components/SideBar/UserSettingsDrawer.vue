@@ -76,25 +76,25 @@ const { beforeEnter, enter, afterEnter, beforeLeave, leave, afterLeave } = slide
 
 <template>
   <div class="user-settings-drawer">
-    <div class="user-settings-drawer__header">
+    <div class="user-settings-drawer-header">
       <h3>{{ t('userSettings.title') }}</h3>
       <input
         v-model="searchTerm"
         type="search"
-        class="text-pole user-settings-drawer__search"
+        class="text-pole user-settings-drawer-search"
         :placeholder="t('userSettings.searchPlaceholder')"
       />
     </div>
 
-    <div class="user-settings-drawer__content">
-      <div v-show="Object.keys(groupedSettings).length === 0" class="user-settings-drawer__no-results">
+    <div class="user-settings-drawer-content">
+      <div v-show="Object.keys(groupedSettings).length === 0" class="user-settings-drawer-no-results">
         {{ t('userSettings.noResults') }}
       </div>
-      <div v-for="(settings, category) in groupedSettings" :key="category" class="user-settings-drawer__category">
-        <div class="user-settings-drawer__category-header" @click="toggleCategoryCollapse(category)">
+      <div v-for="(settings, category) in groupedSettings" :key="category" class="user-settings-drawer-category">
+        <div class="user-settings-drawer-category-header" @click="toggleCategoryCollapse(category)">
           <h4>{{ category }}</h4>
           <i
-            class="fa-solid fa-chevron-down user-settings-drawer__chevron"
+            class="fa-solid fa-chevron-down user-settings-drawer-chevron"
             :class="{ 'is-collapsed': collapsedCategories.includes(category) }"
           ></i>
         </div>
@@ -109,8 +109,8 @@ const { beforeEnter, enter, afterEnter, beforeLeave, leave, afterLeave } = slide
           @after-leave="afterLeave"
         >
           <div v-show="!collapsedCategories.includes(category)">
-            <div class="user-settings-drawer__category-content">
-              <div v-for="setting in settings" :key="setting.id" class="user-settings-drawer__setting">
+            <div class="user-settings-drawer-category-content">
+              <div v-for="setting in settings" :key="setting.id" class="user-settings-drawer-setting">
                 <div class="setting-details">
                   <label :for="setting.id">{{ t(setting.label) }}</label>
                   <small v-show="setting.description">{{ setting.description ? t(setting.description) : '' }}</small>

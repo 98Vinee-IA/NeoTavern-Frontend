@@ -151,15 +151,15 @@ async function handleReset() {
 <template>
   <dialog ref="dialog" class="popup wide" @cancel="close">
     <div class="popup-body">
-      <div class="prompt-manager-popup__header">
+      <div class="prompt-manager-popup-header">
         <h3>{{ t('promptManager.title') }}</h3>
         <div class="menu-button" @click="handleReset">
           <i class="fa-solid fa-undo"></i>
           <span>&nbsp;{{ t('promptManager.resetAll') }}</span>
         </div>
       </div>
-      <small class="prompt-manager-popup__description">{{ t('promptManager.description') }}</small>
-      <div class="prompt-manager-popup__content">
+      <small class="prompt-manager-popup-description">{{ t('promptManager.description') }}</small>
+      <div class="prompt-manager-popup-content">
         <h4>{{ t('promptManager.promptOrderTitle') }}</h4>
         <div
           v-for="(prompt, index) in orderedPrompts"
@@ -174,16 +174,16 @@ async function handleReset() {
           @drop.prevent="handleDrop(index, $event)"
           @dragend="cleanupDrag"
         >
-          <div class="prompt-item__header" @click="toggleExpand(prompt.identifier)">
-            <div class="prompt-item__name">
+          <div class="prompt-item-header" @click="toggleExpand(prompt.identifier)">
+            <div class="prompt-item-name">
               <i class="fa-solid fa-grip-vertical menu-button-icon drag-handle"></i>
               <i
-                class="fa-solid fa-chevron-right prompt-item__chevron"
+                class="fa-solid fa-chevron-right prompt-item-chevron"
                 :class="{ 'is-open': expandedPrompts.has(prompt.identifier) }"
               ></i>
               <span>{{ prompt.name }}</span>
             </div>
-            <div class="prompt-item__controls">
+            <div class="prompt-item-controls">
               <label class="checkbox-label" :title="t('promptManager.promptItem.enabled')">
                 <input
                   type="checkbox"
@@ -210,7 +210,7 @@ async function handleReset() {
             @after-leave="afterLeave"
           >
             <div v-show="expandedPrompts.has(prompt.identifier)">
-              <div v-if="!prompt.marker" class="prompt-item__content">
+              <div v-if="!prompt.marker" class="prompt-item-content">
                 <label>{{ t('promptManager.promptItem.role') }}</label>
                 <select class="text-pole" :value="prompt.role">
                   <option value="system">System</option>
@@ -225,14 +225,14 @@ async function handleReset() {
                   @input="updateContent(prompt.identifier, ($event.target as HTMLTextAreaElement).value)"
                 ></textarea>
               </div>
-              <div v-else class="prompt-item__content prompt-item__content--marker">
+              <div v-else class="prompt-item-content prompt-item-content--marker">
                 This is a system marker. Its content is automatically generated from the character data.
               </div>
             </div>
           </Transition>
         </div>
         <h4>{{ t('promptManager.addSectionTitle') }}</h4>
-        <div class="prompt-manager-popup__add-section">
+        <div class="prompt-manager-popup-add-section">
           <select v-model="selectedPromptToAdd" class="text-pole">
             <option :value="null" disabled>{{ t('promptManager.selectToAdd') }}</option>
             <option v-for="prompt in unusedPrompts" :key="prompt.identifier" :value="prompt.identifier">

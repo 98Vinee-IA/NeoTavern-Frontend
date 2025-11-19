@@ -46,10 +46,10 @@ onMounted(() => {
 
 <template>
   <div class="api-connections-drawer">
-    <div class="api-connections-drawer__wrapper">
-      <div class="api-connections-drawer__section">
+    <div class="api-connections-drawer-wrapper">
+      <div class="api-connections-drawer-section">
         <h3>{{ t('apiConnections.profile') }}</h3>
-        <div class="preset-manager__controls">
+        <div class="preset-manager-controls">
           <ConnectionProfileSelector v-model="apiStore.selectedConnectionProfileName" />
           <div
             class="menu-button-icon fa-solid fa-file-circle-plus"
@@ -81,7 +81,7 @@ onMounted(() => {
 
       <hr />
 
-      <div class="api-connections-drawer__section">
+      <div class="api-connections-drawer-section">
         <h3>{{ t('apiConnections.api') }}</h3>
         <select
           class="text-pole"
@@ -97,7 +97,7 @@ onMounted(() => {
       </div>
 
       <div v-show="settingsStore.settings.api.main === 'openai'">
-        <div class="api-connections-drawer__section">
+        <div class="api-connections-drawer-section">
           <h4>{{ t('apiConnections.source') }}</h4>
           <select
             class="text-pole"
@@ -142,9 +142,9 @@ onMounted(() => {
 
         <!-- OpenAI Form -->
         <form v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.OPENAI">
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.openaiKey') }}</h4>
-            <div class="api-connections-drawer__input-group">
+            <div class="api-connections-drawer-input-group">
               <!-- TODO: Add secret management -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
             </div>
@@ -152,7 +152,7 @@ onMounted(() => {
               {{ t('apiConnections.keyPrivacy') }}
             </div>
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.openaiModel') }}</h4>
             <select
               class="text-pole"
@@ -182,9 +182,9 @@ onMounted(() => {
 
         <!-- Claude Form -->
         <form v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.CLAUDE">
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.claudeKey') }}</h4>
-            <div class="api-connections-drawer__input-group">
+            <div class="api-connections-drawer-input-group">
               <!-- TODO: Add secret management -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
             </div>
@@ -192,7 +192,7 @@ onMounted(() => {
               {{ t('apiConnections.keyPrivacy') }}
             </div>
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.claudeModel') }}</h4>
             <select
               class="text-pole"
@@ -213,9 +213,9 @@ onMounted(() => {
 
         <!-- OpenRouter Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.OPENROUTER">
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.openrouterKey') }}</h4>
-            <div class="api-connections-drawer__input-group">
+            <div class="api-connections-drawer-input-group">
               <!-- TODO: Add secret management -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
             </div>
@@ -223,7 +223,7 @@ onMounted(() => {
               {{ t('apiConnections.keyPrivacy') }}
             </div>
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.openrouterModel') }}</h4>
             <select
               v-show="hasOpenRouterGroupedModels"
@@ -255,7 +255,7 @@ onMounted(() => {
               "
             />
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.openrouterOptions') }}</h4>
             <label class="checkbox-label">
               <input
@@ -310,14 +310,14 @@ onMounted(() => {
 
         <!-- MistralAI Form -->
         <form v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.MISTRALAI">
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.mistralaiKey') }}</h4>
-            <div class="api-connections-drawer__input-group">
+            <div class="api-connections-drawer-input-group">
               <!-- TODO: Add secret management -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
             </div>
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.mistralaiModel') }}</h4>
             <select
               class="text-pole"
@@ -337,14 +337,14 @@ onMounted(() => {
 
         <!-- Groq Form -->
         <form v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.GROQ">
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.groqKey') }}</h4>
-            <div class="api-connections-drawer__input-group">
+            <div class="api-connections-drawer-input-group">
               <!-- TODO: Add secret management -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
             </div>
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.groqModel') }}</h4>
             <select
               class="text-pole"
@@ -363,7 +363,7 @@ onMounted(() => {
 
         <!-- Custom Form -->
         <form v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.CUSTOM">
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.customUrl') }}</h4>
             <input
               type="text"
@@ -374,7 +374,7 @@ onMounted(() => {
               "
             />
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.customModel') }}</h4>
             <input
               type="text"
@@ -385,9 +385,9 @@ onMounted(() => {
               "
             />
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.customKey') }}</h4>
-            <div class="api-connections-drawer__input-group">
+            <div class="api-connections-drawer-input-group">
               <!-- TODO: Add secret management -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
             </div>
@@ -396,14 +396,14 @@ onMounted(() => {
 
         <!-- Azure OpenAI Form -->
         <form v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.AZURE_OPENAI">
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.azureKey') }}</h4>
-            <div class="api-connections-drawer__input-group">
+            <div class="api-connections-drawer-input-group">
               <!-- TODO: Add secret management -->
               <div class="menu-button fa-solid fa-key fa-fw" :title="t('apiConnections.manageKeys')"></div>
             </div>
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.azureBaseUrl') }}</h4>
             <input
               type="text"
@@ -417,7 +417,7 @@ onMounted(() => {
               "
             />
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.azureDeploymentName') }}</h4>
             <input
               type="text"
@@ -431,7 +431,7 @@ onMounted(() => {
               "
             />
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.azureApiVersion') }}</h4>
             <input
               type="text"
@@ -445,7 +445,7 @@ onMounted(() => {
               "
             />
           </div>
-          <div class="api-connections-drawer__section">
+          <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.azureModel') }}</h4>
             <input
               type="text"
@@ -465,7 +465,7 @@ onMounted(() => {
         <!-- TODO: Add forms for other sources -->
 
         <!-- Tokenizer Selection -->
-        <div class="api-connections-drawer__section">
+        <div class="api-connections-drawer-section">
           <h4>{{ t('apiConnections.tokenizer') }}</h4>
           <select
             class="text-pole"
@@ -492,8 +492,8 @@ onMounted(() => {
           </select>
         </div>
 
-        <div class="api-connections-drawer__section">
-          <div class="api-connections-drawer__actions">
+        <div class="api-connections-drawer-section">
+          <div class="api-connections-drawer-actions">
             <button
               class="menu-button"
               :disabled="apiStore.isConnecting"

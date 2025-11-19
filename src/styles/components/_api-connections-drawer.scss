@@ -4,13 +4,13 @@
   width: 100%;
   padding: 10px;
 
-  &__wrapper {
+  &-wrapper {
     display: flex;
     flex-direction: column;
     gap: 15px;
   }
 
-  &__section {
+  &-section {
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -50,7 +50,7 @@
     }
   }
 
-  &__input-group {
+  &-input-group {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -60,7 +60,7 @@
     }
   }
 
-  &__actions {
+  &-actions {
     display: flex;
     align-items: center;
     margin-top: 15px;

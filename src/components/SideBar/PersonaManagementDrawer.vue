@@ -82,14 +82,14 @@ onMounted(() => {
 
 <template>
   <div class="persona-drawer">
-    <div class="persona-drawer__header">
+    <div class="persona-drawer-header">
       <h3>
         <span>{{ t('personaManagement.title') }}</span>
         <a href="https://docs.sillytavern.app/usage/core-concepts/personas/" target="_blank">
           <span class="fa-solid fa-circle-question note-link-span"></span>
         </a>
       </h3>
-      <div class="persona-drawer__header-actions">
+      <div class="persona-drawer-header-actions">
         <div class="menu-button">
           <i class="fa-solid fa-ranking-star"></i>
           <span>{{ t('personaManagement.usageStats') }}</span>
@@ -105,10 +105,10 @@ onMounted(() => {
         </label>
       </div>
     </div>
-    <div class="persona-drawer__content">
+    <div class="persona-drawer-content">
       <!-- Left Column -->
-      <div class="persona-drawer__column--left">
-        <div class="persona-drawer__list-controls">
+      <div class="persona-drawer-column--left">
+        <div class="persona-drawer-list-controls">
           <div class="menu-button">
             <i class="fa-solid fa-person-circle-question fa-fw"></i>
             <span>{{ t('personaManagement.create') }}</span>
@@ -135,14 +135,10 @@ onMounted(() => {
             :class="{ selected: persona.avatarId === personaStore.activePersonaId }"
             @click="personaStore.setActivePersona(persona.avatarId)"
           >
-            <img
-              :src="getThumbnailUrl('persona', persona.avatarId)"
-              alt="Persona Avatar"
-              class="persona-item__avatar"
-            />
-            <div class="persona-item__details">
-              <div class="persona-item__name">{{ persona.name }}</div>
-              <div class="persona-item__description">
+            <img :src="getThumbnailUrl('persona', persona.avatarId)" alt="Persona Avatar" class="persona-item-avatar" />
+            <div class="persona-item-details">
+              <div class="persona-item-name">{{ persona.name }}</div>
+              <div class="persona-item-description">
                 {{ persona.description || t('personaManagement.noDescription') }}
               </div>
               <!-- TODO: Add lock icons -->
@@ -152,11 +148,11 @@ onMounted(() => {
       </div>
 
       <!-- Right Column -->
-      <div class="persona-drawer__column--right">
+      <div class="persona-drawer-column--right">
         <div v-show="personaStore.activePersona" class="persona-editor">
           <h4 class="standoutHeader">{{ t('personaManagement.currentPersona') }}</h4>
-          <div class="persona-editor__controls">
-            <h5 class="persona-editor__name">{{ personaStore.activePersona?.name ?? '' }}</h5>
+          <div class="persona-editor-controls">
+            <h5 class="persona-editor-name">{{ personaStore.activePersona?.name ?? '' }}</h5>
             <div class="buttons_block">
               <div
                 class="menu-button fa-solid fa-pencil"
@@ -191,7 +187,7 @@ onMounted(() => {
           <!-- TODO: Add token counter -->
 
           <h4 class="standoutHeader">{{ t('personaManagement.connections.title') }}</h4>
-          <div class="persona-editor__connections">
+          <div class="persona-editor-connections">
             <div class="menu-button">
               <i class="icon fa-solid fa-crown fa-fw"></i>
               <span>{{ t('personaManagement.connections.default') }}</span>
@@ -208,7 +204,7 @@ onMounted(() => {
           <!-- TODO: Connections List -->
 
           <h4 class="standoutHeader">{{ t('personaManagement.globalSettings.title') }}</h4>
-          <div class="persona-editor__global-settings">
+          <div class="persona-editor-global-settings">
             <label class="checkbox-label">
               <input v-model="settingsStore.settings.persona.showNotifications" type="checkbox" />
               <span>{{ t('personaManagement.globalSettings.showNotifications') }}</span>

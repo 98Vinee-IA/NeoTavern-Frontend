@@ -6,7 +6,7 @@
   padding: 10px;
   gap: 15px;
 
-  &__header {
+  &-header {
     display: flex;
     align-items: center;
     gap: 15px;
@@ -18,29 +18,29 @@
     }
   }
 
-  &__search {
+  &-search {
     flex-grow: 1;
     margin: 0;
     height: 100%;
   }
 
-  &__content {
+  &-content {
     flex-grow: 1;
     overflow-y: auto;
     padding-right: 5px; // space for scrollbar
   }
 
-  &__no-results {
+  &-no-results {
     text-align: center;
     opacity: 0.7;
     margin-top: 20px;
   }
 
-  &__category {
+  &-category {
     margin-bottom: 5px;
   }
 
-  &__category-header {
+  &-category-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -62,7 +62,7 @@
     }
   }
 
-  &__chevron {
+  &-chevron {
     transition: transform var(--animation-duration-2x) ease-in-out;
     opacity: 0.7;
 
@@ -71,7 +71,7 @@
     }
   }
 
-  &__setting {
+  &-setting {
     display: flex;
     align-items: center;
     justify-content: space-between;

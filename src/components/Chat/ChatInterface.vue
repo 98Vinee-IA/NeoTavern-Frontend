@@ -84,29 +84,29 @@ watch(
 
 <template>
   <div class="chat-interface">
-    <div id="chat-messages-container" ref="messagesContainer" class="chat-interface__messages">
+    <div id="chat-messages-container" ref="messagesContainer" class="chat-interface-messages">
       <ChatMessage v-for="(message, index) in chatStore.chat" :key="index" :message="message" :index="index" />
-      <div v-show="chatStore.isGenerating" class="chat-interface__typing-indicator">
+      <div v-show="chatStore.isGenerating" class="chat-interface-typing-indicator">
         <span>{{ t('chat.typingIndicator') }}</span>
         <div class="dot dot1"></div>
         <div class="dot dot2"></div>
         <div class="dot dot3"></div>
       </div>
     </div>
-    <div class="chat-interface__form-container">
+    <div class="chat-interface-form-container">
       <form id="chat-form" class="chat-form" @submit.prevent="submitMessage">
-        <div class="chat-form__inner">
-          <div class="chat-form__actions-left">
+        <div class="chat-form-inner">
+          <div class="chat-form-actions-left">
             <button
               id="chat-options-button"
               type="button"
-              class="chat-form__button fa-solid fa-bars"
+              class="chat-form-button fa-solid fa-bars"
               :title="t('chat.options')"
               @click.stop="isOptionsMenuVisible = !isOptionsMenuVisible"
             ></button>
             <button
               type="button"
-              class="chat-form__button fa-solid fa-magic-wand-sparkles"
+              class="chat-form-button fa-solid fa-magic-wand-sparkles"
               :title="t('chat.extensions')"
             ></button>
           </div>
@@ -118,25 +118,25 @@ watch(
             :disabled="chatStore.isGenerating"
             @keydown="handleKeydown"
           ></textarea>
-          <div class="chat-form__actions-right">
+          <div class="chat-form-actions-right">
             <button
               v-show="chatStore.isGenerating"
               type="button"
-              class="chat-form__button fa-fw fa-solid fa-stop"
+              class="chat-form-button fa-fw fa-solid fa-stop"
               :title="t('chat.abort')"
               @click="chatStore.abortGeneration"
             ></button>
             <div v-show="!chatStore.isGenerating">
               <button
                 type="button"
-                class="chat-form__button fa-fw fa-solid fa-arrow-right"
+                class="chat-form-button fa-fw fa-solid fa-arrow-right"
                 :title="t('chat.continue')"
                 :disabled="chatStore.isGenerating"
                 @click="continueGeneration"
               ></button>
               <button
                 type="submit"
-                class="chat-form__button fa-solid fa-paper-plane"
+                class="chat-form-button fa-solid fa-paper-plane"
                 :title="t('chat.send')"
                 :disabled="chatStore.isGenerating"
               ></button>
@@ -145,16 +145,16 @@ watch(
         </div>
 
         <div v-show="isOptionsMenuVisible" ref="optionsMenu" class="options-menu">
-          <a class="options-menu__item" @click="openChatManagement">
+          <a class="options-menu-item" @click="openChatManagement">
             <i class="fa-solid fa-address-book"></i>
             <span>{{ t('chat.optionsMenu.manageChats') }}</span>
           </a>
           <hr />
-          <a class="options-menu__item" @click="regenerate">
+          <a class="options-menu-item" @click="regenerate">
             <i class="fa-solid fa-repeat"></i>
             <span>{{ t('chat.optionsMenu.regenerate') }}</span>
           </a>
-          <a class="options-menu__item" @click="continueGeneration">
+          <a class="options-menu-item" @click="continueGeneration">
             <i class="fa-solid fa-arrow-right"></i>
             <span>{{ t('chat.optionsMenu.continue') }}</span>
           </a>

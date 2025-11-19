@@ -31,7 +31,7 @@ function resetToDefaults() {
     <div class="settings-section">
       <h4>{{ t('worldInfo.activationSettings') }}</h4>
       <div class="wi-settings-grid">
-        <div class="wi-settings-grid__sliders">
+        <div class="wi-settings-grid-sliders">
           <div class="range-block">
             <div class="range-block-title">{{ t('worldInfo.scanDepth') }}</div>
             <div class="range-block-range-and-counter">
@@ -96,7 +96,7 @@ function resetToDefaults() {
             </div>
           </div>
         </div>
-        <div class="wi-settings-grid__checkboxes">
+        <div class="wi-settings-grid-checkboxes">
           <label class="checkbox-label" :title="t('worldInfo.includeNamesHint')">
             <input v-model="worldInfoStore.settings.world_info_include_names" type="checkbox" />
             <span>{{ t('worldInfo.includeNames') }}</span>

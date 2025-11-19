@@ -5,14 +5,14 @@
   position: relative;
   overflow: hidden;
 
-  &.is-collapsed .extensions-panel__browser {
+  &.is-collapsed .extensions-panel-browser {
     width: 0 !important;
     padding: 5px 0;
     opacity: 0;
     overflow: hidden;
   }
 
-  &__browser {
+  &-browser {
     width: 250px;
     flex-shrink: 0;
     display: flex;
@@ -30,7 +30,7 @@
     }
   }
 
-  &__divider {
+  &-divider {
     width: 12px;
     flex-shrink: 0;
     cursor: ew-resize;
@@ -38,7 +38,7 @@
     background-color: transparent;
   }
 
-  &__collapse-toggle {
+  &-collapse-toggle {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -61,7 +61,7 @@
     }
   }
 
-  &__editor {
+  &-editor {
     flex-grow: 1;
     height: 100%;
     display: flex;
@@ -72,19 +72,19 @@
     gap: 10px;
   }
 
-  &__browser-header {
+  &-browser-header {
     display: flex;
     flex-direction: column;
     gap: 5px;
   }
 
-  &__list {
+  &-list {
     flex-grow: 1;
     overflow-y: auto;
     height: 100%;
   }
 
-  &__placeholder {
+  &-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -122,7 +122,7 @@
     outline: 1px solid var(--theme-quote-color);
   }
 
-  &__icon {
+  &-icon {
     font-size: 1.2em;
     width: 20px;
     text-align: center;
@@ -130,19 +130,19 @@
     opacity: 0.7;
   }
 
-  &__content {
+  &-content {
     flex-grow: 1;
     overflow: hidden;
   }
 
-  &__name {
+  &-name {
     font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  &__author {
+  &-author {
     font-size: 0.8em;
     opacity: 0.7;
     white-space: nowrap;
@@ -150,7 +150,7 @@
     text-overflow: ellipsis;
   }
 
-  &__actions {
+  &-actions {
     margin-left: auto;
     display: flex;
     align-items: center;
@@ -163,7 +163,7 @@
   flex-direction: column;
   gap: 10px;
 
-  &__header {
+  &-header {
     border-bottom: 1px solid var(--theme-border-color);
     padding-bottom: 10px;
     margin-bottom: 10px;
@@ -181,7 +181,7 @@
     }
   }
 
-  &__description {
+  &-description {
     opacity: 0.9;
   }
 }

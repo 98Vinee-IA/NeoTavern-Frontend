@@ -1,5 +1,5 @@
 .prompt-manager-popup {
-  &__header {
+  &-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -9,11 +9,11 @@
     }
   }
 
-  &__description {
+  &-description {
     opacity: 0.8;
   }
 
-  &__content {
+  &-content {
     flex-grow: 1;
     overflow-y: auto;
     padding-right: 5px; // space for scrollbar
@@ -27,7 +27,7 @@
     padding-bottom: 5px;
   }
 
-  &__add-section {
+  &-add-section {
     display: flex;
     gap: 10px;
     align-items: center;
@@ -57,7 +57,7 @@
     box-shadow: 0 2px 0 var(--color-golden);
   }
 
-  &__header {
+  &-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -70,14 +70,14 @@
     }
   }
 
-  &__name {
+  &-name {
     display: flex;
     align-items: center;
     gap: 10px;
     font-weight: bold;
   }
 
-  &__chevron {
+  &-chevron {
     transition: transform var(--animation-duration-2x);
     opacity: 0.7;
 
@@ -86,7 +86,7 @@
     }
   }
 
-  &__controls {
+  &-controls {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -108,7 +108,7 @@
     }
   }
 
-  &__content {
+  &-content {
     padding: 10px;
     border-top: 1px solid var(--theme-border-color);
     display: flex;

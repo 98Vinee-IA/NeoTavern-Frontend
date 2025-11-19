@@ -54,7 +54,7 @@ const entryState = computed({
 <template>
   <div class="world-entry-editor" :class="{ 'is-disabled': modelValue?.disable }">
     <div class="editor-header">
-      <div class="editor-header__main">
+      <div class="editor-header-main">
         <!-- TODO: This should be near item in WorldInfoDrawer -->
         <i
           class="fa-solid"
@@ -70,7 +70,7 @@ const entryState = computed({
           @input="updateValue('comment', ($event.target as HTMLTextAreaElement).value)"
         ></textarea>
       </div>
-      <div class="editor-header__actions">
+      <div class="editor-header-actions">
         <i class="menu-button fa-solid fa-right-left" :title="t('worldInfo.entry.move')"></i>
         <i
           class="menu-button fa-solid fa-paste"
@@ -84,8 +84,8 @@ const entryState = computed({
         ></i>
       </div>
     </div>
-    <form class="world-entry-editor__form">
-      <div class="world-entry-editor__grid">
+    <form class="world-entry-editor-form">
+      <div class="world-entry-editor-grid">
         <select v-model="entryState" class="text-pole" :title="t('worldInfo.entry.entryState')">
           <option value="constant">{{ t('worldInfo.entry.entryStates.constant') }}</option>
           <option value="normal">{{ t('worldInfo.entry.entryStates.normal') }}</option>
@@ -133,7 +133,7 @@ const entryState = computed({
         />
       </div>
 
-      <div class="world-entry-editor__section">
+      <div class="world-entry-editor-section">
         <div class="control-group flex-1">
           <small>{{ t('worldInfo.entry.primaryKeywords') }}</small>
           <textarea
@@ -179,8 +179,8 @@ const entryState = computed({
         </div>
       </div>
 
-      <div class="world-entry-editor__section world-entry-editor__section--column">
-        <label class="world-entry-editor__label--with-uid">
+      <div class="world-entry-editor-section world-entry-editor-section--column">
+        <label class="world-entry-editor-label--with-uid">
           <small>{{ t('worldInfo.entry.content') }}</small>
           <small>(UID: {{ modelValue?.uid }})</small>
         </label>
@@ -209,7 +209,7 @@ const entryState = computed({
           @before-leave="beforeLeave"
           @leave="leave"
         >
-          <div v-show="isAdditionalSourcesExpanded" class="inline-drawer-content world-entry-editor__checkbox-grid">
+          <div v-show="isAdditionalSourcesExpanded" class="inline-drawer-content world-entry-editor-checkbox-grid">
             <label class="checkbox-label"
               ><input type="checkbox" :checked="modelValue?.matchCharacterDescription" /><span>{{
                 t('worldInfo.entry.charDescription')

@@ -100,8 +100,8 @@ onMounted(() => {
 
 <template>
   <div class="backgrounds-drawer">
-    <div class="backgrounds-drawer__header">
-      <div class="backgrounds-drawer__header-row">
+    <div class="backgrounds-drawer-header">
+      <div class="backgrounds-drawer-header-row">
         <label class="menu-button" @click="triggerFileUpload">
           <i class="fa-solid fa-plus"></i>
           <span>{{ t('backgrounds.add') }}</span>
@@ -120,7 +120,7 @@ onMounted(() => {
           <span>{{ t('backgrounds.autoSelect') }}</span>
         </div>
       </div>
-      <div class="backgrounds-drawer__header-row">
+      <div class="backgrounds-drawer-header-row">
         <input
           v-model="backgroundStore.searchTerm"
           class="text-pole"
@@ -130,7 +130,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div ref="scrollableContent" class="backgrounds-drawer__scrollable-content">
+    <div ref="scrollableContent" class="backgrounds-drawer-scrollable-content">
       <div class="heading-container">
         <h3>{{ t('backgrounds.systemBackgrounds') }}</h3>
         <div class="heading-controls">
@@ -152,7 +152,7 @@ onMounted(() => {
           </button>
         </div>
       </div>
-      <div class="backgrounds-drawer__grid">
+      <div class="backgrounds-drawer-grid">
         <div
           v-for="bg in backgroundStore.filteredSystemBackgrounds"
           :key="bg"
@@ -165,10 +165,10 @@ onMounted(() => {
           :title="bg"
           @click="backgroundStore.selectBackground(bg)"
         >
-          <div class="background-item__thumbnail" :style="{ backgroundImage: `url(${getThumbnailUrl('bg', bg)})` }">
-            <div class="background-item__title">{{ getBgFileName(bg) }}</div>
+          <div class="background-item-thumbnail" :style="{ backgroundImage: `url(${getThumbnailUrl('bg', bg)})` }">
+            <div class="background-item-title">{{ getBgFileName(bg) }}</div>
           </div>
-          <div class="background-item__menu">
+          <div class="background-item-menu">
             <div
               class="menu-button fa-solid fa-lock"
               :title="t('backgrounds.actions.lock')"
@@ -196,7 +196,7 @@ onMounted(() => {
       <!-- TODO: Implement Chat Backgrounds -->
     </div>
 
-    <button class="backgrounds-drawer__scroll-top" :class="{ visible: isScrolled }" @click="scrollToTop">
+    <button class="backgrounds-drawer-scroll-top" :class="{ visible: isScrolled }" @click="scrollToTop">
       <i class="fa-solid fa-chevron-up"></i>
     </button>
   </div>

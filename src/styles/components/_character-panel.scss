@@ -6,7 +6,7 @@
   overflow: hidden;
 
   // Left Pane: Character Browser
-  &__browser {
+  &-browser {
     width: 350px;
     flex-shrink: 0;
     display: flex;
@@ -26,7 +26,7 @@
   }
 
   // Right Pane: Character Editor
-  &__editor {
+  &-editor {
     flex-grow: 1;
     height: 100%;
     display: flex;
@@ -35,20 +35,20 @@
   }
 
   // Collapsed State for Browser
-  &.is-collapsed .character-panel__browser {
+  &.is-collapsed .character-panel-browser {
     width: 0 !important; // Use !important to override inline style from resizer
     padding: 5px 0;
     opacity: 0;
     overflow: hidden;
   }
 
-  &__browser-header {
+  &-browser-header {
     display: flex;
     flex-direction: column;
     gap: 5px;
   }
 
-  &__actions {
+  &-actions {
     display: flex;
     gap: 5px;
     align-items: center;
@@ -68,23 +68,23 @@
     }
   }
 
-  &__search-form {
+  &-search-form {
     display: flex;
     gap: 5px;
   }
 
-  &__search-input {
+  &-search-input {
     flex-grow: 1;
   }
 
-  &__character-list {
+  &-character-list {
     flex-grow: 1;
     overflow-y: auto;
     height: 100%;
     padding: 1px;
   }
 
-  &__pagination {
+  &-pagination {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -93,7 +93,7 @@
   }
 
   // Divider and Collapse Button
-  &__divider {
+  &-divider {
     width: 12px;
     flex-shrink: 0;
     cursor: ew-resize;
@@ -101,7 +101,7 @@
     background-color: transparent; // Make it a hover target
   }
 
-  &__collapse-toggle {
+  &-collapse-toggle {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -125,7 +125,7 @@
   }
 
   // Editor Placeholder
-  &__editor-placeholder {
+  &-editor-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -166,7 +166,7 @@
     outline: 1px solid var(--theme-quote-color);
   }
 
-  &__avatar {
+  &-avatar {
     width: var(--avatar-width);
     height: var(--avatar-height);
     flex-shrink: 0;
@@ -182,32 +182,32 @@
     }
   }
 
-  &__content {
+  &-content {
     flex-grow: 1;
     overflow: hidden;
   }
 
-  &__header {
+  &-header {
     display: flex;
     align-items: baseline;
     gap: 5px;
   }
 
-  &__name {
+  &-name {
     font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  &__fav-icon {
+  &-fav-icon {
     color: var(--color-golden);
     filter: drop-shadow(1px 1px 2px black);
     font-size: 14px;
     flex-shrink: 0;
   }
 
-  &__description {
+  &-description {
     font-size: calc(var(--font-size-main) * 0.8);
     white-space: nowrap;
     overflow: hidden;

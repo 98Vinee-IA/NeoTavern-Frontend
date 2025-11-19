@@ -6,7 +6,7 @@
   padding: 10px;
   gap: 10px;
 
-  &__header {
+  &-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -16,11 +16,11 @@
     }
   }
 
-  &__description {
+  &-description {
     opacity: 0.8;
   }
 
-  &__content {
+  &-content {
     flex-grow: 1;
     overflow-y: auto;
     padding-right: 5px; // space for scrollbar

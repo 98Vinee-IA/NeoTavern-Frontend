@@ -134,10 +134,10 @@ async function deleteChat(chatFile: string) {
       <h3>
         {{ t('chatManagement.title', { characterName: characterStore.activeCharacterName }) }}
       </h3>
-      <div class="chat-management-popup__actions">
+      <div class="chat-management-popup-actions">
         <button class="menu-button" @click="createNewChat">{{ t('chatManagement.newChat') }}</button>
       </div>
-      <div class="chat-management-popup__list">
+      <div class="chat-management-popup-list">
         <table>
           <tbody>
             <tr v-for="file in chatFiles" :key="file" class="chat-file-row" :data-file="file">

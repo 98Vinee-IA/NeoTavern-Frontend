@@ -92,9 +92,9 @@ onMounted(() => {
 <template>
   <div class="character-panel" :class="{ 'is-collapsed': isBrowserCollapsed }">
     <!-- Left Pane: Character Browser -->
-    <div ref="browserPane" class="character-panel__browser">
-      <div class="character-panel__browser-header">
-        <div class="character-panel__actions">
+    <div ref="browserPane" class="character-panel-browser">
+      <div class="character-panel-browser-header">
+        <div class="character-panel-actions">
           <div
             :title="t('characterPanel.createNew')"
             class="menu-button fa-solid fa-user-plus"
@@ -115,10 +115,10 @@ onMounted(() => {
             @click="isSearchActive = !isSearchActive"
           ></div>
         </div>
-        <div v-show="isSearchActive" id="character-search-form" class="character-panel__search-form">
+        <div v-show="isSearchActive" id="character-search-form" class="character-panel-search-form">
           <input
             v-model="characterStore.searchTerm"
-            class="text-pole character-panel__search-input"
+            class="text-pole character-panel-search-input"
             type="search"
             :placeholder="t('characterPanel.searchPlaceholder')"
           />
@@ -136,7 +136,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="character-panel__pagination">
+      <div class="character-panel-pagination">
         <Pagination
           v-if="characterStore.displayableEntities.length > 0"
           v-model:current-page="characterStore.currentPage"
@@ -146,7 +146,7 @@ onMounted(() => {
         />
       </div>
 
-      <div id="character-list" ref="characterListEl" class="character-panel__character-list">
+      <div id="character-list" ref="characterListEl" class="character-panel-character-list">
         <div v-if="characterStore.paginatedEntities.length === 0">{{ t('common.loading') }}</div>
         <template v-for="entity in characterStore.paginatedEntities" :key="entity.id">
           <div
@@ -167,18 +167,18 @@ onMounted(() => {
             :data-character-avatar="(entity.item as Character).avatar"
             @click="characterStore.selectCharacterById(entity.id as number)"
           >
-            <div class="character-item__avatar">
+            <div class="character-item-avatar">
               <img
                 :src="getThumbnailUrl('avatar', (entity.item as Character).avatar)"
                 :alt="`${(entity.item as Character).name} Avatar`"
               />
             </div>
-            <div class="character-item__content">
-              <div class="character-item__header">
-                <span class="character-item__name">{{ (entity.item as Character).name }}</span>
-                <i v-if="(entity.item as Character).fav" class="character-item__fav-icon fa-solid fa-star"></i>
+            <div class="character-item-content">
+              <div class="character-item-header">
+                <span class="character-item-name">{{ (entity.item as Character).name }}</span>
+                <i v-if="(entity.item as Character).fav" class="character-item-fav-icon fa-solid fa-star"></i>
               </div>
-              <div class="character-item__description">{{ (entity.item as Character).description || '&nbsp;' }}</div>
+              <div class="character-item-description">{{ (entity.item as Character).description || '&nbsp;' }}</div>
             </div>
           </div>
           <!-- TODO: Group rendering logic -->
@@ -187,9 +187,9 @@ onMounted(() => {
     </div>
 
     <!-- Divider -->
-    <div ref="dividerEl" class="character-panel__divider">
+    <div ref="dividerEl" class="character-panel-divider">
       <div
-        class="character-panel__collapse-toggle"
+        class="character-panel-collapse-toggle"
         :title="isBrowserCollapsed ? t('characterPanel.expandBrowser') : t('characterPanel.collapseBrowser')"
         @click="isBrowserCollapsed = !isBrowserCollapsed"
       >
@@ -198,8 +198,8 @@ onMounted(() => {
     </div>
 
     <!-- Right Pane: Character Editor -->
-    <div class="character-panel__editor">
-      <div v-show="!activeCharacter" class="character-panel__editor-placeholder">
+    <div class="character-panel-editor">
+      <div v-show="!activeCharacter" class="character-panel-editor-placeholder">
         <div class="placeholder-icon fa-solid fa-user-pen"></div>
         <h2 class="placeholder-title">{{ t('characterPanel.editor.placeholderTitle') }}</h2>
         <p class="placeholder-text">{{ t('characterPanel.editor.placeholderText') }}</p>

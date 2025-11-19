@@ -1,13 +1,13 @@
 .message {
   display: flex;
 
-  &__avatar-wrapper {
+  &-avatar-wrapper {
     flex-shrink: 0;
     width: var(--avatar-width);
     text-align: center;
   }
 
-  &__avatar {
+  &-avatar {
     width: var(--avatar-width);
     height: var(--avatar-height);
     border-radius: var(--avatar-border-radius-round);
@@ -23,16 +23,16 @@
     }
   }
 
-  &__id,
-  &__timer,
-  &__token-count {
+  &-id,
+  &-timer,
+  &-token-count {
     cursor: default;
     opacity: 0.7;
     font-size: calc(var(--font-size-main) * 0.9);
     font-weight: 600;
   }
 
-  &__main {
+  &-main {
     flex-grow: 1;
     min-width: 0; // Prevent flexbox overflow
     padding-left: 10px;
@@ -40,37 +40,37 @@
     position: relative;
   }
 
-  &__header {
+  &-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 5px;
   }
 
-  &__name-block {
+  &-name-block {
     display: flex;
     align-items: baseline;
     gap: 8px;
   }
 
-  &__name {
+  &-name {
     font-weight: bold;
   }
 
-  &__timestamp {
+  &-timestamp {
     font-size: 0.8em;
     opacity: 0.7;
   }
 
-  &__buttons,
-  &__edit-actions {
+  &-buttons,
+  &-edit-actions {
     display: flex;
     gap: 5px;
     align-items: center;
   }
 
-  &__buttons {
-    .message__button {
+  &-buttons {
+    .message-button {
       opacity: 0.5;
       cursor: pointer;
       transition: all var(--animation-duration-2x);
@@ -85,7 +85,7 @@
     }
   }
 
-  &__content {
+  &-content {
     font-weight: 500;
     line-height: calc(var(--font-size-main) + 0.5rem);
     max-width: 100%;
@@ -134,14 +134,14 @@
     }
   }
 
-  &__footer {
+  &-footer {
     display: flex;
     justify-content: center;
     align-items: center;
     margin-top: 5px;
   }
 
-  &__swipe-controls {
+  &-swipe-controls {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -164,7 +164,7 @@
     }
   }
 
-  &__edit-area {
+  &-edit-area {
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -174,7 +174,7 @@
     }
   }
 
-  &__edit-actions {
+  &-edit-actions {
     .menu-button {
       opacity: 0.7;
       padding: 3px 5px;
@@ -189,7 +189,7 @@
     }
   }
 
-  &__reasoning {
+  &-reasoning {
     margin-bottom: 10px;
     padding: 8px 12px;
     border-radius: 8px;
@@ -253,7 +253,7 @@
     }
   }
 
-  &__reasoning-edit-area {
+  &-reasoning-edit-area {
     margin-bottom: 10px;
     display: flex;
     flex-direction: column;

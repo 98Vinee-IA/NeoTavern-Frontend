@@ -1,11 +1,11 @@
 .chat-management-popup {
-  &__actions {
+  &-actions {
     display: flex;
     justify-content: flex-start;
     margin-bottom: 10px;
   }
 
-  &__list {
+  &-list {
     max-height: 60vh;
     overflow-y: auto;
 
