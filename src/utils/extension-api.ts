@@ -472,11 +472,7 @@ const baseExtensionAPI: ExtensionAPI = {
      */
     getBook: async (name: string): Promise<Readonly<WorldInfoBook> | null> => {
       const store = useWorldInfoStore();
-      let book = store.getBookFromCache(name);
-      if (!book) {
-        await store.fetchBook(name);
-        book = store.getBookFromCache(name);
-      }
+      const book = await store.getBookFromCache(name, true);
       return book ? deepClone(book) : null;
     },
 
@@ -502,9 +498,9 @@ const baseExtensionAPI: ExtensionAPI = {
      * @param bookName The name of the lorebook containing the entry.
      * @param entry The full entry object with updated data. Its `uid` will be used for matching.
      */
-    updateEntry: (bookName: string, entry: WorldInfoEntry): void => {
+    updateEntry: async (bookName: string, entry: WorldInfoEntry): Promise<void> => {
       const store = useWorldInfoStore();
-      const book = store.getBookFromCache(bookName);
+      const book = await store.getBookFromCache(bookName, true);
       if (!book) {
         console.warn(`[ExtensionAPI] Cannot update entry: Book "${bookName}" not loaded.`);
         return;

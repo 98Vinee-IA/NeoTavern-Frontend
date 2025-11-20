@@ -380,6 +380,7 @@ export const useChatStore = defineStore('chat', () => {
         messages: messages,
         breakdown: breakdown,
         timestamp: Date.now(),
+        worldInfoEntries: processedWorldInfo?.triggeredEntries ?? {},
       };
       promptStore.addItemizedPrompt(itemizedPrompt);
 

@@ -462,6 +462,7 @@ export interface MessageSchema {
       totalTokens: string;
       maxContext: string;
       showRaw: string;
+      showWorldInfo: string;
       copy: string;
     };
   };

@@ -52,9 +52,11 @@ export class PromptBuilder {
 
     // 1. Process World Info
     const worldInfoStore = useWorldInfoStore();
-    const activeBooks = worldInfoStore.bookNames
-      .filter((name) => worldInfoStore.activeBookNames.includes(name))
-      .map((name) => worldInfoStore.getBookFromCache(name));
+    const activeBooks = await Promise.all(
+      worldInfoStore.bookNames
+        .filter((name) => worldInfoStore.activeBookNames.includes(name))
+        .map(async (name) => await worldInfoStore.getBookFromCache(name, true)),
+    );
 
     const processor = new WorldInfoProcessor({
       books: activeBooks.filter((book): book is NonNullable<typeof book> => book !== null),

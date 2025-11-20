@@ -16,6 +16,10 @@ import { eventEmitter } from './event-emitter';
 // TODO: These should be sourced from a central place or settings
 const MAX_SCAN_DEPTH = 1000;
 
+interface ProcessingEntry extends WorldInfoEntry {
+  world: string;
+}
+
 // TODO: A simplified substitution, a full implementation would be more robust
 function substituteParams(text: string, char: Character, user: string): string {
   if (!text) return '';
@@ -125,7 +129,7 @@ export class WorldInfoProcessor {
     await eventEmitter.emit('world-info:processing-started', options);
 
     const buffer = new WorldInfoBuffer(this.chat, this.settings, this.character, this.persona);
-    const allActivatedEntries = new Set<WorldInfoEntry>();
+    const allActivatedEntries = new Set<ProcessingEntry>();
     let continueScanning = true;
     let loopCount = 0;
     let tokenBudgetOverflowed = false;
@@ -135,15 +139,21 @@ export class WorldInfoProcessor {
       budget = this.settings.world_info_budget_cap;
     }
 
-    const allEntries = this.books.flatMap((book) => book.entries.map((entry) => ({ ...entry, world: book.name })));
+    const allEntries: ProcessingEntry[] = this.books.flatMap((book) =>
+      book.entries.map((entry) => ({ ...entry, world: book.name })),
+    );
     const sortedEntries = allEntries.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 
     // TODO: Implement TimedEffects for sticky/cooldown
     // TODO: Implement Min Activations logic more fully with skew
 
-    while (continueScanning && loopCount < (this.settings.world_info_max_recursion_steps || 10)) {
+    while (
+      continueScanning &&
+      loopCount < (this.settings.world_info_max_recursion_steps || 10) &&
+      sortedEntries.length > 0
+    ) {
       loopCount++;
-      const activatedInThisLoop = new Set<WorldInfoEntry>();
+      const activatedInThisLoop = new Set<ProcessingEntry>();
       let newContentForRecursion = '';
       let currentContentForBudget = '';
 
@@ -260,11 +270,18 @@ export class WorldInfoProcessor {
       emAfter: [],
       depthEntries: [],
       outletEntries: {},
+      triggeredEntries: {},
     };
 
     const finalEntries = Array.from(allActivatedEntries).sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 
     for (const entry of finalEntries) {
+      // Populate triggered entries record
+      if (!result.triggeredEntries[entry.world]) {
+        result.triggeredEntries[entry.world] = [];
+      }
+      result.triggeredEntries[entry.world].push(entry);
+
       const content = substituteParams(entry.content, this.character, this.persona.name);
       if (!content) continue;
 

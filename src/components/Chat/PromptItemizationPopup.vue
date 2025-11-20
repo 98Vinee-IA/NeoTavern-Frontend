@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { ItemizedPrompt, PromptTokenBreakdown } from '../../types';
+import type { ItemizedPrompt, PromptTokenBreakdown, WorldInfoEntry } from '../../types';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
 
@@ -10,8 +10,11 @@ const props = defineProps<{
 
 const { t } = useStrictI18n();
 const showRaw = ref(false);
+const showWorldInfo = ref(false);
 
 const bd = computed<PromptTokenBreakdown>(() => props.data.breakdown);
+const wiEntries = computed(() => props.data.worldInfoEntries || {});
+const hasWiEntries = computed(() => Object.keys(wiEntries.value).length > 0);
 
 const rawMessages = computed(() => {
   return props.data.messages.map((m) => `${m.role.toUpperCase()}:\n${m.content}`).join('\n\n');
@@ -23,9 +26,6 @@ const percentages = computed(() => {
   return {
     system: ((bd.value.systemTotal / total) * 100).toFixed(2),
     history: ((bd.value.chatHistory / total) * 100).toFixed(2),
-    // Using system parts for coloring if available, but usually systemTotal covers description/personality/etc.
-    // For the bar chart, we often want to visualize: System (Start) | World Info | History | Etc.
-    // Since we might not have exact granular separation in the final prompt string, we use estimates.
     description: ((bd.value.description / total) * 100).toFixed(2),
     personality: ((bd.value.personality / total) * 100).toFixed(2),
     scenario: ((bd.value.scenario / total) * 100).toFixed(2),
@@ -49,6 +49,16 @@ function copyPrompt() {
 
 function toggleRaw() {
   showRaw.value = !showRaw.value;
+}
+
+function toggleWorldInfo() {
+  showWorldInfo.value = !showWorldInfo.value;
+}
+
+function getEntryState(entry: WorldInfoEntry) {
+  if (entry.constant) return { label: 'Constant', class: 'constant' };
+  if (entry.vectorized) return { label: 'Vectorized', class: 'vectorized' };
+  return { label: 'Normal', class: 'normal' };
 }
 
 // Helper to format token count
@@ -162,6 +172,10 @@ const fmt = (n: number) => n.toLocaleString();
         <i class="fa-solid fa-square-poll-horizontal"></i>
         {{ t('chat.itemization.showRaw') }}
       </button>
+      <button v-if="hasWiEntries" class="menu-button" @click="toggleWorldInfo">
+        <i class="fa-solid fa-book-journal-whills"></i>
+        {{ t('chat.itemization.showWorldInfo') }}
+      </button>
       <button class="menu-button" @click="copyPrompt">
         <i class="fa-solid fa-copy"></i>
         {{ t('chat.itemization.copy') }}
@@ -171,6 +185,25 @@ const fmt = (n: number) => n.toLocaleString();
     <!-- Raw Prompt Viewer -->
     <div v-if="showRaw" class="pi-raw-viewer">
       <pre>{{ rawMessages }}</pre>
+    </div>
+
+    <!-- WI Viewer -->
+    <div v-if="showWorldInfo" class="pi-wi-viewer">
+      <div v-for="(entries, book) in wiEntries" :key="book" class="pi-wi-book">
+        <h4>{{ book }}</h4>
+        <ul>
+          <li v-for="entry in entries" :key="entry.uid">
+            <div class="pi-wi-entry-header">
+              <span class="uid">[{{ entry.uid }}]</span>
+              <span class="title">{{ entry.comment || 'Untitled' }}</span>
+              <span class="badge" :class="getEntryState(entry).class">{{ getEntryState(entry).label }}</span>
+            </div>
+            <div class="pi-wi-keys">
+              <small>{{ entry.key.join(', ') }}</small>
+            </div>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>

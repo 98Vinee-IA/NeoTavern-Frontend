@@ -12,11 +12,53 @@
     filter: grayscale(0.8);
   }
 
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+
+    &-main {
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      i {
+        cursor: pointer;
+        font-size: 1.2em;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        color: var(--color-accent-green-70a);
+
+        &.fa-toggle-off {
+          color: var(--grey-70);
+        }
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+
+      textarea {
+        resize: none;
+        font-weight: bold;
+      }
+    }
+
+    &-actions {
+      display: flex;
+      gap: 5px;
+    }
+  }
+
   &-form {
     display: flex;
     flex-direction: column;
     gap: 15px;
     height: 100%;
+    overflow-y: auto;
+    padding-right: 5px; // Space for scrollbar
   }
 
   &-grid {
@@ -41,6 +83,7 @@
       font-weight: bold;
       width: 100%;
       margin-bottom: -5px;
+      display: block;
     }
 
     .control-group {
@@ -53,6 +96,12 @@
 
     &--column {
       flex-direction: column;
+      flex: 1;
+      min-height: 200px; // Give content area some minimum height
+
+      textarea {
+        flex-grow: 1;
+      }
     }
   }
 
@@ -60,24 +109,29 @@
     display: flex;
     justify-content: space-between;
     width: 100%;
+    align-items: baseline;
   }
 
   &-checkbox-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 5px 15px;
+
     .checkbox-label {
       font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+
+      input[type='checkbox'] {
+        width: auto;
+        margin: 0;
+      }
     }
   }
 
   .additional-sources {
     width: 100%;
-    .inline-drawer-header {
-      padding: 5px;
-    }
-    .inline-drawer-content {
-      padding: 10px;
-    }
   }
 }

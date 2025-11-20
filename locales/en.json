@@ -459,6 +459,7 @@
       "totalTokens": "Total Tokens",
       "maxContext": "Max Context",
       "showRaw": "Show Raw Prompt",
+      "showWorldInfo": "Show World Info",
       "copy": "Copy Prompt"
     }
   },

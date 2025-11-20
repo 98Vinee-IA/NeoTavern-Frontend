@@ -13,7 +13,7 @@ import {
 } from '../types';
 import * as api from '../api/world-info';
 import { toast } from '../composables/useToast';
-import { debounce, defaultsDeep } from 'lodash-es';
+import { debounce } from 'lodash-es';
 import { usePopupStore } from './popup.store';
 import { downloadFile } from '../utils/file';
 import { useStrictI18n } from '../composables/useStrictI18n';
@@ -116,20 +116,6 @@ export const useWorldInfoStore = defineStore('world-info', () => {
   }
 
   watch(
-    () => settingsStore.settings.worldInfo,
-    (newSettings) => {
-      if (newSettings) {
-        const newValues = defaultsDeep({}, newSettings, defaultWorldInfoSettings);
-        if (JSON.stringify(settings.value) !== JSON.stringify(newValues)) {
-          settings.value = newValues;
-        }
-        activeBookNames.value = settings.value.world_info?.globalSelect ?? [];
-      }
-    },
-    { deep: true, immediate: true },
-  );
-
-  watch(
     activeBookNames,
     (newActive) => {
       if (!settings.value.world_info) {
@@ -141,7 +127,10 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     { deep: true },
   );
 
-  function getBookFromCache(name: string): WorldInfoBook | undefined {
+  async function getBookFromCache(name: string, force?: boolean): Promise<WorldInfoBook | undefined> {
+    if (force && !worldInfoCache.value[name]) {
+      await fetchBook(name);
+    }
     return worldInfoCache.value[name];
   }
 

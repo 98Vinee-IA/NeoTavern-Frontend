@@ -6,6 +6,7 @@ import type { MessageRole } from './common';
 import type { Persona } from './persona';
 import type { SamplerSettings, Settings } from './settings';
 import type { Tokenizer } from './tokenizer';
+import type { WorldInfoEntry } from './world-info';
 
 export { type ReasoningEffort, type MessageRole };
 
@@ -133,4 +134,6 @@ export interface ItemizedPrompt {
   breakdown: PromptTokenBreakdown;
 
   timestamp: number;
+
+  worldInfoEntries: Record<string, WorldInfoEntry[]>;
 }

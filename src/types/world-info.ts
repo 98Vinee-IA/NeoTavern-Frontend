@@ -112,6 +112,7 @@ export interface ProcessedWorldInfo {
   emAfter: string[];
   depthEntries: { depth: number; role: MessageRole; entries: string[] }[];
   outletEntries: Record<string, string[]>;
+  triggeredEntries: Record<string, WorldInfoEntry[]>;
 }
 
 export type WorldInfoOptions = {

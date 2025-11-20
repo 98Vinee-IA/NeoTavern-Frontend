@@ -22,7 +22,9 @@ const isAdditionalSourcesExpanded = ref(false);
 const isAtDepth = computed(() => props.modelValue?.position === WorldInfoPosition.AT_DEPTH);
 
 function updateValue<K extends keyof WorldInfoEntry>(key: K, value: WorldInfoEntry[K]) {
-  emit('update:modelValue', { ...props.modelValue, [key]: value });
+  if (props.modelValue) {
+    emit('update:modelValue', { ...props.modelValue, [key]: value });
+  }
 }
 
 const entryState = computed({
@@ -84,7 +86,7 @@ const entryState = computed({
         ></i>
       </div>
     </div>
-    <form class="world-entry-editor-form">
+    <div class="world-entry-editor-form">
       <div class="world-entry-editor-grid">
         <select v-model="entryState" class="text-pole" :title="t('worldInfo.entry.entryState')">
           <option value="constant">{{ t('worldInfo.entry.entryStates.constant') }}</option>
@@ -211,38 +213,50 @@ const entryState = computed({
         >
           <div v-show="isAdditionalSourcesExpanded" class="inline-drawer-content world-entry-editor-checkbox-grid">
             <label class="checkbox-label"
-              ><input type="checkbox" :checked="modelValue?.matchCharacterDescription" /><span>{{
-                t('worldInfo.entry.charDescription')
-              }}</span></label
+              ><input
+                type="checkbox"
+                :checked="modelValue?.matchCharacterDescription"
+                @change="updateValue('matchCharacterDescription', ($event.target as HTMLInputElement).checked)"
+              /><span>{{ t('worldInfo.entry.charDescription') }}</span></label
             >
             <label class="checkbox-label"
-              ><input type="checkbox" :checked="modelValue?.matchPersonaDescription" /><span>{{
-                t('worldInfo.entry.personaDescription')
-              }}</span></label
+              ><input
+                type="checkbox"
+                :checked="modelValue?.matchPersonaDescription"
+                @change="updateValue('matchPersonaDescription', ($event.target as HTMLInputElement).checked)"
+              /><span>{{ t('worldInfo.entry.personaDescription') }}</span></label
             >
             <label class="checkbox-label"
-              ><input type="checkbox" :checked="modelValue?.matchCharacterPersonality" /><span>{{
-                t('worldInfo.entry.charPersonality')
-              }}</span></label
+              ><input
+                type="checkbox"
+                :checked="modelValue?.matchCharacterPersonality"
+                @change="updateValue('matchCharacterPersonality', ($event.target as HTMLInputElement).checked)"
+              /><span>{{ t('worldInfo.entry.charPersonality') }}</span></label
             >
             <label class="checkbox-label"
-              ><input type="checkbox" :checked="modelValue?.matchCharacterDepthPrompt" /><span>{{
-                t('worldInfo.entry.charNote')
-              }}</span></label
+              ><input
+                type="checkbox"
+                :checked="modelValue?.matchCharacterDepthPrompt"
+                @change="updateValue('matchCharacterDepthPrompt', ($event.target as HTMLInputElement).checked)"
+              /><span>{{ t('worldInfo.entry.charNote') }}</span></label
             >
             <label class="checkbox-label"
-              ><input type="checkbox" :checked="modelValue?.matchScenario" /><span>{{
-                t('worldInfo.entry.scenario')
-              }}</span></label
+              ><input
+                type="checkbox"
+                :checked="modelValue?.matchScenario"
+                @change="updateValue('matchScenario', ($event.target as HTMLInputElement).checked)"
+              /><span>{{ t('worldInfo.entry.scenario') }}</span></label
             >
             <label class="checkbox-label"
-              ><input type="checkbox" :checked="modelValue?.matchCreatorNotes" /><span>{{
-                t('worldInfo.entry.creatorNotes')
-              }}</span></label
+              ><input
+                type="checkbox"
+                :checked="modelValue?.matchCreatorNotes"
+                @change="updateValue('matchCreatorNotes', ($event.target as HTMLInputElement).checked)"
+              /><span>{{ t('worldInfo.entry.creatorNotes') }}</span></label
             >
           </div>
         </transition>
       </div>
-    </form>
+    </div>
   </div>
 </template>
