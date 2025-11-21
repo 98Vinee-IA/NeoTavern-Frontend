@@ -330,16 +330,16 @@ const displayAvatarUrl = computed(() => {
             <button
               class="menu-button menu-button--confirm"
               style="flex: 1"
-              @click="openLastChat"
               :title="t('characterEditor.openLastChat')"
+              @click="openLastChat"
             >
               <i class="fa-solid fa-comments"></i> {{ t('common.chat') }}
             </button>
             <button
               class="menu-button"
               style="flex: 1"
-              @click="createNewChat"
               :title="t('characterEditor.startNewChat')"
+              @click="createNewChat"
             >
               <i class="fa-solid fa-plus"></i> {{ t('common.new') }}
             </button>

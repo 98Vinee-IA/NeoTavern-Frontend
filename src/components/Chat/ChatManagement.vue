@@ -307,13 +307,13 @@ async function removeMember(avatar: string) {
                 @click="removeMember(member.avatar)"
               ></div>
               <div
-                class="menu-button-icon fa-solid fa-arrow-up"
                 v-if="index > 0"
+                class="menu-button-icon fa-solid fa-arrow-up"
                 @click="moveMember(index, 'up')"
               ></div>
               <div
-                class="menu-button-icon fa-solid fa-arrow-down"
                 v-if="index < groupMembers.length - 1"
+                class="menu-button-icon fa-solid fa-arrow-down"
                 @click="moveMember(index, 'down')"
               ></div>
             </div>
@@ -381,13 +381,13 @@ async function removeMember(avatar: string) {
           </label>
 
           <label class="checkbox-label">
-            <input type="checkbox" v-model="groupConfig.config.allowSelfResponses" />
+            <input v-model="groupConfig.config.allowSelfResponses" type="checkbox" />
             {{ t('group.allowSelfResponses') }}
           </label>
 
           <label>
             {{ t('group.autoMode') }} ({{ t('common.seconds') }})
-            <input type="number" v-model.number="groupConfig.config.autoMode" class="text-pole" min="0" />
+            <input v-model.number="groupConfig.config.autoMode" type="number" class="text-pole" min="0" />
             <small>{{ t('group.autoModeHint') }}</small>
           </label>
         </div>

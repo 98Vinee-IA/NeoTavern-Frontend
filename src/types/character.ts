@@ -14,7 +14,7 @@ export interface Character {
   tags?: string[];
   creatorcomment?: string;
   json_data?: string;
-  chat: string;
+  chat?: string;
   shallow?: boolean;
   data?: {
     alternate_greetings?: string[];
