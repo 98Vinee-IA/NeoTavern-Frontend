@@ -15,6 +15,10 @@ import Pagination from '../Common/Pagination.vue';
 import DraggableList from '../Common/DraggableList.vue';
 import { useUiStore } from '@/stores/ui.store';
 import { AppButton, AppIconButton, AppInput, AppSelect, AppTextarea, AppCheckbox } from '../UI';
+import AppTabs from '../UI/AppTabs.vue';
+import AppSearch from '../UI/AppSearch.vue';
+import AppListItem from '../UI/AppListItem.vue';
+import AppFormItem from '../UI/AppFormItem.vue';
 import CollapsibleSection from '../UI/CollapsibleSection.vue';
 import EmptyState from '../Common/EmptyState.vue';
 
@@ -42,10 +46,8 @@ const chats = computed<ChatInfo[]>(() => {
       allChats.push(...chatsForAvatar);
     }
   }
-  // Remove duplicates
   allChats = allChats.filter((chat, index, self) => index === self.findIndex((c) => c.file_id === chat.file_id));
 
-  // Filter by search
   if (chatSearchTerm.value) {
     const lower = chatSearchTerm.value.toLowerCase();
     allChats = allChats.filter((c) => c.file_id.toLowerCase().includes(lower));
@@ -215,65 +217,65 @@ async function removeMember(avatar: string) {
 <template>
   <div class="popup-body chat-management">
     <div class="chat-management-header">
-      <AppButton :class="{ active: activeTab === 'chats' }" @click="activeTab = 'chats'">
-        {{ t('chatManagement.tabs.chats') }}
-      </AppButton>
-      <AppButton :class="{ active: activeTab === 'members' }" @click="activeTab = 'members'">
-        {{ t('chatManagement.tabs.group') }}
-      </AppButton>
-      <AppButton :class="{ active: activeTab === 'prompts' }" @click="activeTab = 'prompts'">
-        {{ t('chatManagement.tabs.prompts') }}
-      </AppButton>
+      <AppTabs
+        v-model="activeTab"
+        style="border-bottom: none; margin-bottom: 0"
+        :options="[
+          { label: t('chatManagement.tabs.chats'), value: 'chats' },
+          { label: t('chatManagement.tabs.group'), value: 'members' },
+          { label: t('chatManagement.tabs.prompts'), value: 'prompts' },
+        ]"
+      />
     </div>
 
     <div class="chat-management-content">
       <!-- Tab: Chats -->
       <div v-show="activeTab === 'chats'" class="chat-management-tab-content">
         <div class="chat-management-actions">
-          <AppButton v-show="characterStore.activeCharacters.length > 0" icon="fa-plus" @click="createNewChat()">
-            {{ t('chatManagement.newChat') }}
-          </AppButton>
-          <AppInput
-            v-model="chatSearchTerm"
-            type="search"
-            class="chat-management-search-input"
-            :placeholder="t('common.search')"
-          />
+          <AppSearch v-model="chatSearchTerm" :placeholder="t('common.search')">
+            <template #actions>
+              <AppButton v-show="characterStore.activeCharacters.length > 0" icon="fa-plus" @click="createNewChat()">
+                {{ t('chatManagement.newChat') }}
+              </AppButton>
+            </template>
+          </AppSearch>
         </div>
 
         <div class="chat-management-list">
-          <div
-            v-for="file in chats"
-            :key="file.file_id"
-            class="chat-management-item"
-            :class="{ active: chatStore.activeChatFile === file.file_id }"
-            @click="selectChat(file.file_id)"
-          >
-            <div class="chat-management-item-icon">
-              <i class="fa-solid fa-comments"></i>
-            </div>
-            <div class="chat-management-item-info">
-              <div class="chat-management-item-name" :title="file.file_id">
-                {{ file.file_id }}
-              </div>
-              <div class="chat-management-item-meta">
-                <span>{{ formatTimeStamp(file.last_mes) }}</span>
-                <span>{{ file.chat_items }} msgs</span>
-              </div>
-            </div>
-            <div class="chat-management-item-actions">
-              <AppIconButton
-                icon="fa-pencil"
-                :title="t('chatManagement.actions.rename')"
-                @click.stop="renameChat(file.file_id)"
-              />
-              <AppIconButton
-                icon="fa-trash-can"
-                variant="danger"
-                :title="t('chatManagement.actions.delete')"
-                @click.stop="deleteChat(file.file_id)"
-              />
-            </div>
+          <div v-for="file in chats" :key="file.file_id">
+            <AppListItem :active="chatStore.activeChatFile === file.file_id" @click="selectChat(file.file_id)">
+              <template #start>
+                <div class="chat-management-item-icon">
+                  <i class="fa-solid fa-comments"></i>
+                </div>
+              </template>
+              <template #default>
+                <div
+                  class="font-bold"
+                  :title="file.file_id"
+                  style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+                >
+                  {{ file.file_id }}
+                </div>
+                <div style="font-size: 0.85em; opacity: 0.7; display: flex; gap: 15px">
+                  <span>{{ formatTimeStamp(file.last_mes) }}</span>
+                  <span>{{ file.chat_items }} msgs</span>
+                </div>
+              </template>
+              <template #end>
+                <AppIconButton
+                  icon="fa-pencil"
+                  :title="t('chatManagement.actions.rename')"
+                  @click.stop="renameChat(file.file_id)"
+                />
+                <AppIconButton
+                  icon="fa-trash-can"
+                  variant="danger"
+                  :title="t('chatManagement.actions.delete')"
+                  @click.stop="deleteChat(file.file_id)"
+                />
+              </template>
+            </AppListItem>
           </div>
           <EmptyState v-if="chats.length === 0" :description="t('chatManagement.noChatsFound')" />
         </div>
@@ -294,17 +296,23 @@ async function removeMember(avatar: string) {
             @update:items="updateMembersOrder"
           >
             <template #default="{ item: member }">
-              <div class="group-member-item" :class="{ muted: groupConfig?.members[member.avatar]?.muted }">
-                <div
-                  class="menu-button-icon fa-solid fa-grip-lines group-member-handle"
-                  style="cursor: grab; opacity: 0.5"
-                  :title="t('common.dragToReorder')"
-                ></div>
-
-                <img :src="getThumbnailUrl('avatar', member.avatar)" />
-                <span class="group-member-name" :title="member.name">{{ member.name }}</span>
-
-                <div class="member-actions">
+              <AppListItem :class="{ muted: groupConfig?.members[member.avatar]?.muted }" style="margin-bottom: 2px">
+                <template #start>
+                  <div
+                    class="menu-button-icon fa-solid fa-grip-lines group-member-handle"
+                    style="cursor: grab; opacity: 0.5; margin-right: 5px"
+                  ></div>
+                  <img
+                    :src="getThumbnailUrl('avatar', member.avatar)"
+                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover"
+                  />
+                </template>
+                <template #default>
+                  <span class="font-bold" :class="{ 'line-through': groupConfig?.members[member.avatar]?.muted }">{{
+                    member.name
+                  }}</span>
+                </template>
+                <template #end>
                   <AppIconButton
                     v-if="isGroup"
                     icon="fa-address-card"
@@ -329,8 +337,8 @@ async function removeMember(avatar: string) {
                     :title="t('common.remove')"
                     @click="removeMember(member.avatar)"
                   />
-                </div>
-              </div>
+                </template>
+              </AppListItem>
             </template>
           </DraggableList>
         </CollapsibleSection>
@@ -341,24 +349,20 @@ async function removeMember(avatar: string) {
           :title="t('group.addMember')"
         >
           <div class="group-add-section">
-            <h4>{{ t('group.addMember') }}</h4>
-            <AppInput
-              v-model="addMemberSearchTerm"
-              type="search"
-              class="add-member-search"
-              :placeholder="t('common.search')"
-              @input="addMemberPage = 1"
-            />
+            <AppSearch v-model="addMemberSearchTerm" :placeholder="t('common.search')" @input="addMemberPage = 1" />
+
             <div class="add-member-list">
-              <div
-                v-for="char in availableCharactersPaginated"
-                :key="char.avatar"
-                class="add-member-card"
-                @click="addMember(char.avatar)"
-              >
-                <img :src="getThumbnailUrl('avatar', char.avatar)" />
-                <span>{{ char.name }}</span>
-                <i class="fa-solid fa-plus"></i>
+              <div v-for="char in availableCharactersPaginated" :key="char.avatar">
+                <AppListItem @click="addMember(char.avatar)">
+                  <template #start>
+                    <img
+                      :src="getThumbnailUrl('avatar', char.avatar)"
+                      style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover"
+                    />
+                  </template>
+                  <template #default>{{ char.name }}</template>
+                  <template #end><i class="fa-solid fa-plus"></i></template>
+                </AppListItem>
               </div>
               <EmptyState v-if="availableCharactersPaginated.length === 0" :description="t('common.noResults')" />
             </div>
@@ -380,27 +384,24 @@ async function removeMember(avatar: string) {
         >
           <div class="group-config-section">
             <hr />
-            <AppSelect
-              v-model="groupConfig.config.replyStrategy"
-              :label="t('group.replyStrategy')"
-              :options="replyStrategyOptions"
-            />
+            <AppFormItem :label="t('group.replyStrategy')">
+              <AppSelect v-model="groupConfig.config.replyStrategy" :options="replyStrategyOptions" />
+            </AppFormItem>
 
-            <AppSelect
-              v-model="groupConfig.config.handlingMode"
-              :label="t('group.handlingMode')"
-              :options="handlingModeOptions"
-            />
+            <AppFormItem :label="t('group.handlingMode')">
+              <AppSelect v-model="groupConfig.config.handlingMode" :options="handlingModeOptions" />
+            </AppFormItem>
 
             <AppCheckbox v-model="groupConfig.config.allowSelfResponses" :label="t('group.allowSelfResponses')" />
 
-            <AppInput
-              v-model="groupConfig.config.autoMode"
-              type="number"
-              :label="t('group.autoMode') + ' (' + t('common.seconds') + ')'"
-              :min="0"
-            />
-            <small>{{ t('group.autoModeHint') }}</small>
+            <AppFormItem :label="t('group.autoMode')" :description="t('group.autoModeHint')">
+              <AppInput
+                v-model="groupConfig.config.autoMode"
+                type="number"
+                :min="0"
+                :placeholder="t('common.seconds')"
+              />
+            </AppFormItem>
           </div>
         </CollapsibleSection>
       </div>
@@ -408,14 +409,27 @@ async function removeMember(avatar: string) {
       <!-- Tab: Prompt Overrides -->
       <div v-show="activeTab === 'prompts'" class="chat-management-prompt-tab">
         <div v-if="chatStore.activeChat?.metadata.promptOverrides">
-          <AppTextarea
-            v-model="chatStore.activeChat.metadata.promptOverrides.scenario!"
-            :label="t('chatManagement.scenarioOverride')"
-            :rows="6"
-            :placeholder="t('chatManagement.scenarioOverridePlaceholder')"
-          />
+          <AppFormItem :label="t('chatManagement.scenarioOverride')">
+            <AppTextarea
+              v-model="chatStore.activeChat.metadata.promptOverrides.scenario!"
+              :rows="6"
+              :placeholder="t('chatManagement.scenarioOverridePlaceholder')"
+            />
+          </AppFormItem>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.font-bold {
+  font-weight: bold;
+}
+.line-through {
+  text-decoration: line-through;
+}
+.muted {
+  opacity: 0.6;
+}
+</style>

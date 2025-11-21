@@ -23,6 +23,7 @@ import {
   CollapsibleSection,
   RangeControl,
 } from '../UI';
+import AppFormItem from '../UI/AppFormItem.vue';
 
 const { t } = useStrictI18n();
 const characterStore = useCharacterStore();
@@ -33,17 +34,14 @@ const tokenCounts = computed(() => characterStore.tokenCounts.fields);
 
 const isCreating = computed(() => characterStore.isCreating);
 
-// --- State for new features ---
 const isPeeking = ref(false);
 const isSpoilerModeActive = computed(() => settingsStore.settings.character.spoilerFreeMode);
 const areDetailsHidden = computed(() => isSpoilerModeActive.value && !isPeeking.value && !isCreating.value);
 
-// --- Drawer States ---
 const isCreatorNotesOpen = ref(false);
 const isPromptOverridesOpen = ref(false);
 const isMetadataOpen = ref(false);
 
-// --- Popup state for maximizing editors ---
 type EditableField =
   | 'description'
   | 'first_mes'
@@ -60,7 +58,6 @@ const editingFieldName = ref<EditableField | null>(null);
 const editorPopupOptions = ref<PopupOptions>({});
 const editorPopupTitle = ref('');
 
-// --- Creation State ---
 const avatarPreviewUrl = ref<string | null>(null);
 const selectedAvatarFile = ref<File | null>(null);
 const isSubmitting = ref(false);
@@ -134,12 +131,10 @@ async function handleAvatarFileChange(event: Event) {
   if (input.files && input.files[0]) {
     const file = input.files[0];
 
-    // If in creation mode, show preview
     if (isCreating.value) {
       revokePreviewUrl();
       avatarPreviewUrl.value = URL.createObjectURL(file);
       selectedAvatarFile.value = file;
-      // Also update name if empty
       if (!characterStore.editFormCharacter?.name) {
         const name = file.name.replace(/\.[^/.]+$/, '');
         characterStore.editFormCharacter.name = name;
@@ -392,10 +387,9 @@ function handleMoreAction(action: string) {
       <small v-show="areDetailsHidden">{{ t('characterEditor.detailsHidden') }}</small>
 
       <div v-show="!areDetailsHidden" class="character-edit-form-main-content">
-        <div class="form-section" data-field-name="description">
+        <AppFormItem :label="t('characterEditor.description')" data-field-name="description">
           <AppTextarea
             v-model="localCharacter.description!"
-            :label="t('characterEditor.description')"
             :rows="12"
             :placeholder="t('characterEditor.descriptionPlaceholder')"
             @maximize="openMaximizeEditor('description', t('characterEditor.description'))"
@@ -406,12 +400,11 @@ function handleMoreAction(action: string) {
               </div>
             </template>
           </AppTextarea>
-        </div>
+        </AppFormItem>
 
-        <div class="form-section" data-field-name="first_mes">
+        <AppFormItem :label="t('characterEditor.firstMessage')" data-field-name="first_mes">
           <AppTextarea
             v-model="localCharacter.first_mes!"
-            :label="t('characterEditor.firstMessage')"
             :rows="10"
             :placeholder="t('characterEditor.firstMessagePlaceholder')"
             @maximize="openMaximizeEditor('first_mes', t('characterEditor.firstMessage'))"
@@ -422,14 +415,13 @@ function handleMoreAction(action: string) {
               </div>
             </template>
           </AppTextarea>
-        </div>
+        </AppFormItem>
 
         <hr />
 
-        <div class="form-section" data-field-name="personality">
+        <AppFormItem :label="t('characterEditor.advanced.personality')" data-field-name="personality">
           <AppTextarea
             v-model="localCharacter.personality!"
-            :label="t('characterEditor.advanced.personality')"
             :rows="4"
             :placeholder="t('characterEditor.advanced.personalityPlaceholder')"
             @maximize="openMaximizeEditor('personality', t('characterEditor.advanced.personality'))"
@@ -440,12 +432,11 @@ function handleMoreAction(action: string) {
               </div>
             </template>
           </AppTextarea>
-        </div>
+        </AppFormItem>
 
-        <div class="form-section" data-field-name="scenario">
+        <AppFormItem :label="t('characterEditor.advanced.scenario')" data-field-name="scenario">
           <AppTextarea
             v-model="localCharacter.scenario!"
-            :label="t('characterEditor.advanced.scenario')"
             :rows="4"
             :placeholder="t('characterEditor.advanced.scenarioPlaceholder')"
             @maximize="openMaximizeEditor('scenario', t('characterEditor.advanced.scenario'))"
@@ -456,42 +447,35 @@ function handleMoreAction(action: string) {
               </div>
             </template>
           </AppTextarea>
-        </div>
+        </AppFormItem>
 
-        <div class="form-section character-note" data-field-name="data.depth_prompt.prompt">
-          <div v-if="localCharacter.data?.depth_prompt" class="character-note-main">
-            <AppTextarea
-              v-model="localCharacter.data.depth_prompt.prompt"
-              :label="t('characterEditor.advanced.characterNote')"
-              :rows="5"
-              :placeholder="t('characterEditor.advanced.characterNotePlaceholder')"
-              @maximize="openMaximizeEditor('data.depth_prompt.prompt', t('characterEditor.advanced.characterNote'))"
-            />
+        <!-- Character Note with Depth -->
+        <div class="character-note-container" data-field-name="data.depth_prompt.prompt">
+          <div v-if="localCharacter.data?.depth_prompt" style="flex: 3">
+            <AppFormItem :label="t('characterEditor.advanced.characterNote')">
+              <AppTextarea
+                v-model="localCharacter.data.depth_prompt.prompt"
+                :rows="5"
+                :placeholder="t('characterEditor.advanced.characterNotePlaceholder')"
+                @maximize="openMaximizeEditor('data.depth_prompt.prompt', t('characterEditor.advanced.characterNote'))"
+              />
+            </AppFormItem>
           </div>
-          <div v-if="localCharacter.data?.depth_prompt" class="character-note-controls">
-            <AppInput
-              v-model="localCharacter.data.depth_prompt.depth"
-              type="number"
-              :min="0"
-              :max="9999"
-              :label="t('characterEditor.advanced.depth')"
-            />
-            <AppSelect
-              v-model="localCharacter.data.depth_prompt.role"
-              :options="roleOptions"
-              :label="t('characterEditor.advanced.role')"
-            />
+          <div v-if="localCharacter.data?.depth_prompt" style="flex: 1">
+            <AppFormItem :label="t('characterEditor.advanced.depth')">
+              <AppInput v-model="localCharacter.data.depth_prompt.depth" type="number" :min="0" :max="9999" />
+            </AppFormItem>
+            <AppFormItem :label="t('characterEditor.advanced.role')">
+              <AppSelect v-model="localCharacter.data.depth_prompt.role" :options="roleOptions" />
+            </AppFormItem>
           </div>
         </div>
 
-        <div class="form-section">
-          <RangeControl
-            v-model="localCharacter.talkativeness!"
-            :min="0"
-            :max="1"
-            :step="0.05"
-            :label="t('characterEditor.advanced.talkativeness')"
-          >
+        <AppFormItem
+          :label="t('characterEditor.advanced.talkativeness')"
+          :description="t('characterEditor.advanced.talkativenessHint')"
+        >
+          <RangeControl v-model="localCharacter.talkativeness!" :min="0" :max="1" :step="0.05">
             <template #addon>
               <div class="slider-hint">
                 <span>{{ t('characterEditor.advanced.talkativenessShy') }}</span>
@@ -500,16 +484,17 @@ function handleMoreAction(action: string) {
               </div>
             </template>
           </RangeControl>
-          <small style="margin-top: -5px; opacity: 0.7">{{ t('characterEditor.advanced.talkativenessHint') }}</small>
-        </div>
+        </AppFormItem>
 
         <hr />
 
-        <div class="form-section" data-field-name="mes_example">
-          <small>{{ t('characterEditor.advanced.dialogueExamplesHint') }}</small>
+        <AppFormItem
+          :label="t('characterEditor.advanced.dialogueExamples')"
+          :description="t('characterEditor.advanced.dialogueExamplesHint')"
+          data-field-name="mes_example"
+        >
           <AppTextarea
             v-model="localCharacter.mes_example!"
-            :label="t('characterEditor.advanced.dialogueExamples')"
             :rows="6"
             :placeholder="t('characterEditor.advanced.dialogueExamplesPlaceholder')"
             @maximize="openMaximizeEditor('mes_example', t('characterEditor.advanced.dialogueExamples'))"
@@ -520,7 +505,7 @@ function handleMoreAction(action: string) {
               </div>
             </template>
           </AppTextarea>
-        </div>
+        </AppFormItem>
 
         <hr />
 
@@ -532,40 +517,42 @@ function handleMoreAction(action: string) {
           <div class="inline-drawer-content--column">
             <small>{{ t('characterEditor.advanced.promptHint') }}</small>
             <div v-if="localCharacter.data" data-field-name="data.system_prompt">
-              <AppTextarea
-                v-model="localCharacter.data.system_prompt!"
-                :label="t('characterEditor.advanced.mainPrompt')"
-                :rows="3"
-                :placeholder="t('characterEditor.advanced.mainPromptPlaceholder')"
-                @maximize="openMaximizeEditor('data.system_prompt', t('characterEditor.advanced.mainPrompt'))"
-              >
-                <template #footer>
-                  <div class="token-counter">
-                    {{ t('common.tokens') }}: <span>{{ tokenCounts['data.system_prompt'] || 0 }}</span>
-                  </div>
-                </template>
-              </AppTextarea>
+              <AppFormItem :label="t('characterEditor.advanced.mainPrompt')">
+                <AppTextarea
+                  v-model="localCharacter.data.system_prompt!"
+                  :rows="3"
+                  :placeholder="t('characterEditor.advanced.mainPromptPlaceholder')"
+                  @maximize="openMaximizeEditor('data.system_prompt', t('characterEditor.advanced.mainPrompt'))"
+                >
+                  <template #footer>
+                    <div class="token-counter">
+                      {{ t('common.tokens') }}: <span>{{ tokenCounts['data.system_prompt'] || 0 }}</span>
+                    </div>
+                  </template>
+                </AppTextarea>
+              </AppFormItem>
             </div>
 
             <div v-if="localCharacter.data" data-field-name="data.post_history_instructions">
-              <AppTextarea
-                v-model="localCharacter.data.post_history_instructions!"
-                :label="t('characterEditor.advanced.postHistoryInstructions')"
-                :rows="3"
-                :placeholder="t('characterEditor.advanced.postHistoryInstructionsPlaceholder')"
-                @maximize="
-                  openMaximizeEditor(
-                    'data.post_history_instructions',
-                    t('characterEditor.advanced.postHistoryInstructions'),
-                  )
-                "
-              >
-                <template #footer>
-                  <div class="token-counter">
-                    {{ t('common.tokens') }}: <span>{{ tokenCounts['data.post_history_instructions'] || 0 }}</span>
-                  </div>
-                </template>
-              </AppTextarea>
+              <AppFormItem :label="t('characterEditor.advanced.postHistoryInstructions')">
+                <AppTextarea
+                  v-model="localCharacter.data.post_history_instructions!"
+                  :rows="3"
+                  :placeholder="t('characterEditor.advanced.postHistoryInstructionsPlaceholder')"
+                  @maximize="
+                    openMaximizeEditor(
+                      'data.post_history_instructions',
+                      t('characterEditor.advanced.postHistoryInstructions'),
+                    )
+                  "
+                >
+                  <template #footer>
+                    <div class="token-counter">
+                      {{ t('common.tokens') }}: <span>{{ tokenCounts['data.post_history_instructions'] || 0 }}</span>
+                    </div>
+                  </template>
+                </AppTextarea>
+              </AppFormItem>
             </div>
           </div>
         </CollapsibleSection>
@@ -581,45 +568,49 @@ function handleMoreAction(action: string) {
             <small>{{ t('characterEditor.advanced.metadataOptional') }}</small>
             <div class="form-row">
               <div class="form-column">
-                <AppTextarea
-                  v-if="localCharacter.data"
-                  v-model="localCharacter.data.creator!"
-                  :label="t('characterEditor.advanced.createdBy')"
-                  :rows="2"
-                  :placeholder="t('characterEditor.advanced.createdByPlaceholder')"
-                />
+                <AppFormItem :label="t('characterEditor.advanced.createdBy')">
+                  <AppTextarea
+                    v-if="localCharacter.data"
+                    v-model="localCharacter.data.creator!"
+                    :rows="2"
+                    :placeholder="t('characterEditor.advanced.createdByPlaceholder')"
+                  />
+                </AppFormItem>
               </div>
               <div class="form-column">
-                <AppTextarea
-                  v-if="localCharacter.data"
-                  v-model="localCharacter.data.character_version!"
-                  :label="t('characterEditor.advanced.characterVersion')"
-                  :rows="2"
-                  :placeholder="t('characterEditor.advanced.characterVersionPlaceholder')"
-                />
+                <AppFormItem :label="t('characterEditor.advanced.characterVersion')">
+                  <AppTextarea
+                    v-if="localCharacter.data"
+                    v-model="localCharacter.data.character_version!"
+                    :rows="2"
+                    :placeholder="t('characterEditor.advanced.characterVersionPlaceholder')"
+                  />
+                </AppFormItem>
               </div>
             </div>
             <div class="form-row">
               <div class="form-column" data-field-name="data.creator_notes">
-                <AppTextarea
-                  v-if="localCharacter.data"
-                  v-model="localCharacter.data.creator_notes!"
-                  :label="t('characterEditor.advanced.creatorNotes')"
-                  :rows="4"
-                  :placeholder="t('characterEditor.advanced.creatorNotesPlaceholder')"
-                  @maximize="openMaximizeEditor('data.creator_notes', t('characterEditor.advanced.creatorNotes'))"
-                />
+                <AppFormItem :label="t('characterEditor.advanced.creatorNotes')">
+                  <AppTextarea
+                    v-if="localCharacter.data"
+                    v-model="localCharacter.data.creator_notes!"
+                    :rows="4"
+                    :placeholder="t('characterEditor.advanced.creatorNotesPlaceholder')"
+                    @maximize="openMaximizeEditor('data.creator_notes', t('characterEditor.advanced.creatorNotes'))"
+                  />
+                </AppFormItem>
               </div>
               <div class="form-column">
-                <AppTextarea
-                  :model-value="localCharacter.tags?.join(', ') || ''"
-                  :label="t('characterEditor.advanced.tagsToEmbed')"
-                  :rows="4"
-                  :placeholder="t('characterEditor.advanced.tagsToEmbedPlaceholder')"
-                  @update:model-value="
-                    (v) => (localCharacter ? (localCharacter.tags = v.split(',').map((s: string) => s.trim())) : null)
-                  "
-                />
+                <AppFormItem :label="t('characterEditor.advanced.tagsToEmbed')">
+                  <AppTextarea
+                    :model-value="localCharacter.tags?.join(', ') || ''"
+                    :rows="4"
+                    :placeholder="t('characterEditor.advanced.tagsToEmbedPlaceholder')"
+                    @update:model-value="
+                      (v) => (localCharacter ? (localCharacter.tags = v.split(',').map((s: string) => s.trim())) : null)
+                    "
+                  />
+                </AppFormItem>
               </div>
             </div>
           </div>

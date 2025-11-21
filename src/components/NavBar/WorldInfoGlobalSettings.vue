@@ -4,6 +4,7 @@ import { useWorldInfoStore, defaultWorldInfoSettings } from '../../stores/world-
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { WorldInfoInsertionStrategy } from '../../types';
 import { AppButton, AppCheckbox, AppSelect, RangeControl } from '../UI';
+import AppFormItem from '../UI/AppFormItem.vue';
 
 const { t } = useStrictI18n();
 const worldInfoStore = useWorldInfoStore();
@@ -27,11 +28,11 @@ const strategyOptions = computed(() => [
     </div>
 
     <div class="settings-section">
-      <h4>{{ t('worldInfo.activeWorlds') }}</h4>
-      <small>{{ t('worldInfo.activeWorldsHint') }}</small>
-      <select v-model="worldInfoStore.activeBookNames" class="text-pole" multiple>
-        <option v-for="name in worldInfoStore.bookNames" :key="name" :value="name">{{ name }}</option>
-      </select>
+      <AppFormItem :label="t('worldInfo.activeWorlds')" :description="t('worldInfo.activeWorldsHint')">
+        <select v-model="worldInfoStore.activeBookNames" class="text-pole" multiple>
+          <option v-for="name in worldInfoStore.bookNames" :key="name" :value="name">{{ name }}</option>
+        </select>
+      </AppFormItem>
     </div>
 
     <hr />
@@ -99,12 +100,13 @@ const strategyOptions = computed(() => [
 
     <div class="settings-section">
       <h4>{{ t('worldInfo.advancedSettings') }}</h4>
-      <AppSelect
-        v-model="worldInfoStore.settings.world_info_character_strategy"
-        :label="t('worldInfo.insertionStrategy')"
-        :title="t('worldInfo.insertionStrategyHint')"
-        :options="strategyOptions"
-      />
+      <AppFormItem :label="t('worldInfo.insertionStrategy')">
+        <AppSelect
+          v-model="worldInfoStore.settings.world_info_character_strategy"
+          :title="t('worldInfo.insertionStrategyHint')"
+          :options="strategyOptions"
+        />
+      </AppFormItem>
     </div>
   </div>
 </template>

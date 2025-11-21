@@ -4,6 +4,7 @@ import type { ExtensionAPI } from '@/types';
 import { AutoTranslateMode, type ChatTranslationSettings, DEFAULT_PROMPT } from './types';
 import ConnectionProfileSelector from '@/components/Common/ConnectionProfileSelector.vue';
 import { AppInput, AppSelect, AppTextarea, AppButton } from '@/components/UI';
+import AppFormItem from '@/components/UI/AppFormItem.vue';
 import { useStrictI18n } from '@/composables/useStrictI18n';
 
 const props = defineProps<{
@@ -50,39 +51,41 @@ function resetPrompt() {
 
 <template>
   <div class="translation-settings">
-    <div class="setting-item">
-      <label>{{ t('extensionsBuiltin.chatTranslation.connectionProfile') }}</label>
+    <AppFormItem
+      :label="t('extensionsBuiltin.chatTranslation.connectionProfile')"
+      :description="t('extensionsBuiltin.chatTranslation.connectionProfileHint')"
+    >
       <ConnectionProfileSelector v-model="settings.connectionProfile" />
-      <small>{{ t('extensionsBuiltin.chatTranslation.connectionProfileHint') }}</small>
-    </div>
+    </AppFormItem>
 
     <div class="setting-row">
-      <div class="setting-item">
-        <AppInput v-model="settings.sourceLang" :label="t('extensionsBuiltin.chatTranslation.sourceLang')" />
+      <div style="flex: 1">
+        <AppFormItem :label="t('extensionsBuiltin.chatTranslation.sourceLang')">
+          <AppInput v-model="settings.sourceLang" />
+        </AppFormItem>
       </div>
-      <div class="setting-item">
-        <AppInput v-model="settings.targetLang" :label="t('extensionsBuiltin.chatTranslation.targetLang')" />
+      <div style="flex: 1">
+        <AppFormItem :label="t('extensionsBuiltin.chatTranslation.targetLang')">
+          <AppInput v-model="settings.targetLang" />
+        </AppFormItem>
       </div>
     </div>
 
-    <div class="setting-item">
-      <AppSelect
-        v-model="settings.autoMode"
-        :label="t('extensionsBuiltin.chatTranslation.autoMode.label')"
-        :options="autoModeOptions"
-      />
-    </div>
+    <AppFormItem :label="t('extensionsBuiltin.chatTranslation.autoMode.label')">
+      <AppSelect v-model="settings.autoMode" :options="autoModeOptions" />
+    </AppFormItem>
 
-    <div class="setting-item">
-      <div class="header-row">
-        <label>{{ t('extensionsBuiltin.chatTranslation.promptTemplate') }}</label>
-        <AppButton icon="fa-rotate-left" @click="resetPrompt">
-          {{ t('common.reset') }}
-        </AppButton>
-      </div>
-      <AppTextarea v-model="settings.prompt" class="prompt-area" :rows="10" />
-      <small>{{ t('extensionsBuiltin.chatTranslation.promptHint') }}</small>
-    </div>
+    <AppFormItem :description="t('extensionsBuiltin.chatTranslation.promptHint')">
+      <template #default>
+        <div class="header-row">
+          <div class="app-form-item-label">{{ t('extensionsBuiltin.chatTranslation.promptTemplate') }}</div>
+          <AppButton icon="fa-rotate-left" @click="resetPrompt">
+            {{ t('common.reset') }}
+          </AppButton>
+        </div>
+        <AppTextarea v-model="settings.prompt" class="prompt-area" :rows="10" />
+      </template>
+    </AppFormItem>
   </div>
 </template>
 
@@ -90,23 +93,12 @@ function resetPrompt() {
 .translation-settings {
   display: flex;
   flex-direction: column;
-  gap: 15px;
   padding: 10px;
-}
-
-.setting-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
 }
 
 .setting-row {
   display: flex;
   gap: 10px;
-}
-
-.setting-row .setting-item {
-  flex: 1;
 }
 
 .header-row {
@@ -116,23 +108,8 @@ function resetPrompt() {
   margin-bottom: 5px;
 }
 
-.header-row label {
-  font-weight: bold;
-  font-size: 0.9em;
-}
-
 .prompt-area {
   font-family: var(--font-family-mono);
   font-size: 0.9em;
-}
-
-label {
-  font-weight: bold;
-  opacity: 0.9;
-}
-
-small {
-  opacity: 0.6;
-  font-size: 0.85em;
 }
 </style>

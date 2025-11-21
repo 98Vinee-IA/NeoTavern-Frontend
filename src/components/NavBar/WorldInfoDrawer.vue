@@ -5,14 +5,16 @@ import { useStrictI18n } from '../../composables/useStrictI18n';
 import WorldInfoEntryEditor from './WorldInfoEntryEditor.vue';
 import WorldInfoGlobalSettings from './WorldInfoGlobalSettings.vue';
 import type { WorldInfoEntry as WorldInfoEntryType } from '../../types';
-import { AppIconButton, AppInput, AppSelect } from '../UI';
+import { AppIconButton, AppSelect } from '../UI';
 import SplitPane from '../Common/SplitPane.vue';
+import AppSearch from '../UI/AppSearch.vue';
+import AppListItem from '../UI/AppListItem.vue';
+import AppFileInput from '../UI/AppFileInput.vue';
 
 const { t } = useStrictI18n();
 const worldInfoStore = useWorldInfoStore();
 
 const isBrowserCollapsed = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
 
 onMounted(() => {
   if (worldInfoStore.bookNames.length === 0) {
@@ -24,16 +26,10 @@ async function updateEntry(newEntry: WorldInfoEntryType) {
   await worldInfoStore.updateSelectedEntry(newEntry);
 }
 
-function triggerImport() {
-  fileInput.value?.click();
-}
-
-async function handleFileImport(event: Event) {
-  const target = event.target as HTMLInputElement;
-  if (target.files?.[0]) {
-    await worldInfoStore.importBook(target.files[0]);
+async function handleFileImport(files: File[]) {
+  if (files[0]) {
+    await worldInfoStore.importBook(files[0]);
   }
-  if (target) target.value = '';
 }
 
 const filteredBookNames = computed(() => {
@@ -69,82 +65,85 @@ const sortOptions = computed(() => [
   >
     <template #side>
       <div class="character-panel-browser-header world-info-controls">
-        <div class="world-info-controls-row">
+        <div class="world-info-controls-row" style="margin-bottom: 5px">
           <AppIconButton icon="fa-plus" :title="t('worldInfo.newWorld')" @click="worldInfoStore.createNewBook" />
-          <AppIconButton icon="fa-file-import" :title="t('worldInfo.import')" @click="triggerImport" />
-          <input ref="fileInput" type="file" accept=".json" hidden @change="handleFileImport" />
+          <AppFileInput
+            accept=".json"
+            icon="fa-file-import"
+            :label="t('worldInfo.import')"
+            @change="handleFileImport"
+          />
           <AppIconButton icon="fa-sync" :title="t('worldInfo.refresh')" @click="worldInfoStore.refresh" />
         </div>
         <div class="world-info-controls-row">
-          <AppInput
-            v-model="worldInfoStore.browserSearchTerm"
-            type="search"
-            :placeholder="t('worldInfo.searchPlaceholder')"
-          />
-          <AppSelect v-model="worldInfoStore.sortOrder" :title="t('worldInfo.sorting.title')" :options="sortOptions" />
+          <AppSearch v-model="worldInfoStore.browserSearchTerm" :placeholder="t('worldInfo.searchPlaceholder')">
+            <template #actions>
+              <AppSelect
+                v-model="worldInfoStore.sortOrder"
+                :title="t('worldInfo.sorting.title')"
+                :options="sortOptions"
+              />
+            </template>
+          </AppSearch>
         </div>
       </div>
 
       <div class="character-panel-character-list">
-        <div
-          class="browser-item"
-          :class="{ 'is-active': worldInfoStore.selectedItemId === 'global-settings' }"
+        <AppListItem
+          :active="worldInfoStore.selectedItemId === 'global-settings'"
           @click="worldInfoStore.selectItem('global-settings')"
         >
-          <div class="browser-item-content">
-            <i class="fa-solid fa-cogs browser-item-icon"></i>
-            <span class="browser-item-name">{{ t('worldInfo.globalSettings') }}</span>
-          </div>
-        </div>
+          <template #start><i class="fa-solid fa-cogs" style="opacity: 0.7"></i></template>
+          <template #default>{{ t('worldInfo.globalSettings') }}</template>
+        </AppListItem>
 
         <hr class="panel-divider" />
 
         <div v-for="bookName in filteredBookNames" :key="bookName" class="lorebook-group">
-          <div class="browser-item is-book" @click="worldInfoStore.toggleBookExpansion(bookName)">
-            <div class="browser-item-content">
+          <AppListItem class="is-book" @click="worldInfoStore.toggleBookExpansion(bookName)">
+            <template #start>
               <i
                 class="fa-solid fa-chevron-right browser-item-chevron"
                 :class="{ 'is-open': worldInfoStore.expandedBooks.has(bookName) }"
+                style="font-size: 0.8em; width: 15px; text-align: center"
               ></i>
-              <span class="browser-item-name">{{ bookName }}</span>
-            </div>
-            <div class="browser-item-actions">
-              <AppIconButton
-                icon="fa-plus"
-                :title="t('worldInfo.newEntryInBook', { bookName })"
-                @click.stop="worldInfoStore.createNewEntry(bookName)"
-              />
-              <AppIconButton
-                icon="fa-file-export"
-                :title="t('worldInfo.export')"
-                @click.stop="worldInfoStore.exportBook(bookName)"
-              />
-              <AppIconButton
-                icon="fa-clone"
-                :title="t('worldInfo.duplicate')"
-                @click.stop="worldInfoStore.duplicateBook(bookName)"
-              />
-              <AppIconButton
-                icon="fa-pencil"
-                :title="t('worldInfo.rename')"
-                @click.stop="worldInfoStore.renameBook(bookName)"
-              />
-              <AppIconButton
-                icon="fa-trash-can"
-                :title="t('worldInfo.deleteBook', { bookName })"
-                @click.stop="worldInfoStore.deleteBook(bookName)"
-              />
-            </div>
-          </div>
+            </template>
+            <template #default>
+              <span class="font-bold">{{ bookName }}</span>
+            </template>
+            <template #end>
+              <div class="browser-item-actions" @click.stop>
+                <AppIconButton
+                  icon="fa-plus"
+                  :title="t('worldInfo.newEntryInBook', { bookName })"
+                  @click.stop="worldInfoStore.createNewEntry(bookName)"
+                />
+                <AppIconButton
+                  icon="fa-file-export"
+                  :title="t('worldInfo.export')"
+                  @click.stop="worldInfoStore.exportBook(bookName)"
+                />
+                <AppIconButton
+                  icon="fa-clone"
+                  :title="t('worldInfo.duplicate')"
+                  @click.stop="worldInfoStore.duplicateBook(bookName)"
+                />
+                <AppIconButton
+                  icon="fa-pencil"
+                  :title="t('worldInfo.rename')"
+                  @click.stop="worldInfoStore.renameBook(bookName)"
+                />
+                <AppIconButton
+                  icon="fa-trash-can"
+                  :title="t('worldInfo.deleteBook', { bookName })"
+                  @click.stop="worldInfoStore.deleteBook(bookName)"
+                />
+              </div>
+            </template>
+          </AppListItem>
 
           <!--
             TODO: v-if is used here instead of v-show for performance.
-            Rendering potentially hundreds or thousands of lorebook entries, even if hidden,
-            can impact initial load and reactivity. This is a trade-off: it improves performance
-            at the cost of extensions not being able to target the DOM of collapsed entries.
-            Given that data is lazy-loaded upon expansion, this is an acceptable optimization.
-            I'll think something else for extensions.
-
             TODO: What about pagination for large books?
           -->
           <Transition name="grid-slide">
@@ -154,16 +153,15 @@ const sortOptions = computed(() => [
                   <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
                 <div v-else>
-                  <div
-                    v-for="entry in worldInfoStore.filteredAndSortedEntries(bookName)"
-                    :key="entry.uid"
-                    class="browser-item is-entry"
-                    :class="{ 'is-active': worldInfoStore.selectedItemId === `${bookName}/${entry.uid}` }"
-                    @click="worldInfoStore.selectItem(`${bookName}/${entry.uid}`)"
-                  >
-                    <div class="browser-item-content">
-                      <span class="browser-item-name">{{ entry.comment || '[Untitled Entry]' }}</span>
-                    </div>
+                  <div v-for="entry in worldInfoStore.filteredAndSortedEntries(bookName)" :key="entry.uid">
+                    <AppListItem
+                      :active="worldInfoStore.selectedItemId === `${bookName}/${entry.uid}`"
+                      @click="worldInfoStore.selectItem(`${bookName}/${entry.uid}`)"
+                    >
+                      <template #default>
+                        <span style="font-size: 0.95em">{{ entry.comment || '[Untitled Entry]' }}</span>
+                      </template>
+                    </AppListItem>
                   </div>
                 </div>
               </div>
@@ -185,3 +183,9 @@ const sortOptions = computed(() => [
     </template>
   </SplitPane>
 </template>
+
+<style scoped>
+.font-bold {
+  font-weight: bold;
+}
+</style>

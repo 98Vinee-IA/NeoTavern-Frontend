@@ -4,7 +4,9 @@ import { useSettingsStore } from '../../stores/settings.store';
 import type { SettingDefinition, Settings, SettingsPath } from '../../types';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import type { ValueForPath } from '../../types/utils';
-import { AppInput, AppSelect, AppCheckbox, RangeControl, CollapsibleSection } from '../../components/UI';
+import { AppSelect, AppCheckbox, RangeControl, CollapsibleSection } from '../../components/UI';
+import AppSearch from '../UI/AppSearch.vue';
+import AppFormItem from '../UI/AppFormItem.vue';
 import type { I18nKey } from '@/types/i18n';
 
 const { t } = useStrictI18n();
@@ -32,7 +34,6 @@ const groupedSettings = computed(() => {
     }
     groups[setting.category].push(setting);
   }
-  // Ensure consistent order
   const orderedGroups: Record<string, SettingDefinition[]> = {};
   const categoryOrder = [...new Set(settingsStore.definitions.map((def) => def.category))];
   for (const category of categoryOrder) {
@@ -74,7 +75,7 @@ function formatOptions(options: { label: I18nKey; value: string | number }[]) {
     </div>
 
     <div style="margin-bottom: 10px">
-      <AppInput v-model="searchTerm" type="search" :placeholder="t('userSettings.searchPlaceholder')" />
+      <AppSearch v-model="searchTerm" :placeholder="t('userSettings.searchPlaceholder')" />
     </div>
 
     <div class="user-settings-drawer-content">
@@ -85,9 +86,9 @@ function formatOptions(options: { label: I18nKey; value: string | number }[]) {
       <div v-for="(settings, category) in groupedSettings" :key="category" class="user-settings-drawer-category">
         <CollapsibleSection :title="category" :is-open="!searchTerm">
           <div class="user-settings-list">
-            <div v-for="setting in settings" :key="setting.id" class="user-settings-drawer-setting">
-              <!-- Checkbox Layout (Label on right) -->
-              <div v-if="setting.widget === 'checkbox'" class="setting-full-width">
+            <div v-for="setting in settings" :key="setting.id">
+              <!-- Checkbox -->
+              <div v-if="setting.widget === 'checkbox'">
                 <AppCheckbox
                   :model-value="getSettingValue(setting.id) as boolean"
                   :label="t(setting.label)"
@@ -96,31 +97,33 @@ function formatOptions(options: { label: I18nKey; value: string | number }[]) {
                 />
               </div>
 
-              <!-- Standard Layout (Label on left, Control on right) -->
+              <!-- Standard Inputs (Horizontal Layout) -->
               <template v-else>
-                <div class="setting-details">
-                  <label :for="setting.id">{{ t(setting.label) }}</label>
-                  <small v-show="setting.description">{{ setting.description ? t(setting.description) : '' }}</small>
-                </div>
-                <div class="setting-control">
+                <AppFormItem
+                  :label="t(setting.label)"
+                  :description="setting.description ? t(setting.description) : undefined"
+                  horizontal
+                >
                   <!-- Select -->
-                  <AppSelect
-                    v-if="setting.widget === 'select'"
-                    :model-value="getSettingValue(setting.id)"
-                    :options="formatOptions(setting.options || [])"
-                    @update:model-value="(val) => updateSetting(setting.id, val)"
-                  />
+                  <div v-if="setting.widget === 'select'" style="width: 220px">
+                    <AppSelect
+                      :model-value="getSettingValue(setting.id)"
+                      :options="formatOptions(setting.options || [])"
+                      @update:model-value="(val) => updateSetting(setting.id, val)"
+                    />
+                  </div>
 
                   <!-- Slider -->
-                  <RangeControl
-                    v-if="setting.widget === 'slider'"
-                    :model-value="getSettingValue(setting.id) as number"
-                    :min="setting.min"
-                    :max="setting.max"
-                    :step="setting.step"
-                    @update:model-value="(val) => updateSetting(setting.id, val)"
-                  />
-                </div>
+                  <div v-if="setting.widget === 'slider'" style="width: 220px">
+                    <RangeControl
+                      :model-value="getSettingValue(setting.id) as number"
+                      :min="setting.min"
+                      :max="setting.max"
+                      :step="setting.step"
+                      @update:model-value="(val) => updateSetting(setting.id, val)"
+                    />
+                  </div>
+                </AppFormItem>
               </template>
             </div>
           </div>

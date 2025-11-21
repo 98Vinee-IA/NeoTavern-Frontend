@@ -46,7 +46,7 @@
     transition: background-color var(--animation-duration-2x);
 
     &.success {
-      background-color: #5d9e5d; // Using success color from toast
+      background-color: #5d9e5d;
     }
   }
 
@@ -76,16 +76,6 @@
   .app-select-wrapper {
     flex-grow: 1;
   }
-}
-
-.reverse_proxy_warning:not(small) {
-  color: var(--color-warning);
-  background-color: var(--black-70a);
-  text-shadow: none !important;
-  margin-top: 5px !important;
-  border-radius: 5px;
-  padding: 3px;
-  border: 1px solid var(--theme-border-color);
 }
 
 .neutral_warning {

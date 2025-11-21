@@ -13,6 +13,7 @@ import {
   AppIcon,
   TagInput,
 } from '../../components/UI';
+import AppFormItem from '../UI/AppFormItem.vue';
 
 const props = defineProps({
   modelValue: {
@@ -128,84 +129,96 @@ const logicOptions = [
     <div class="world-entry-editor-form">
       <!-- Top Grid: State, Position, Order, Probability -->
       <div class="world-entry-editor-grid">
-        <AppSelect v-model="entryState" :options="stateOptions" :title="t('worldInfo.entry.entryState')" />
+        <AppFormItem :label="t('worldInfo.entry.entryState')">
+          <AppSelect v-model="entryState" :options="stateOptions" />
+        </AppFormItem>
 
-        <AppSelect
-          :model-value="modelValue?.position ?? WorldInfoPosition.BEFORE_CHAR"
-          :options="positionOptions"
-          :title="t('worldInfo.entry.positionTooltip')"
-          @update:model-value="(val) => updateValue('position', val as WorldInfoPosition)"
-        />
+        <AppFormItem :label="t('worldInfo.entry.positionLabel')">
+          <AppSelect
+            :model-value="modelValue?.position ?? WorldInfoPosition.BEFORE_CHAR"
+            :options="positionOptions"
+            :title="t('worldInfo.entry.positionTooltip')"
+            @update:model-value="(val) => updateValue('position', val as WorldInfoPosition)"
+          />
+        </AppFormItem>
 
-        <AppInput
-          v-if="isAtDepth"
-          type="number"
-          :model-value="modelValue?.depth ?? 0"
-          :placeholder="t('worldInfo.entry.depth')"
-          :title="t('worldInfo.entry.depth')"
-          @update:model-value="(val) => updateValue('depth', Number(val))"
-        />
+        <AppFormItem v-show="isAtDepth" :label="t('worldInfo.entry.depth')">
+          <AppInput
+            type="number"
+            :model-value="modelValue?.depth ?? 0"
+            :placeholder="t('worldInfo.entry.depth')"
+            @update:model-value="(val) => updateValue('depth', Number(val))"
+          />
+        </AppFormItem>
 
-        <AppInput
-          type="number"
-          :model-value="modelValue?.order ?? 0"
-          :placeholder="t('worldInfo.entry.order')"
-          :title="t('worldInfo.entry.order')"
-          @update:model-value="(val) => updateValue('order', Number(val))"
-        />
+        <AppFormItem :label="t('worldInfo.entry.order')">
+          <AppInput
+            type="number"
+            :model-value="modelValue?.order ?? 0"
+            :placeholder="t('worldInfo.entry.order')"
+            @update:model-value="(val) => updateValue('order', Number(val))"
+          />
+        </AppFormItem>
 
-        <AppInput
-          type="number"
-          :model-value="modelValue?.probability ?? 100"
-          :placeholder="t('worldInfo.entry.trigger')"
-          :title="t('worldInfo.entry.trigger')"
-          :min="0"
-          :max="100"
-          @update:model-value="(val) => updateValue('probability', Number(val))"
-        />
+        <AppFormItem :label="t('worldInfo.entry.trigger')">
+          <AppInput
+            type="number"
+            :model-value="modelValue?.probability ?? 100"
+            :placeholder="t('worldInfo.entry.trigger')"
+            :min="0"
+            :max="100"
+            @update:model-value="(val) => updateValue('probability', Number(val))"
+          />
+        </AppFormItem>
       </div>
 
       <!-- Keywords Section -->
       <div class="world-entry-editor-section">
         <div class="control-group flex-1">
-          <TagInput
-            :model-value="modelValue?.key || []"
-            :placeholder="t('worldInfo.entry.keywordsPlaceholder')"
-            @update:model-value="(val) => updateValue('key', val)"
-          />
+          <AppFormItem :label="t('worldInfo.entry.keywordsPlaceholder')">
+            <TagInput
+              :model-value="modelValue?.key || []"
+              :placeholder="t('worldInfo.entry.keywordsPlaceholder')"
+              @update:model-value="(val) => updateValue('key', val)"
+            />
+          </AppFormItem>
         </div>
 
         <div class="control-group" style="min-width: 150px">
-          <AppSelect
-            :model-value="modelValue?.selectiveLogic ?? 0"
-            :options="logicOptions"
-            :label="t('worldInfo.entry.logic')"
-            @update:model-value="(val) => updateValue('selectiveLogic', Number(val))"
-          />
+          <AppFormItem :label="t('worldInfo.entry.logic')">
+            <AppSelect
+              :model-value="modelValue?.selectiveLogic ?? 0"
+              :options="logicOptions"
+              @update:model-value="(val) => updateValue('selectiveLogic', Number(val))"
+            />
+          </AppFormItem>
         </div>
 
         <div class="control-group flex-1">
-          <TagInput
-            :model-value="modelValue?.keysecondary || []"
-            :placeholder="t('worldInfo.entry.filterPlaceholder')"
-            @update:model-value="(val) => updateValue('keysecondary', val)"
-          />
+          <AppFormItem :label="t('worldInfo.entry.filterPlaceholder')">
+            <TagInput
+              :model-value="modelValue?.keysecondary || []"
+              :placeholder="t('worldInfo.entry.filterPlaceholder')"
+              @update:model-value="(val) => updateValue('keysecondary', val)"
+            />
+          </AppFormItem>
         </div>
       </div>
 
       <!-- Content Section -->
       <div class="world-entry-editor-section--column">
-        <AppTextarea
-          :model-value="modelValue?.content ?? ''"
-          :label="t('worldInfo.entry.content')"
-          :rows="8"
-          :placeholder="t('worldInfo.entry.contentPlaceholder')"
-          @update:model-value="updateValue('content', $event)"
-        >
-          <template #footer>
-            <small class="uid-label">UID: {{ modelValue?.uid }}</small>
-          </template>
-        </AppTextarea>
+        <AppFormItem :label="t('worldInfo.entry.content')">
+          <AppTextarea
+            :model-value="modelValue?.content ?? ''"
+            :rows="8"
+            :placeholder="t('worldInfo.entry.contentPlaceholder')"
+            @update:model-value="updateValue('content', $event)"
+          >
+            <template #footer>
+              <small class="uid-label">UID: {{ modelValue?.uid }}</small>
+            </template>
+          </AppTextarea>
+        </AppFormItem>
       </div>
 
       <!-- Collapsible Additional Sources -->

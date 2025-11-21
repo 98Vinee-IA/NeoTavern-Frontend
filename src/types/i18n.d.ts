@@ -172,6 +172,7 @@ export interface MessageSchema {
       filterPlaceholder: string;
       content: string;
       contentPlaceholder: string;
+      positionLabel: string;
       positionTooltip: string;
       positionOptions: {
         beforeChar: string;
@@ -424,7 +425,6 @@ export interface MessageSchema {
   chat: {
     inputPlaceholder: string;
     options: string;
-    continue: string;
     send: string;
     loadError: string;
     createError: string;

@@ -9,6 +9,8 @@ import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useSettingsStore } from '../../stores/settings.store';
 import PromptManager from '../AiConfig/PromptManager.vue';
 import { AppIconButton, AppSelect, AppInput, AppTextarea, AppCheckbox, RangeControl } from '../../components/UI';
+import AppTabs from '../UI/AppTabs.vue';
+import AppFormItem from '../UI/AppFormItem.vue';
 
 const { t } = useStrictI18n();
 const apiStore = useApiStore();
@@ -16,7 +18,7 @@ const popupStore = usePopupStore();
 const settingsStore = useSettingsStore();
 
 const activeTab = ref<'sampler' | 'prompts'>('sampler');
-const isPanelPinned = ref(false); // TODO: connect to settings
+const isPanelPinned = ref(false);
 
 function checkConditions(conditions?: AiConfigCondition): boolean {
   if (!conditions) return true;
@@ -33,7 +35,6 @@ function checkConditions(conditions?: AiConfigCondition): boolean {
     )
       return false;
   }
-  // TODO: Add source_not and other conditions
   return true;
 }
 
@@ -65,14 +66,14 @@ onMounted(() => {
 <template>
   <div class="ai-config-drawer">
     <div class="ai-config-drawer-header">
-      <div class="ai-config-tabs">
-        <button class="tab-button" :class="{ active: activeTab === 'sampler' }" @click="activeTab = 'sampler'">
-          {{ t('aiConfig.tabSampler') }}
-        </button>
-        <button class="tab-button" :class="{ active: activeTab === 'prompts' }" @click="activeTab = 'prompts'">
-          {{ t('aiConfig.tabPrompts') }}
-        </button>
-      </div>
+      <AppTabs
+        v-model="activeTab"
+        style="margin-bottom: 0; border-bottom: none"
+        :options="[
+          { label: t('aiConfig.tabSampler'), value: 'sampler' },
+          { label: t('aiConfig.tabPrompts'), value: 'prompts' },
+        ]"
+      />
 
       <div class="header-actions">
         <AppIconButton
@@ -94,8 +95,8 @@ onMounted(() => {
         <div class="ai-config-drawer-manual-input-note">{{ t('aiConfig.manualInputNote') }}</div>
 
         <template v-for="section in visibleSections" :key="section.id">
+          <!-- Preset Manager -->
           <div v-for="item in getVisibleItems(section)" :key="item.id || item.widget" class="ai-config-drawer-item">
-            <!-- Preset Manager -->
             <div v-if="item.widget === 'preset-manager' && item.id" class="preset-manager">
               <div class="standout-header">
                 <strong>{{ item.label ? t(item.label) : '' }}</strong>
@@ -168,27 +169,28 @@ onMounted(() => {
             </div>
 
             <!-- Number Input -->
-            <div v-if="item.widget === 'number-input' && item.id">
+            <AppFormItem v-if="item.widget === 'number-input' && item.id" :label="item.label ? t(item.label) : ''">
               <AppInput
                 type="number"
-                :label="item.label ? t(item.label) : ''"
                 :model-value="settingsStore.getSetting(item.id)"
                 :min="item.min"
                 :max="item.max"
                 :step="item.step"
                 @update:model-value="(val) => settingsStore.setSetting(item.id!, Number(val))"
               />
-            </div>
+            </AppFormItem>
 
             <!-- Textarea -->
-            <div v-if="item.widget === 'textarea' && item.id">
+            <AppFormItem
+              v-if="item.widget === 'textarea' && item.id"
+              :label="item.label ? t(item.label) : ''"
+              :description="item.description ? t(item.description) : undefined"
+            >
               <AppTextarea
-                :label="item.label ? t(item.label) : ''"
                 :model-value="settingsStore.getSetting(item.id)"
                 @update:model-value="(val) => settingsStore.setSetting(item.id!, val)"
               />
-              <small v-if="item.description" class="toggle-description">{{ t(item.description) }}</small>
-            </div>
+            </AppFormItem>
 
             <!-- Checkbox -->
             <div v-if="item.widget === 'checkbox' && item.id">
@@ -201,18 +203,24 @@ onMounted(() => {
             </div>
 
             <!-- Select Input -->
-            <div v-if="item.widget === 'select' && item.id && item.options">
+            <AppFormItem
+              v-if="item.widget === 'select' && item.id && item.options"
+              :label="item.label ? t(item.label) : ''"
+            >
               <AppSelect
-                :label="item.label ? t(item.label) : ''"
                 :model-value="settingsStore.getSetting(item.id)"
                 :options="item.options.map((o) => ({ label: t(o.label), value: o.value }))"
                 :title="item.infoTooltip ? t(item.infoTooltip) : undefined"
                 @update:model-value="(val) => settingsStore.setSetting(item.id!, val)"
               />
-            </div>
+            </AppFormItem>
 
             <!-- Info Display -->
-            <div v-if="item.widget === 'info-display' && item.description" class="toggle-description">
+            <div
+              v-if="item.widget === 'info-display' && item.description"
+              class="app-form-item-description"
+              style="margin-bottom: 10px"
+            >
               {{ t(item.description) }}
             </div>
 

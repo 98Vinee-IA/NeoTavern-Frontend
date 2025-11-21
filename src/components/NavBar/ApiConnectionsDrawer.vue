@@ -8,6 +8,7 @@ import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
 import ConnectionProfileSelector from '../Common/ConnectionProfileSelector.vue';
 import { OpenrouterMiddleoutType, TokenizerType } from '../../constants';
 import { AppButton, AppCheckbox, AppIconButton, AppInput, AppSelect } from '../UI';
+import AppFormItem from '../UI/AppFormItem.vue';
 
 const { t } = useStrictI18n();
 
@@ -135,69 +136,75 @@ onMounted(() => {
       <hr />
 
       <div class="api-connections-drawer-section">
-        <h3>{{ t('apiConnections.api') }}</h3>
-        <AppSelect v-model="settingsStore.settings.api.main" :options="mainApiOptions" />
+        <AppFormItem :label="t('apiConnections.api')">
+          <AppSelect v-model="settingsStore.settings.api.main" :options="mainApiOptions" />
+        </AppFormItem>
       </div>
 
       <div v-show="settingsStore.settings.api.main === 'openai'">
         <div class="api-connections-drawer-section">
-          <h4>{{ t('apiConnections.source') }}</h4>
-          <!-- Native select required for optgroup support -->
-          <select
-            class="text-pole"
-            :value="settingsStore.settings.api.chatCompletionSource"
-            @change="
-              settingsStore.settings.api.chatCompletionSource = ($event.target as HTMLSelectElement).value as any
-            "
-          >
-            <optgroup>
-              <option :value="chat_completion_sources.OPENAI">{{ t('apiConnections.sources.openai') }}</option>
-              <option :value="chat_completion_sources.CUSTOM">{{ t('apiConnections.sources.custom') }}</option>
-            </optgroup>
-            <optgroup>
-              <option :value="chat_completion_sources.AI21">{{ t('apiConnections.sources.ai21') }}</option>
-              <option :value="chat_completion_sources.AIMLAPI">{{ t('apiConnections.sources.aimlapi') }}</option>
-              <option :value="chat_completion_sources.AZURE_OPENAI">
-                {{ t('apiConnections.sources.azure_openai') }}
-              </option>
-              <option :value="chat_completion_sources.CLAUDE">{{ t('apiConnections.sources.claude') }}</option>
-              <option :value="chat_completion_sources.COHERE">{{ t('apiConnections.sources.cohere') }}</option>
-              <option :value="chat_completion_sources.DEEPSEEK">{{ t('apiConnections.sources.deepseek') }}</option>
-              <option :value="chat_completion_sources.ELECTRONHUB">
-                {{ t('apiConnections.sources.electronhub') }}
-              </option>
-              <option :value="chat_completion_sources.FIREWORKS">{{ t('apiConnections.sources.fireworks') }}</option>
-              <option :value="chat_completion_sources.GROQ">{{ t('apiConnections.sources.groq') }}</option>
-              <option :value="chat_completion_sources.MAKERSUITE">{{ t('apiConnections.sources.makersuite') }}</option>
-              <option :value="chat_completion_sources.VERTEXAI">{{ t('apiConnections.sources.vertexai') }}</option>
-              <option :value="chat_completion_sources.MISTRALAI">{{ t('apiConnections.sources.mistralai') }}</option>
-              <option :value="chat_completion_sources.MOONSHOT">{{ t('apiConnections.sources.moonshot') }}</option>
-              <option :value="chat_completion_sources.NANOGPT">{{ t('apiConnections.sources.nanogpt') }}</option>
-              <option :value="chat_completion_sources.OPENROUTER">{{ t('apiConnections.sources.openrouter') }}</option>
-              <option :value="chat_completion_sources.PERPLEXITY">{{ t('apiConnections.sources.perplexity') }}</option>
-              <option :value="chat_completion_sources.POLLINATIONS">
-                {{ t('apiConnections.sources.pollinations') }}
-              </option>
-              <option :value="chat_completion_sources.XAI">{{ t('apiConnections.sources.xai') }}</option>
-              <option :value="chat_completion_sources.ZAI">{{ t('apiConnections.sources.zai') }}</option>
-            </optgroup>
-          </select>
+          <AppFormItem :label="t('apiConnections.source')">
+            <!-- Native select required for optgroup support -->
+            <select
+              class="text-pole"
+              :value="settingsStore.settings.api.chatCompletionSource"
+              @change="
+                settingsStore.settings.api.chatCompletionSource = ($event.target as HTMLSelectElement).value as any
+              "
+            >
+              <optgroup>
+                <option :value="chat_completion_sources.OPENAI">{{ t('apiConnections.sources.openai') }}</option>
+                <option :value="chat_completion_sources.CUSTOM">{{ t('apiConnections.sources.custom') }}</option>
+              </optgroup>
+              <optgroup>
+                <option :value="chat_completion_sources.AI21">{{ t('apiConnections.sources.ai21') }}</option>
+                <option :value="chat_completion_sources.AIMLAPI">{{ t('apiConnections.sources.aimlapi') }}</option>
+                <option :value="chat_completion_sources.AZURE_OPENAI">
+                  {{ t('apiConnections.sources.azure_openai') }}
+                </option>
+                <option :value="chat_completion_sources.CLAUDE">{{ t('apiConnections.sources.claude') }}</option>
+                <option :value="chat_completion_sources.COHERE">{{ t('apiConnections.sources.cohere') }}</option>
+                <option :value="chat_completion_sources.DEEPSEEK">{{ t('apiConnections.sources.deepseek') }}</option>
+                <option :value="chat_completion_sources.ELECTRONHUB">
+                  {{ t('apiConnections.sources.electronhub') }}
+                </option>
+                <option :value="chat_completion_sources.FIREWORKS">{{ t('apiConnections.sources.fireworks') }}</option>
+                <option :value="chat_completion_sources.GROQ">{{ t('apiConnections.sources.groq') }}</option>
+                <option :value="chat_completion_sources.MAKERSUITE">
+                  {{ t('apiConnections.sources.makersuite') }}
+                </option>
+                <option :value="chat_completion_sources.VERTEXAI">{{ t('apiConnections.sources.vertexai') }}</option>
+                <option :value="chat_completion_sources.MISTRALAI">{{ t('apiConnections.sources.mistralai') }}</option>
+                <option :value="chat_completion_sources.MOONSHOT">{{ t('apiConnections.sources.moonshot') }}</option>
+                <option :value="chat_completion_sources.NANOGPT">{{ t('apiConnections.sources.nanogpt') }}</option>
+                <option :value="chat_completion_sources.OPENROUTER">
+                  {{ t('apiConnections.sources.openrouter') }}
+                </option>
+                <option :value="chat_completion_sources.PERPLEXITY">
+                  {{ t('apiConnections.sources.perplexity') }}
+                </option>
+                <option :value="chat_completion_sources.POLLINATIONS">
+                  {{ t('apiConnections.sources.pollinations') }}
+                </option>
+                <option :value="chat_completion_sources.XAI">{{ t('apiConnections.sources.xai') }}</option>
+                <option :value="chat_completion_sources.ZAI">{{ t('apiConnections.sources.zai') }}</option>
+              </optgroup>
+            </select>
+          </AppFormItem>
         </div>
 
         <!-- OpenAI Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.OPENAI">
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.openaiKey') }}</h4>
+          <AppFormItem :label="t('apiConnections.openaiKey')">
             <div class="api-connections-drawer-input-group">
-              <!-- TODO: Add secret management -->
               <AppButton icon="fa-key" :title="t('apiConnections.manageKeys')" />
             </div>
             <div class="neutral_warning">
               {{ t('apiConnections.keyPrivacy') }}
             </div>
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.openaiModel') }}</h4>
+          </AppFormItem>
+
+          <AppFormItem :label="t('apiConnections.openaiModel')">
             <select
               class="text-pole"
               :value="settingsStore.settings.api.selectedProviderModels.openai"
@@ -221,43 +228,41 @@ onMounted(() => {
                 </option>
               </optgroup>
             </select>
-          </div>
+          </AppFormItem>
         </div>
 
         <!-- Claude Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.CLAUDE">
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.claudeKey') }}</h4>
+          <AppFormItem :label="t('apiConnections.claudeKey')">
             <div class="api-connections-drawer-input-group">
               <AppButton icon="fa-key" :title="t('apiConnections.manageKeys')" />
             </div>
             <div class="neutral_warning">
               {{ t('apiConnections.keyPrivacy') }}
             </div>
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.claudeModel') }}</h4>
+          </AppFormItem>
+
+          <AppFormItem :label="t('apiConnections.claudeModel')">
             <AppSelect
               :model-value="settingsStore.settings.api.selectedProviderModels.claude"
               :options="claudeModelOptions"
               @update:model-value="settingsStore.setSetting('api.selectedProviderModels.claude', $event)"
             />
-          </div>
+          </AppFormItem>
         </div>
 
         <!-- OpenRouter Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.OPENROUTER">
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.openrouterKey') }}</h4>
+          <AppFormItem :label="t('apiConnections.openrouterKey')">
             <div class="api-connections-drawer-input-group">
               <AppButton icon="fa-key" :title="t('apiConnections.manageKeys')" />
             </div>
             <div class="neutral_warning">
               {{ t('apiConnections.keyPrivacy') }}
             </div>
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.openrouterModel') }}</h4>
+          </AppFormItem>
+
+          <AppFormItem :label="t('apiConnections.openrouterModel')">
             <select
               v-show="hasOpenRouterGroupedModels"
               class="text-pole"
@@ -280,7 +285,8 @@ onMounted(() => {
               placeholder="google/gemini-pro-1.5"
               @update:model-value="settingsStore.setSetting('api.selectedProviderModels.openrouter', String($event))"
             />
-          </div>
+          </AppFormItem>
+
           <div class="api-connections-drawer-section">
             <h4>{{ t('apiConnections.openrouterOptions') }}</h4>
             <AppCheckbox
@@ -297,12 +303,11 @@ onMounted(() => {
                 settingsStore.setSetting('api.providerSpecific.openrouter.allowFallbacks', Boolean($event))
               "
             />
-            <div class="range-block">
-              <div class="range-block-title">{{ t('apiConnections.openrouterFallbackProviders') }}</div>
+            <AppFormItem :label="t('apiConnections.openrouterFallbackProviders')">
               <AppInput v-model="openrouterProvidersString" />
-            </div>
-            <div class="range-block">
-              <div class="range-block-title">{{ t('apiConnections.openrouterMiddleout') }}</div>
+            </AppFormItem>
+
+            <AppFormItem :label="t('apiConnections.openrouterMiddleout')">
               <AppSelect
                 :model-value="settingsStore.settings.api.providerSpecific.openrouter.middleout"
                 :options="middleoutOptions"
@@ -310,126 +315,116 @@ onMounted(() => {
                   settingsStore.setSetting('api.providerSpecific.openrouter.middleout', $event as any)
                 "
               />
-            </div>
+            </AppFormItem>
           </div>
         </div>
 
         <!-- MistralAI Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.MISTRALAI">
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.mistralaiKey') }}</h4>
+          <AppFormItem :label="t('apiConnections.mistralaiKey')">
             <div class="api-connections-drawer-input-group">
               <AppButton icon="fa-key" :title="t('apiConnections.manageKeys')" />
             </div>
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.mistralaiModel') }}</h4>
+          </AppFormItem>
+
+          <AppFormItem :label="t('apiConnections.mistralaiModel')">
             <AppSelect
               :model-value="settingsStore.settings.api.selectedProviderModels.mistralai"
               :options="mistralModelOptions"
               @update:model-value="settingsStore.setSetting('api.selectedProviderModels.mistralai', $event)"
             />
-          </div>
+          </AppFormItem>
         </div>
 
         <!-- Groq Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.GROQ">
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.groqKey') }}</h4>
+          <AppFormItem :label="t('apiConnections.groqKey')">
             <div class="api-connections-drawer-input-group">
               <AppButton icon="fa-key" :title="t('apiConnections.manageKeys')" />
             </div>
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.groqModel') }}</h4>
+          </AppFormItem>
+
+          <AppFormItem :label="t('apiConnections.groqModel')">
             <AppSelect
               :model-value="settingsStore.settings.api.selectedProviderModels.groq"
               :options="groqModelOptions"
               @update:model-value="settingsStore.setSetting('api.selectedProviderModels.groq', $event)"
             />
-          </div>
+          </AppFormItem>
         </div>
 
         <!-- Custom Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.CUSTOM">
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.customUrl') }}</h4>
+          <AppFormItem :label="t('apiConnections.customUrl')">
             <AppInput
               :model-value="settingsStore.settings.api.providerSpecific.custom.url"
               @update:model-value="settingsStore.settings.api.providerSpecific.custom.url = String($event)"
             />
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.customModel') }}</h4>
+          </AppFormItem>
+          <AppFormItem :label="t('apiConnections.customModel')">
             <AppInput
               :model-value="settingsStore.settings.api.selectedProviderModels.custom"
               @update:model-value="settingsStore.settings.api.selectedProviderModels.custom = String($event)"
             />
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.customKey') }}</h4>
+          </AppFormItem>
+          <AppFormItem :label="t('apiConnections.customKey')">
             <div class="api-connections-drawer-input-group">
               <AppButton icon="fa-key" :title="t('apiConnections.manageKeys')" />
             </div>
-          </div>
+          </AppFormItem>
         </div>
 
         <!-- Azure OpenAI Form -->
         <div v-show="settingsStore.settings.api.chatCompletionSource === chat_completion_sources.AZURE_OPENAI">
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.azureKey') }}</h4>
+          <AppFormItem :label="t('apiConnections.azureKey')">
             <div class="api-connections-drawer-input-group">
               <AppButton icon="fa-key" :title="t('apiConnections.manageKeys')" />
             </div>
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.azureBaseUrl') }}</h4>
+          </AppFormItem>
+
+          <AppFormItem :label="t('apiConnections.azureBaseUrl')">
             <AppInput
               :model-value="settingsStore.settings.api.providerSpecific.azure_openai.baseUrl"
               @update:model-value="
                 settingsStore.setSetting('api.providerSpecific.azure_openai.baseUrl', String($event))
               "
             />
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.azureDeploymentName') }}</h4>
+          </AppFormItem>
+          <AppFormItem :label="t('apiConnections.azureDeploymentName')">
             <AppInput
               :model-value="settingsStore.settings.api.providerSpecific.azure_openai.deploymentName"
               @update:model-value="
                 settingsStore.setSetting('api.providerSpecific.azure_openai.deploymentName', String($event))
               "
             />
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.azureApiVersion') }}</h4>
+          </AppFormItem>
+          <AppFormItem :label="t('apiConnections.azureApiVersion')">
             <AppInput
               :model-value="settingsStore.settings.api.providerSpecific.azure_openai.apiVersion"
               @update:model-value="
                 settingsStore.setSetting('api.providerSpecific.azure_openai.apiVersion', String($event))
               "
             />
-          </div>
-          <div class="api-connections-drawer-section">
-            <h4>{{ t('apiConnections.azureModel') }}</h4>
+          </AppFormItem>
+          <AppFormItem :label="t('apiConnections.azureModel')">
             <AppInput
               :model-value="settingsStore.settings.api.selectedProviderModels.azure_openai"
               placeholder="This is the model name inside your deployment"
               @update:model-value="settingsStore.setSetting('api.selectedProviderModels.azure_openai', String($event))"
             />
-          </div>
+          </AppFormItem>
         </div>
 
         <!-- TODO: Add forms for other sources -->
 
         <!-- Tokenizer Selection -->
-        <div class="api-connections-drawer-section">
-          <h4>{{ t('apiConnections.tokenizer') }}</h4>
+        <AppFormItem :label="t('apiConnections.tokenizer')">
           <AppSelect
             :model-value="settingsStore.settings.api.tokenizer"
             :options="tokenizerOptions"
             @update:model-value="settingsStore.settings.api.tokenizer = $event as any"
           />
-        </div>
+        </AppFormItem>
 
         <div class="api-connections-drawer-section">
           <div class="api-connections-drawer-actions">

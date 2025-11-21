@@ -36,43 +36,4 @@
     flex-direction: column;
     gap: 10px;
   }
-
-  &-setting {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--white-20a);
-
-    &:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .setting-full-width {
-      width: 100%;
-    }
-
-    .setting-details {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex-grow: 1;
-      min-width: 0;
-
-      label {
-        font-weight: bold;
-      }
-      small {
-        opacity: 0.7;
-        font-size: 0.9em;
-      }
-    }
-
-    .setting-control {
-      flex-shrink: 0;
-      width: 220px;
-    }
-  }
 }

@@ -6,14 +6,15 @@ import { usePopupStore } from '../../stores/popup.store';
 import { getThumbnailUrl } from '../../utils/image';
 import { POPUP_RESULT, POPUP_TYPE, type BackgroundFitting } from '../../types';
 import { useStrictI18n } from '../../composables/useStrictI18n';
-import { AppButton, AppIconButton, AppSelect, AppInput } from '../UI';
+import { AppButton, AppIconButton, AppSelect } from '../UI';
+import AppSearch from '../UI/AppSearch.vue';
+import AppFileInput from '../UI/AppFileInput.vue';
 
 const { t } = useStrictI18n();
 const backgroundStore = useBackgroundStore();
 const chatStore = useChatStore();
 const popupStore = usePopupStore();
 
-const fileInput = ref<HTMLInputElement | null>(null);
 const scrollableContent = ref<HTMLElement | null>(null);
 const isScrolled = ref(false);
 
@@ -22,16 +23,10 @@ const THUMBNAIL_COLUMNS_MAX = 8;
 
 const lockedBackgroundUrl = computed(() => chatStore.activeChat?.metadata.custom_background);
 
-function triggerFileUpload() {
-  fileInput.value?.click();
-}
-
-async function handleFileSelected(event: Event) {
-  const target = event.target as HTMLInputElement;
-  if (target.files?.[0]) {
-    await backgroundStore.handleUpload(target.files[0]);
+async function handleFileSelected(files: File[]) {
+  if (files[0]) {
+    await backgroundStore.handleUpload(files[0]);
   }
-  target.value = ''; // Reset for next upload
 }
 
 function zoomIn() {
@@ -111,10 +106,13 @@ onMounted(() => {
   <div class="backgrounds-drawer">
     <div class="backgrounds-drawer-header">
       <div class="backgrounds-drawer-header-row">
-        <AppButton icon="fa-plus" @click="triggerFileUpload">
-          {{ t('backgrounds.add') }}
-        </AppButton>
-        <input ref="fileInput" type="file" accept="image/*" hidden @change="handleFileSelected" />
+        <AppFileInput
+          accept="image/*"
+          type="button"
+          icon="fa-plus"
+          :label="t('backgrounds.add')"
+          @change="handleFileSelected"
+        />
         <span class="expander"></span>
         <div style="width: 120px">
           <AppSelect v-model="backgroundStore.fitting" :options="fittingOptions" :title="t('backgrounds.fitting')" />
@@ -124,11 +122,7 @@ onMounted(() => {
         </AppButton>
       </div>
       <div class="backgrounds-drawer-header-row">
-        <AppInput
-          v-model="backgroundStore.searchTerm"
-          type="search"
-          :placeholder="t('backgrounds.searchPlaceholder')"
-        />
+        <AppSearch v-model="backgroundStore.searchTerm" :placeholder="t('backgrounds.searchPlaceholder')" />
       </div>
     </div>
 

@@ -2,7 +2,9 @@
 import { onMounted, ref } from 'vue';
 import { useExtensionStore } from '../../stores/extension.store';
 import { useStrictI18n } from '../../composables/useStrictI18n';
-import { AppIconButton, AppInput, AppToggle } from '../UI';
+import { AppIconButton, AppToggle } from '../UI';
+import AppSearch from '../UI/AppSearch.vue';
+import AppListItem from '../UI/AppListItem.vue';
 import SplitPane from '../Common/SplitPane.vue';
 import EmptyState from '../Common/EmptyState.vue';
 
@@ -23,7 +25,6 @@ function installExtension() {
 }
 
 onMounted(() => {
-  // Only initialize once
   if (Object.keys(extensionStore.extensions).length === 0) {
     extensionStore.initializeExtensions();
   }
@@ -39,36 +40,39 @@ onMounted(() => {
   >
     <template #side>
       <div class="extensions-panel-browser-header">
-        <div style="display: flex; gap: 5px; align-items: center">
+        <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px">
           <AppIconButton icon="fa-cubes" :title="t('extensions.manage')" @click="manageExtensions" />
           <AppIconButton icon="fa-cloud-arrow-down" :title="t('extensions.install')" @click="installExtension" />
           <AppToggle v-model="notifyOnUpdates" :title="t('extensions.notifyUpdates')" style="margin-left: auto" />
         </div>
-        <AppInput v-model="extensionStore.searchTerm" type="search" :placeholder="t('common.search')" />
+        <AppSearch v-model="extensionStore.searchTerm" :placeholder="t('common.search')" />
       </div>
 
       <div class="extensions-panel-list">
-        <div
-          v-for="extension in extensionStore.filteredExtensions"
-          :key="extension.id"
-          class="extension-item"
-          :class="{ 'is-active': extensionStore.selectedExtensionId === extension.id }"
-          :data-extension-id="extension.id"
-          @click="extensionStore.selectExtension(extension.id)"
-        >
-          <i class="extension-item-icon fa-solid fa-puzzle-piece"></i>
-          <div class="extension-item-content">
-            <div class="extension-item-name">{{ extension.manifest.display_name || extension.id }}</div>
-            <div v-if="extension.manifest.author" class="extension-item-author">
-              {{ t('common.by') }} {{ extension.manifest.author }}
-            </div>
-          </div>
-          <div class="extension-item-actions" @click.stop>
-            <AppToggle
-              :model-value="extension.isActive"
-              @update:model-value="(val) => extensionStore.toggleExtension(extension.id, val)"
-            />
-          </div>
+        <div v-for="extension in extensionStore.filteredExtensions" :key="extension.id">
+          <AppListItem
+            :active="extensionStore.selectedExtensionId === extension.id"
+            :data-extension-id="extension.id"
+            @click="extensionStore.selectExtension(extension.id)"
+          >
+            <template #start>
+              <i class="fa-solid fa-puzzle-piece" style="opacity: 0.7"></i>
+            </template>
+            <template #default>
+              <div class="font-bold">{{ extension.manifest.display_name || extension.id }}</div>
+              <div v-if="extension.manifest.author" style="font-size: 0.8em; opacity: 0.7">
+                {{ t('common.by') }} {{ extension.manifest.author }}
+              </div>
+            </template>
+            <template #end>
+              <div @click.stop>
+                <AppToggle
+                  :model-value="extension.isActive"
+                  @update:model-value="(val) => extensionStore.toggleExtension(extension.id, val)"
+                />
+              </div>
+            </template>
+          </AppListItem>
         </div>
       </div>
     </template>
@@ -104,3 +108,9 @@ onMounted(() => {
     </template>
   </SplitPane>
 </template>
+
+<style scoped>
+.font-bold {
+  font-weight: bold;
+}
+</style>

@@ -6,7 +6,10 @@ import Pagination from '../Common/Pagination.vue';
 import { getThumbnailUrl } from '../../utils/image';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useSettingsStore } from '../../stores/settings.store';
-import { AppIconButton, AppInput, AppSelect, AppButton } from '../UI';
+import { AppIconButton, AppButton, AppSelect } from '../UI';
+import AppSearch from '../UI/AppSearch.vue';
+import AppFileInput from '../UI/AppFileInput.vue';
+import AppListItem from '../UI/AppListItem.vue';
 import SplitPane from '../Common/SplitPane.vue';
 import EmptyState from '../Common/EmptyState.vue';
 
@@ -16,7 +19,6 @@ const characterStore = useCharacterStore();
 const settingsStore = useSettingsStore();
 
 const isSearchActive = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
 const characterListEl = ref<HTMLElement | null>(null);
 const highlightedItemRef = ref<HTMLElement | null>(null);
 
@@ -28,22 +30,14 @@ watch(
       highlightedItemRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   },
-  { flush: 'post' }, // Wait for the DOM to update
+  { flush: 'post' },
 );
 
 function createNew() {
   characterStore.startCreating();
 }
 
-function triggerImport() {
-  fileInput.value?.click();
-}
-
-async function handleFileImport(event: Event) {
-  const target = event.target as HTMLInputElement;
-  if (!target.files || target.files.length === 0) return;
-
-  const files = Array.from(target.files);
+async function handleFileImport(files: File[]) {
   const importedAvatars: string[] = [];
 
   for (const file of files) {
@@ -62,10 +56,6 @@ async function handleFileImport(event: Event) {
     await characterStore.importTagsForCharacters(importedAvatars);
     const lastAvatar = importedAvatars[importedAvatars.length - 1];
     characterStore.highlightCharacter(lastAvatar);
-  }
-
-  if (target) {
-    target.value = '';
   }
 }
 
@@ -92,10 +82,13 @@ onMounted(() => {
       <div class="character-panel-browser-header">
         <div class="character-panel-actions">
           <AppIconButton icon="fa-user-plus" :title="t('characterPanel.createNew')" @click="createNew" />
-          <AppIconButton icon="fa-file-import" :title="t('characterPanel.importFile')" @click="triggerImport" />
-
-          <input ref="fileInput" type="file" accept=".json,.png" multiple hidden @change="handleFileImport" />
-
+          <AppFileInput
+            accept=".json,.png"
+            multiple
+            icon="fa-file-import"
+            :label="t('characterPanel.importFile')"
+            @change="handleFileImport"
+          />
           <AppIconButton icon="fa-cloud-arrow-down" :title="t('characterPanel.importUrl')" />
           <AppIconButton icon="fa-users-gear" :title="t('characterPanel.createGroup')" />
 
@@ -108,21 +101,18 @@ onMounted(() => {
           />
         </div>
 
-        <div v-show="isSearchActive" id="character-search-form" class="character-panel-search-form">
-          <div style="flex-grow: 1">
-            <AppInput
-              v-model="characterStore.searchTerm"
-              type="search"
-              :placeholder="t('characterPanel.searchPlaceholder')"
-            />
-          </div>
-          <div style="min-width: 140px">
-            <AppSelect
-              v-model="characterStore.sortOrder"
-              :options="sortOptions"
-              :title="t('characterPanel.sorting.title')"
-            />
-          </div>
+        <div v-show="isSearchActive" style="margin-top: 5px">
+          <AppSearch v-model="characterStore.searchTerm" :placeholder="t('characterPanel.searchPlaceholder')">
+            <template #actions>
+              <div style="min-width: 140px">
+                <AppSelect
+                  v-model="characterStore.sortOrder"
+                  :options="sortOptions"
+                  :title="t('characterPanel.sorting.title')"
+                />
+              </div>
+            </template>
+          </AppSearch>
         </div>
       </div>
 
@@ -141,34 +131,37 @@ onMounted(() => {
           {{ t('common.loading') }}
         </div>
         <template v-for="character in characterStore.paginatedCharacters" :key="character.id">
-          <div
+          <AppListItem
             :ref="
-              (el) => {
-                if (character.avatar === characterStore.highlightedAvatar) {
-                  highlightedItemRef = el as HTMLElement;
-                }
+              (el: any) => {
+                if (character.avatar === characterStore.highlightedAvatar) highlightedItemRef = el?.$el;
               }
             "
-            class="character-item"
-            :class="{
-              'is-active': characterStore.editFormCharacter?.avatar === character.avatar,
-              'flash animated': character.avatar === characterStore.highlightedAvatar,
-            }"
-            tabindex="0"
+            :active="characterStore.editFormCharacter?.avatar === character.avatar"
+            :class="{ 'flash animated': character.avatar === characterStore.highlightedAvatar }"
             :data-character-avatar="character.avatar"
             @click="characterStore.selectCharacterByAvatar(character.avatar)"
           >
-            <div class="character-item-avatar">
+            <template #start>
               <img :src="getThumbnailUrl('avatar', character.avatar)" :alt="`${character.name} Avatar`" />
-            </div>
-            <div class="character-item-content">
-              <div class="character-item-header">
-                <span class="character-item-name">{{ character.name }}</span>
-                <i v-if="character.fav" class="character-item-fav-icon fa-solid fa-star"></i>
+            </template>
+
+            <template #default>
+              <div style="display: flex; align-items: center; gap: 5px">
+                <span class="font-bold">{{ character.name }}</span>
+                <i
+                  v-if="character.fav"
+                  class="fa-solid fa-star"
+                  style="color: var(--color-golden); font-size: 0.8em"
+                ></i>
               </div>
-              <div class="character-item-description">{{ character.description || '&nbsp;' }}</div>
-            </div>
-          </div>
+              <div
+                style="font-size: 0.8em; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+              >
+                {{ character.description || '&nbsp;' }}
+              </div>
+            </template>
+          </AppListItem>
         </template>
       </div>
     </template>
@@ -191,3 +184,9 @@ onMounted(() => {
     </template>
   </SplitPane>
 </template>
+
+<style scoped>
+.font-bold {
+  font-weight: bold;
+}
+</style>

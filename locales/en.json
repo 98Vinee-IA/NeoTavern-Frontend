@@ -169,6 +169,7 @@
       "filterPlaceholder": "Comma separated list (ignored if empty)",
       "content": "Content",
       "contentPlaceholder": "What this keyword should mean to the AI...",
+      "positionLabel": "Position",
       "positionTooltip": "{'↑'}Char: Before Character Definitions\n{'↓'}Char: After Character Definitions\n{'↑'}EM: Before Example Messages\n{'↓'}EM: After Example Messages\n{'↑'}AN: Before Author's Note\n{'↓'}AN: After Author's Note\n{'@'}D ⚙️: at Depth (System)\n{'@'}D 👤: at Depth (User)\n{'@'}D 🤖: at Depth (Assistant)",
       "positionOptions": {
         "beforeChar": "{'↑'}Char",
@@ -421,7 +422,6 @@
   "chat": {
     "inputPlaceholder": "Type a message, or /? for help",
     "options": "Options",
-    "continue": "Continue the last message",
     "send": "Send a message",
     "loadError": "Failed to load chat.",
     "createError": "Failed to create chat message.",
@@ -609,7 +609,7 @@
       "creatorNotesPlaceholder": "(Describe the bot, give use tips, etc.)",
       "tagsToEmbed": "Tags to Embed",
       "tagsToEmbedPlaceholder": "(Write a comma-separated list of tags)",
-      "personality": "Personality summary",
+      "personality": "Personality",
       "personalityPlaceholder": "(A brief description of the personality)",
       "scenario": "Scenario",
       "scenarioPlaceholder": "(Circumstances and context of the interaction)",

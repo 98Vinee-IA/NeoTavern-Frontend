@@ -5,59 +5,13 @@
     margin: 5px 0;
   }
 
-  .browser-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 8px;
-    cursor: pointer;
-    border-radius: 5px;
-    margin-bottom: 1px;
-    gap: 10px;
-
-    &:hover,
-    &.is-active {
-      background-color: var(--white-20a);
-    }
-
-    &.is-active {
-      outline: 1px solid var(--theme-quote-color);
-    }
-  }
-
-  .browser-item-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow: hidden;
-  }
-
-  .browser-item-icon {
-    flex-shrink: 0;
-  }
-
-  .browser-item-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .browser-item-chevron {
     transition: transform var(--animation-duration-2x);
+    opacity: 0.7;
   }
 
   .browser-item-chevron.is-open {
     transform: rotate(90deg);
-  }
-
-  .browser-item.is-book {
-    font-weight: bold;
-  }
-
-  .browser-item.is-entry {
-    padding-left: 24px;
-    font-weight: normal;
-    font-size: 0.95em;
   }
 
   .browser-item-actions {
@@ -79,7 +33,7 @@
     }
   }
 
-  .browser-item:hover .browser-item-actions {
+  .app-list-item:hover .browser-item-actions {
     opacity: 1;
   }
 
@@ -88,6 +42,7 @@
     border-left: 1px solid var(--black-50a);
     margin-left: 12px;
     display: grid;
+    margin-top: 2px;
   }
 
   .lorebook-group-loading {
@@ -106,16 +61,6 @@
       display: flex;
       gap: 5px;
       align-items: flex-start;
-
-      .app-input-wrapper,
-      .app-select-wrapper {
-        flex-grow: 1;
-        margin: 0;
-      }
-
-      .menu-button-icon {
-        flex-shrink: 0;
-      }
     }
   }
 }

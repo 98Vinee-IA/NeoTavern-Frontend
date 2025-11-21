@@ -14,13 +14,12 @@ import { AppIconButton, AppButton } from '../UI';
 import SmartAvatar from '../Common/SmartAvatar.vue';
 import EmptyState from '../Common/EmptyState.vue';
 import DrawerHeader from '../Common/DrawerHeader.vue';
+import AppListItem from '../UI/AppListItem.vue';
 
 const { t } = useStrictI18n();
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const popupStore = usePopupStore();
-
-// Persistence for page size
 
 const currentPage = ref(1);
 const itemsPerPage = ref(settingsStore.settings.account.recentChatsPageSize ?? 10);
@@ -107,9 +106,7 @@ async function deleteSelected() {
       for (const id of idsToDelete) {
         await deleteChat(id);
       }
-      // Update store
       chatStore.recentChats = chatStore.recentChats.filter((c) => !selectedChats.value.has(c.file_id));
-      // If active chat was deleted, clear it
       if (chatStore.activeChatFile && selectedChats.value.has(chatStore.activeChatFile)) {
         chatStore.activeChatFile = null;
         await chatStore.clearChat(false);
@@ -166,37 +163,33 @@ onMounted(() => {
     </div>
 
     <div class="recent-chats-content">
-      <div
-        v-for="chat in paginatedRecentChats"
-        :key="chat.file_id"
-        class="recent-chat-item"
-        :class="{
-          active: chatStore.activeChatFile === chat.file_id,
-          selected: selectedChats.has(chat.file_id),
-          'selection-mode': isSelectionMode,
-        }"
-        @click="onItemClick(chat)"
-      >
-        <div class="recent-chat-item-avatar">
-          <SmartAvatar :urls="getChatAvatars(chat)" />
-
-          <div v-show="isSelectionMode" class="selection-checkbox">
-            <i v-if="selectedChats.has(chat.file_id)" class="fa-solid fa-check"></i>
-          </div>
-        </div>
-
-        <div class="recent-chat-item-details">
-          <div class="recent-chat-item-name" :title="chat.file_name">
-            {{ chat.file_name.replace('.jsonl', '') }}
-          </div>
-          <div class="recent-chat-item-preview">
-            {{ chat.mes || t('chat.emptyLog') }}
-          </div>
-          <div class="recent-chat-item-meta">
-            <span>{{ formatTimeStamp(chat.last_mes) }}</span>
-            <span>{{ chat.chat_items }} {{ t('common.messages').toLowerCase() }}</span>
-          </div>
-        </div>
+      <div v-for="chat in paginatedRecentChats" :key="chat.file_id">
+        <AppListItem
+          :active="chatStore.activeChatFile === chat.file_id"
+          :selected="selectedChats.has(chat.file_id)"
+          @click="onItemClick(chat)"
+        >
+          <template #start>
+            <div class="recent-chat-item-avatar-wrapper">
+              <SmartAvatar :urls="getChatAvatars(chat)" style="width: 45px; height: 45px" />
+              <div v-show="isSelectionMode" class="selection-checkbox">
+                <i v-if="selectedChats.has(chat.file_id)" class="fa-solid fa-check"></i>
+              </div>
+            </div>
+          </template>
+          <template #default>
+            <div class="recent-chat-item-name" :title="chat.file_name">
+              {{ chat.file_name.replace('.jsonl', '') }}
+            </div>
+            <div class="recent-chat-item-preview">
+              {{ chat.mes || t('chat.emptyLog') }}
+            </div>
+            <div class="recent-chat-item-meta">
+              <span>{{ formatTimeStamp(chat.last_mes) }}</span>
+              <span>{{ chat.chat_items }} {{ t('common.messages').toLowerCase() }}</span>
+            </div>
+          </template>
+        </AppListItem>
       </div>
 
       <EmptyState v-if="recentChats.length === 0" icon="fa-comments" :description="t('chatManagement.noRecentChats')" />
@@ -213,3 +206,53 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.recent-chat-item-avatar-wrapper {
+  position: relative;
+  width: 45px;
+  height: 45px;
+
+  .selection-checkbox {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    background-color: var(--theme-emphasis-color);
+    color: var(--black-100);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    z-index: 5;
+    border: 2px solid var(--theme-background-tint);
+  }
+}
+
+.recent-chat-item-name {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.95em;
+  color: var(--theme-text-color);
+}
+
+.recent-chat-item-preview {
+  font-size: 0.85em;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-chat-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75em;
+  opacity: 0.5;
+}
+</style>

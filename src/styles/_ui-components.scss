@@ -1,17 +1,218 @@
-// Shared styles for UI components that might be needed globally
-// if not using scoped styles for specific reasons.
+// Shared styles for UI components
 
 .app-input-wrapper,
 .app-select-wrapper,
 .app-textarea-wrapper {
-  margin-bottom: 10px;
+  margin-bottom: 0; // Removed margin, handled by FormItem now
+  width: 100%;
 
   .text-pole {
     margin: 0;
   }
 }
 
-// Helper for form groups
+.app-input-wrapper,
+.app-select-wrapper {
+  .app-input-label,
+  .app-select-label {
+    font-weight: bold;
+    font-size: 0.9em;
+    display: block;
+    margin-bottom: 2px;
+  }
+}
+
+.app-textarea-wrapper {
+  .maximize-icon {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  .app-textarea-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 2px;
+  }
+}
+
+// --- AppFormItem ---
+.app-form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 15px;
+
+  &.is-horizontal {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    .app-form-item-label {
+      margin-bottom: 0;
+      flex-grow: 1;
+    }
+
+    .app-form-item-control {
+      flex-shrink: 0;
+    }
+
+    .app-form-item-description {
+      // For horizontal items, description usually goes below the whole row or inside label column.
+      // Current implementation puts it at bottom flex container level.
+      // For complex layouts, we might need grid.
+      // Keep simple for now: flex wrap or just handle description outside.
+      display: none; // Horizontal usually implies simple toggle label
+    }
+  }
+
+  &-label {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: var(--theme-text-color);
+  }
+
+  &-description {
+    font-size: 0.85em;
+    opacity: 0.7;
+    margin-left: 5px;
+  }
+
+  &-error {
+    color: var(--color-warning);
+    font-size: 0.85em;
+  }
+}
+
+// --- AppTabs ---
+.app-tabs {
+  display: flex;
+  gap: 5px;
+  border-bottom: 1px solid var(--theme-border-color);
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+.app-tab-button {
+  background: transparent;
+  border: none;
+  color: var(--theme-text-color);
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: var(--base-border-radius);
+  opacity: 0.6;
+  font-weight: bold;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.95em;
+  transition: all var(--animation-duration);
+
+  &:hover {
+    opacity: 0.9;
+    background-color: var(--white-20a);
+  }
+
+  &.active {
+    opacity: 1;
+    background-color: var(--theme-emphasis-color);
+    color: var(--black-100);
+  }
+}
+
+// --- AppListItem ---
+.app-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--base-border-radius);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--animation-duration);
+
+  &:hover {
+    background-color: var(--white-20a);
+  }
+
+  &.is-active {
+    background-color: var(--white-20a);
+    border-color: var(--theme-quote-color);
+  }
+
+  &.is-selected {
+    background-color: var(--color-accent-cobalt-30a);
+  }
+
+  &-start {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    // Default avatar size if not overridden
+    img {
+      width: var(--avatar-width);
+      height: var(--avatar-height);
+      object-fit: cover;
+      border-radius: var(--avatar-border-radius-round);
+    }
+  }
+
+  &-content {
+    flex-grow: 1;
+    overflow: hidden;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  &-end {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+}
+
+// --- AppSearch ---
+.app-search-bar {
+  display: flex;
+  gap: 5px;
+  align-items: flex-start;
+  width: 100%;
+
+  .search-input-wrapper {
+    flex-grow: 1;
+
+    // Reset margin for inner input
+    .app-input-wrapper {
+      margin: 0;
+    }
+  }
+
+  .search-actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: 5px;
+  }
+}
+
+// --- AppFileInput ---
+.app-file-input {
+  display: inline-flex;
+}
+
+// Legacy helpers
 .form-group {
   display: flex;
   flex-direction: column;
@@ -46,55 +247,6 @@
   .disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-}
-
-.app-input-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-
-  .app-input-label {
-    font-weight: bold;
-    font-size: 0.9em;
-  }
-}
-
-.app-select-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-
-  .app-select-label {
-    font-weight: bold;
-    font-size: 0.9em;
-  }
-}
-
-.app-textarea-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-
-  .maximize-icon {
-    cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-
-  .app-textarea-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: bold;
-    font-size: 0.9em;
   }
 }
 
@@ -148,6 +300,7 @@
   }
 }
 
+// Inline Drawer (Collapsible)
 .inline-drawer {
   width: 100%;
 
@@ -203,6 +356,7 @@
   }
 }
 
+// Range Block
 .range-block {
   display: flex;
   flex-direction: column;
@@ -251,6 +405,7 @@
   }
 }
 
+// Tag Input Controls
 .tag-input-controls {
   display: flex;
   gap: 5px;

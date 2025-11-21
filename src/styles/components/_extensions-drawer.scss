@@ -3,69 +3,16 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-
-    .app-input-wrapper {
-      margin: 0;
-    }
   }
 
   &-list {
     flex-grow: 1;
     overflow-y: auto;
     height: 100%;
-  }
-}
-
-.extension-item {
-  display: flex;
-  align-items: center;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 5px;
-  margin-bottom: 1px;
-  gap: 10px;
-
-  &:hover,
-  &.is-active {
-    background-color: var(--white-20a);
-  }
-  &.is-active {
-    outline: 1px solid var(--theme-quote-color);
-  }
-
-  &-icon {
-    font-size: 1.2em;
-    width: 20px;
-    text-align: center;
-    flex-shrink: 0;
-    opacity: 0.7;
-  }
-
-  &-content {
-    flex-grow: 1;
-    overflow: hidden;
-  }
-
-  &-name {
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &-author {
-    font-size: 0.8em;
-    opacity: 0.7;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &-actions {
-    margin-left: auto;
+    margin-top: 10px;
     display: flex;
-    align-items: center;
-    padding-left: 5px;
+    flex-direction: column;
+    gap: 2px;
   }
 }
 

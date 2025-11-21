@@ -18,12 +18,6 @@
     }
   }
 
-  &-search-form {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-  }
-
   &-character-list {
     flex-grow: 1;
     overflow-y: auto;
@@ -45,82 +39,5 @@
 
   &-editor {
     height: 100%;
-  }
-}
-
-.character-item {
-  display: flex;
-  align-items: center;
-  padding: 6px;
-  cursor: pointer;
-  border-radius: var(--base-border-radius);
-  gap: 10px;
-  border: 1px solid transparent;
-  transition: background-color var(--animation-duration);
-
-  &:hover {
-    background-color: var(--white-20a);
-  }
-
-  &.is-active {
-    background-color: var(--white-20a);
-    border-color: var(--theme-quote-color);
-  }
-
-  &-avatar {
-    width: var(--avatar-width);
-    height: var(--avatar-height);
-    flex-shrink: 0;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center top;
-      border-radius: var(--avatar-border-radius-round);
-      border: 1px solid var(--theme-border-color);
-      box-shadow: 0 1px 3px var(--black-30a);
-    }
-  }
-
-  &-content {
-    flex-grow: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  &-header {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    width: 100%;
-  }
-
-  &-name {
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-grow: 1;
-    font-size: 0.95em;
-  }
-
-  &-fav-icon {
-    color: var(--color-golden);
-    filter: drop-shadow(1px 1px 2px black);
-    font-size: 0.8em;
-    flex-shrink: 0;
-  }
-
-  &-description {
-    font-size: 0.8em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-    opacity: 0.7;
-    margin-top: 2px;
   }
 }

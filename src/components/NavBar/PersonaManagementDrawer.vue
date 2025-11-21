@@ -7,7 +7,11 @@ import { getThumbnailUrl } from '../../utils/image';
 import Pagination from '../Common/Pagination.vue';
 import { usePopupStore } from '../../stores/popup.store';
 import { POPUP_RESULT, POPUP_TYPE } from '../../types';
-import { AppButton, AppIconButton, AppInput, AppSelect, AppCheckbox, AppTextarea } from '../UI';
+import { AppButton, AppIconButton, AppSelect, AppCheckbox, AppTextarea } from '../UI';
+import AppSearch from '../UI/AppSearch.vue';
+import AppListItem from '../UI/AppListItem.vue';
+import AppFileInput from '../UI/AppFileInput.vue';
+import AppFormItem from '../UI/AppFormItem.vue';
 
 const { t } = useStrictI18n();
 const personaStore = usePersonaStore();
@@ -19,8 +23,6 @@ const sortOrder = ref('asc');
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const isGridView = ref(false);
-const avatarInput = ref<HTMLInputElement | null>(null);
-const fileImportInput = ref<HTMLInputElement | null>(null);
 
 const sortOptions = [
   { label: 'A-Z', value: 'asc' },
@@ -48,13 +50,8 @@ const paginatedPersonas = computed(() => {
   return filteredPersonas.value.slice(start, end);
 });
 
-function triggerImport() {
-  fileImportInput.value?.click();
-}
-
-function handleFileImport(event: Event) {
-  // TODO
-  console.log('Restore from backup clicked', event);
+function handleFileImport(files: File[]) {
+  console.log('Restore from backup clicked', files);
 }
 
 async function handleDelete() {
@@ -70,18 +67,10 @@ async function handleDelete() {
   }
 }
 
-function triggerAvatarUpload() {
-  avatarInput.value?.click();
-}
-
-async function handleAvatarChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (file) {
-    await personaStore.uploadPersonaAvatar(personaStore.activePersonaId, file);
+async function handleAvatarChange(files: File[]) {
+  if (files[0]) {
+    await personaStore.uploadPersonaAvatar(personaStore.activePersonaId, files[0]);
   }
-  // Reset input to allow selecting the same file again
-  if (input) input.value = '';
 }
 
 onMounted(() => {
@@ -103,22 +92,28 @@ onMounted(() => {
       <div class="persona-drawer-header-actions">
         <AppButton icon="fa-ranking-star">{{ t('personaManagement.usageStats') }}</AppButton>
         <AppButton icon="fa-file-export">{{ t('personaManagement.backup') }}</AppButton>
-        <AppButton icon="fa-file-import" @click="triggerImport">
-          {{ t('personaManagement.restore') }}
-        </AppButton>
-        <input ref="fileImportInput" type="file" accept=".json" hidden @change="handleFileImport" />
+        <AppFileInput
+          accept=".json"
+          icon="fa-file-import"
+          type="button"
+          :label="t('personaManagement.restore')"
+          @change="handleFileImport"
+        />
       </div>
     </div>
     <div class="persona-drawer-content">
       <!-- Left Column -->
       <div class="persona-drawer-column--left">
         <div class="persona-drawer-list-controls">
-          <AppButton icon="fa-person-circle-question" @click="personaStore.createPersona">
-            {{ t('personaManagement.create') }}
-          </AppButton>
-          <AppInput v-model="searchTerm" type="search" :placeholder="t('common.search')" />
-          <AppSelect v-model="sortOrder" :options="sortOptions" />
-          <AppIconButton icon="fa-table-cells-large" @click="isGridView = !isGridView" />
+          <AppSearch v-model="searchTerm" :placeholder="t('common.search')">
+            <template #actions>
+              <AppButton icon="fa-person-circle-question" @click="personaStore.createPersona">
+                {{ t('personaManagement.create') }}
+              </AppButton>
+              <AppSelect v-model="sortOrder" :options="sortOptions" />
+              <AppIconButton icon="fa-table-cells-large" @click="isGridView = !isGridView" />
+            </template>
+          </AppSearch>
         </div>
         <Pagination
           v-if="filteredPersonas.length > 0"
@@ -128,21 +123,29 @@ onMounted(() => {
           :items-per-page-options="[5, 10, 25, 50, 100]"
         />
         <div class="persona-list" :class="{ 'grid-view': isGridView }">
-          <div
-            v-for="persona in paginatedPersonas"
-            :key="`${persona.avatarId}-${personaStore.lastAvatarUpdate}`"
-            class="persona-item"
-            :class="{ selected: persona.avatarId === personaStore.activePersonaId }"
-            @click="personaStore.setActivePersona(persona.avatarId)"
-          >
-            <img :src="getThumbnailUrl('persona', persona.avatarId)" alt="Persona Avatar" class="persona-item-avatar" />
-            <div class="persona-item-details">
-              <div class="persona-item-name">{{ persona.name }}</div>
-              <div class="persona-item-description">
-                {{ persona.description || t('personaManagement.noDescription') }}
-              </div>
-              <!-- TODO: Add lock icons -->
-            </div>
+          <div v-for="persona in paginatedPersonas" :key="`${persona.avatarId}-${personaStore.lastAvatarUpdate}`">
+            <AppListItem
+              :active="persona.avatarId === personaStore.activePersonaId"
+              @click="personaStore.setActivePersona(persona.avatarId)"
+            >
+              <template #start>
+                <img
+                  :src="getThumbnailUrl('persona', persona.avatarId)"
+                  alt="Persona Avatar"
+                  class="persona-item-avatar"
+                />
+              </template>
+              <template #default>
+                <div class="font-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
+                  {{ persona.name }}
+                </div>
+                <div
+                  style="font-size: 0.9em; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+                >
+                  {{ persona.description || t('personaManagement.noDescription') }}
+                </div>
+              </template>
+            </AppListItem>
           </div>
         </div>
       </div>
@@ -161,12 +164,14 @@ onMounted(() => {
               />
               <AppIconButton icon="fa-sync" :title="t('personaManagement.actions.syncName')" />
               <AppIconButton icon="fa-globe" :title="t('personaManagement.actions.lore')" />
-              <AppIconButton
+
+              <AppFileInput
+                accept="image/*"
                 icon="fa-image"
-                :title="t('personaManagement.actions.changeImage')"
-                @click="triggerAvatarUpload"
+                :label="t('personaManagement.actions.changeImage')"
+                @change="handleAvatarChange"
               />
-              <input ref="avatarInput" type="file" accept="image/*" hidden @change="handleAvatarChange" />
+
               <AppIconButton icon="fa-clone" :title="t('personaManagement.actions.duplicate')" />
               <AppIconButton
                 variant="danger"
@@ -177,13 +182,14 @@ onMounted(() => {
             </div>
           </div>
 
-          <AppTextarea
-            :model-value="personaStore.activePersona?.description ?? ''"
-            :label="t('personaManagement.description.label')"
-            :rows="6"
-            :placeholder="t('personaManagement.description.placeholder')"
-            @update:model-value="personaStore.updateActivePersonaField('description', $event)"
-          />
+          <AppFormItem :label="t('personaManagement.description.label')">
+            <AppTextarea
+              :model-value="personaStore.activePersona?.description ?? ''"
+              :rows="6"
+              :placeholder="t('personaManagement.description.placeholder')"
+              @update:model-value="personaStore.updateActivePersonaField('description', $event)"
+            />
+          </AppFormItem>
           <!-- TODO: Add token counter -->
 
           <h4 class="standoutHeader">{{ t('personaManagement.connections.title') }}</h4>
@@ -214,3 +220,9 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.font-bold {
+  font-weight: bold;
+}
+</style>

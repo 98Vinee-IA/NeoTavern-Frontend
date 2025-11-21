@@ -8,6 +8,7 @@ import { toast } from '../../composables/useToast';
 import type { MessageRole } from '@/types';
 import DraggableList from '../Common/DraggableList.vue';
 import { AppButton, AppIconButton, AppInput, AppSelect, AppTextarea } from '../UI';
+import AppFormItem from '../UI/AppFormItem.vue';
 import EmptyState from '../Common/EmptyState.vue';
 
 const settingsStore = useSettingsStore();
@@ -21,18 +22,15 @@ interface DisplayPrompt extends Prompt {
   enabled: boolean;
 }
 
-// Compute the list by merging definitions with the order configuration
 const displayPrompts = computed<DisplayPrompt[]>(() => {
   const definitions = settingsStore.settings.api.samplers.prompts || [];
   const orderConfig = settingsStore.settings.api.samplers.prompt_order?.order || [];
 
-  // Create a map for quick lookup
   const defMap = new Map(definitions.map((p) => [p.identifier, p]));
 
   const result: DisplayPrompt[] = [];
   const processedIds = new Set<string>();
 
-  // 1. Add items based on order
   for (const item of orderConfig) {
     const def = defMap.get(item.identifier);
     if (def) {
@@ -41,7 +39,6 @@ const displayPrompts = computed<DisplayPrompt[]>(() => {
     }
   }
 
-  // 2. Add any definitions not present in the order (fallback/safety)
   for (const def of definitions) {
     if (!processedIds.has(def.identifier)) {
       result.push({ ...def, enabled: true });
@@ -58,15 +55,12 @@ const roleOptions = [
 ];
 
 function saveChanges(newDisplayList: DisplayPrompt[]) {
-  // 1. Update Definitions (Prompt[])
-  // We filter out the 'enabled' property to match the Prompt type
   const newDefinitions: Prompt[] = newDisplayList.map((p) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { enabled, ...rest } = p;
     return rest;
   });
 
-  // 2. Update Order ({ identifier, enabled }[])
   const newOrder = newDisplayList.map((p) => ({
     identifier: p.identifier,
     enabled: p.enabled,
@@ -123,7 +117,6 @@ function toggleEnabled(index: number) {
   saveChanges(newList);
 }
 
-// When editing fields (name, content, etc), we need to update the definition in the store
 function updatePromptField(index: number, field: keyof Prompt, value: string | number | MessageRole) {
   const newList = cloneDeep(displayPrompts.value);
   // @ts-expect-error Dynamic assignment
@@ -205,26 +198,26 @@ function getBadgeClass(role?: string) {
 
             <!-- Editor Row (Expandable) -->
             <div v-show="editingIdentifier === prompt.identifier" class="prompt-item-editor">
-              <AppInput
-                :model-value="prompt.name"
-                :label="t('common.name')"
-                @update:model-value="(v) => updatePromptField(index, 'name', v)"
-              />
+              <AppFormItem :label="t('common.name')">
+                <AppInput :model-value="prompt.name" @update:model-value="(v) => updatePromptField(index, 'name', v)" />
+              </AppFormItem>
 
               <template v-if="!prompt.marker">
-                <AppSelect
-                  :model-value="prompt.role || 'system'"
-                  :options="roleOptions"
-                  :label="t('aiConfig.promptManager.role')"
-                  @update:model-value="(v) => updatePromptField(index, 'role', v as MessageRole)"
-                />
+                <AppFormItem :label="t('aiConfig.promptManager.role')">
+                  <AppSelect
+                    :model-value="prompt.role || 'system'"
+                    :options="roleOptions"
+                    @update:model-value="(v) => updatePromptField(index, 'role', v as MessageRole)"
+                  />
+                </AppFormItem>
 
-                <AppTextarea
-                  :model-value="prompt.content || ''"
-                  :label="t('aiConfig.promptManager.content')"
-                  :rows="5"
-                  @update:model-value="(v) => updatePromptField(index, 'content', v)"
-                />
+                <AppFormItem :label="t('aiConfig.promptManager.content')">
+                  <AppTextarea
+                    :model-value="prompt.content || ''"
+                    :rows="5"
+                    @update:model-value="(v) => updatePromptField(index, 'content', v)"
+                  />
+                </AppFormItem>
               </template>
               <div v-else class="prompt-empty-state" style="padding: 5px; font-size: 0.9em">
                 {{ t('aiConfig.promptManager.markerHint') }}
