@@ -190,7 +190,7 @@ export const useChatStore = defineStore('chat', () => {
 
     if (strategy === GroupReplyStrategy.LIST_ORDER) {
       if (!lastMessage || lastMessage.is_user) return activeMembers[0];
-      const lastIndex = activeMembers.findIndex((c) => c.name === lastMessage.name);
+      const lastIndex = activeMembers.findIndex((c) => c.avatar === lastMessage.original_avatar);
       const nextIndex = (lastIndex + 1) % activeMembers.length;
       return activeMembers[nextIndex];
     }
@@ -229,7 +229,7 @@ export const useChatStore = defineStore('chat', () => {
 
       // 1. Check mentions
       for (const char of activeMembers) {
-        if (!groupConfig.value.config.allowSelfResponses && lastMessage.name === char.name) continue;
+        if (!groupConfig.value.config.allowSelfResponses && lastMessage.original_avatar === char.avatar) continue;
 
         // Simple name matching
         const nameParts = char.name.toLowerCase().split(' ');
@@ -248,7 +248,7 @@ export const useChatStore = defineStore('chat', () => {
       // 2. Talkativeness RNG
       const candidates: Character[] = [];
       for (const char of activeMembers) {
-        if (!groupConfig.value.config.allowSelfResponses && lastMessage.name === char.name) continue;
+        if (!groupConfig.value.config.allowSelfResponses && lastMessage.original_avatar === char.avatar) continue;
 
         const chance = (char.talkativeness ?? talkativeness_default) * 100;
         if (Math.random() * 100 < chance) {
@@ -646,6 +646,7 @@ export const useChatStore = defineStore('chat', () => {
             send_date: swipeInfo.send_date,
             gen_started: genStarted,
             gen_finished: genFinished,
+            is_system: false,
             swipes: [content],
             swipe_info: [swipeInfo],
             swipe_id: 0,
@@ -701,6 +702,7 @@ export const useChatStore = defineStore('chat', () => {
             mes: '',
             send_date: getMessageTimeStamp(),
             gen_started: genStarted,
+            is_system: false,
             swipes: [''],
             swipe_id: 0,
             swipe_info: [],
@@ -800,7 +802,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function sendMessage(messageText: string, triggerGeneration = true) {
-    if (!messageText.trim() || isGenerating.value || activeChat.value === null) {
+    if (!messageText.trim() || isGenerating.value || activeChat.value === null || !personaStore.activePersona) {
       return;
     }
 
@@ -812,7 +814,17 @@ export const useChatStore = defineStore('chat', () => {
       mes: messageText.trim(),
       send_date: getMessageTimeStamp(),
       force_avatar: getThumbnailUrl('persona', uiStore.activePlayerAvatar || default_user_avatar),
+      original_avatar: personaStore.activePersona.avatarId,
+      is_system: false,
       extra: {},
+      swipe_id: 0,
+      swipes: [messageText.trim()],
+      swipe_info: [
+        {
+          send_date: getMessageTimeStamp(),
+          extra: {},
+        },
+      ],
     };
 
     const createController = new AbortController();

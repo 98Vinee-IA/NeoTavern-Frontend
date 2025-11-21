@@ -30,7 +30,7 @@ export interface ChatMetadata {
 }
 
 export interface SwipeInfo {
-  send_date?: string;
+  send_date: string;
   gen_started?: string;
   gen_finished?: string;
   extra: {
@@ -41,19 +41,19 @@ export interface SwipeInfo {
 }
 
 export interface ChatMessage {
-  send_date?: string;
+  send_date: string;
   name: string;
   mes: string;
   gen_started?: string;
   gen_finished?: string;
-  is_user?: boolean;
-  is_system?: boolean;
+  is_user: boolean;
+  is_system: boolean; // I think we should rename this
   force_avatar?: string;
-  original_avatar?: string;
-  swipes?: string[];
-  swipe_info?: SwipeInfo[];
-  swipe_id?: number;
-  extra?: {
+  original_avatar: string; // Identifer, which is 'avatar' field in Character
+  swipes: string[]; // TODO: I had to make type-safe. But user message shouldn't have swipe stuff though. So we need to tweak this type.
+  swipe_info: SwipeInfo[];
+  swipe_id: number;
+  extra: {
     reasoning?: string;
     reasoning_duration?: number;
     reasoning_type?: string;
