@@ -12,6 +12,7 @@ import { toast } from '../../composables/useToast';
 import { GenerationMode, GroupGenerationHandlingMode, GroupReplyStrategy } from '../../constants';
 import { getThumbnailUrl } from '../../utils/image';
 import Pagination from '../Common/Pagination.vue';
+import DraggableList from '../Common/DraggableList.vue';
 import { useUiStore } from '@/stores/ui.store';
 
 const { t } = useStrictI18n();
@@ -181,9 +182,13 @@ function forceTalk(avatar: string) {
   chatStore.generateResponse(GenerationMode.NEW, avatar);
 }
 
-function moveMember(index: number, direction: 'up' | 'down') {
-  const newIndex = direction === 'up' ? index - 1 : index + 1;
-  chatStore.reorderMembers(index, newIndex);
+function updateMembersOrder(newMembers: Character[]) {
+  if (!chatStore.activeChat) return;
+  const newMemberIds = newMembers.map((m) => m.avatar);
+
+  if (chatStore.activeChat.metadata) {
+    chatStore.activeChat.metadata.members = newMemberIds;
+  }
 }
 
 function peekCharacter(avatar: string) {
@@ -271,54 +276,53 @@ async function removeMember(avatar: string) {
       <!-- Tab: Members / Group Config -->
       <div v-show="activeTab === 'members'" class="chat-management-tab-content">
         <!-- Current Members -->
-        <div class="group-members-list">
-          <div
-            v-for="(member, index) in groupMembers"
-            :key="member.avatar"
-            class="group-member-item"
-            :class="{ muted: groupConfig?.members[member.avatar]?.muted }"
-          >
-            <img :src="getThumbnailUrl('avatar', member.avatar)" />
-            <span class="group-member-name" :title="member.name">{{ member.name }}</span>
+        <DraggableList
+          :items="groupMembers"
+          item-key="avatar"
+          class="group-members-list"
+          handle-class="group-member-handle"
+          @update:items="updateMembersOrder"
+        >
+          <template #default="{ item: member }">
+            <div class="group-member-item" :class="{ muted: groupConfig?.members[member.avatar]?.muted }">
+              <div
+                class="menu-button-icon fa-solid fa-grip-lines group-member-handle"
+                style="cursor: grab; opacity: 0.5"
+                :title="t('common.dragToReorder')"
+              ></div>
 
-            <div class="member-actions">
-              <div
-                v-if="isGroup"
-                class="menu-button-icon fa-solid fa-address-card"
-                :title="t('group.peek')"
-                @click="peekCharacter(member.avatar)"
-              ></div>
-              <div
-                v-if="isGroup"
-                class="menu-button-icon fa-solid fa-comment-dots"
-                :title="t('group.forceTalk')"
-                @click="forceTalk(member.avatar)"
-              ></div>
-              <div
-                v-if="isGroup"
-                class="menu-button-icon fa-solid"
-                :class="groupConfig?.members[member.avatar]?.muted ? 'fa-comment-slash' : 'fa-comment'"
-                :title="t('group.mute')"
-                @click="toggleMute(member.avatar)"
-              ></div>
-              <div
-                class="menu-button-icon fa-solid fa-trash-can menu-button--danger"
-                :title="t('common.remove')"
-                @click="removeMember(member.avatar)"
-              ></div>
-              <div
-                v-if="index > 0"
-                class="menu-button-icon fa-solid fa-arrow-up"
-                @click="moveMember(index, 'up')"
-              ></div>
-              <div
-                v-if="index < groupMembers.length - 1"
-                class="menu-button-icon fa-solid fa-arrow-down"
-                @click="moveMember(index, 'down')"
-              ></div>
+              <img :src="getThumbnailUrl('avatar', member.avatar)" />
+              <span class="group-member-name" :title="member.name">{{ member.name }}</span>
+
+              <div class="member-actions">
+                <div
+                  v-if="isGroup"
+                  class="menu-button-icon fa-solid fa-address-card"
+                  :title="t('group.peek')"
+                  @click="peekCharacter(member.avatar)"
+                ></div>
+                <div
+                  v-if="isGroup"
+                  class="menu-button-icon fa-solid fa-comment-dots"
+                  :title="t('group.forceTalk')"
+                  @click="forceTalk(member.avatar)"
+                ></div>
+                <div
+                  v-if="isGroup"
+                  class="menu-button-icon fa-solid"
+                  :class="groupConfig?.members[member.avatar]?.muted ? 'fa-comment-slash' : 'fa-comment'"
+                  :title="t('group.mute')"
+                  @click="toggleMute(member.avatar)"
+                ></div>
+                <div
+                  class="menu-button-icon fa-solid fa-trash-can menu-button--danger"
+                  :title="t('common.remove')"
+                  @click="removeMember(member.avatar)"
+                ></div>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </DraggableList>
 
         <!-- Add Member Section -->
         <div class="group-add-section">

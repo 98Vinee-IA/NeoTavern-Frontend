@@ -6,6 +6,7 @@ import type { Prompt } from '../../types/settings';
 import { cloneDeep } from 'lodash-es';
 import { toast } from '../../composables/useToast';
 import type { MessageRole } from '@/types';
+import DraggableList from '../Common/DraggableList.vue';
 
 const settingsStore = useSettingsStore();
 const { t } = useStrictI18n();
@@ -108,15 +109,6 @@ function toggleEdit(identifier: string) {
   }
 }
 
-function movePrompt(index: number, direction: 'up' | 'down') {
-  const newIndex = direction === 'up' ? index - 1 : index + 1;
-  if (newIndex < 0 || newIndex >= displayPrompts.value.length) return;
-
-  const newList = [...displayPrompts.value];
-  [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
-  saveChanges(newList);
-}
-
 function toggleEnabled(index: number) {
   const newList = cloneDeep(displayPrompts.value);
   newList[index].enabled = !newList[index].enabled;
@@ -155,105 +147,102 @@ function getBadgeClass(role?: string) {
     </div>
 
     <div class="prompt-manager-list-container">
-      <div class="prompt-manager-list">
-        <div
-          v-for="(prompt, index) in displayPrompts"
-          :key="prompt.identifier"
-          class="prompt-item"
-          :class="{
-            disabled: !prompt.enabled,
-            'is-editing': editingIdentifier === prompt.identifier,
-          }"
-        >
-          <!-- Header Row -->
-          <div class="prompt-item-header">
-            <div class="prompt-item-actions">
-              <div
-                class="menu-button-icon fa-solid fa-grip-lines prompt-item-drag-handle"
-                :title="t('common.dragToReorder')"
-              ></div>
-            </div>
+      <DraggableList
+        :items="displayPrompts"
+        item-key="identifier"
+        handle-class="prompt-item-drag-handle"
+        class="prompt-manager-list"
+        @update:items="saveChanges"
+      >
+        <template #default="{ item: prompt, index }">
+          <div
+            class="prompt-item"
+            :class="{
+              disabled: !prompt.enabled,
+              'is-editing': editingIdentifier === prompt.identifier,
+            }"
+          >
+            <!-- Header Row -->
+            <div class="prompt-item-header">
+              <div class="prompt-item-actions">
+                <div
+                  class="menu-button-icon fa-solid fa-grip-lines prompt-item-drag-handle"
+                  :title="t('common.dragToReorder')"
+                ></div>
+              </div>
 
-            <div class="prompt-item-info" @click="toggleEdit(prompt.identifier)">
-              <span class="prompt-item-name">{{ prompt.name }}</span>
-              <div class="prompt-item-badges">
-                <span v-if="prompt.marker" class="prompt-item-badge prompt-item-badge--marker">Marker</span>
-                <span v-else class="prompt-item-badge" :class="getBadgeClass(prompt.role)">{{ prompt.role }}</span>
+              <div class="prompt-item-info" @click="toggleEdit(prompt.identifier)">
+                <span class="prompt-item-name">{{ prompt.name }}</span>
+                <div class="prompt-item-badges">
+                  <span v-if="prompt.marker" class="prompt-item-badge prompt-item-badge--marker">Marker</span>
+                  <span v-else class="prompt-item-badge" :class="getBadgeClass(prompt.role)">{{ prompt.role }}</span>
+                </div>
+              </div>
+
+              <div class="prompt-item-actions">
+                <button
+                  class="menu-button-icon fa-solid"
+                  :class="prompt.enabled ? 'fa-toggle-on' : 'fa-toggle-off'"
+                  :title="t('common.toggle')"
+                  @click.stop="toggleEnabled(index)"
+                ></button>
+
+                <button
+                  class="menu-button-icon fa-solid fa-trash menu-button--danger"
+                  :disabled="!!prompt.marker"
+                  @click.stop="deletePrompt(prompt.identifier)"
+                ></button>
               </div>
             </div>
 
-            <div class="prompt-item-actions">
-              <button
-                class="menu-button-icon fa-solid"
-                :class="prompt.enabled ? 'fa-toggle-on' : 'fa-toggle-off'"
-                :title="t('common.toggle')"
-                @click.stop="toggleEnabled(index)"
-              ></button>
-
-              <button
-                class="menu-button-icon fa-solid fa-arrow-up"
-                :disabled="index === 0"
-                @click.stop="movePrompt(index, 'up')"
-              ></button>
-              <button
-                class="menu-button-icon fa-solid fa-arrow-down"
-                :disabled="index === displayPrompts.length - 1"
-                @click.stop="movePrompt(index, 'down')"
-              ></button>
-
-              <button
-                class="menu-button-icon fa-solid fa-trash menu-button--danger"
-                :disabled="!!prompt.marker"
-                @click.stop="deletePrompt(prompt.identifier)"
-              ></button>
-            </div>
-          </div>
-
-          <!-- Editor Row (Expandable) -->
-          <div v-show="editingIdentifier === prompt.identifier" class="prompt-item-editor">
-            <label>
-              {{ t('common.name') }}
-              <input
-                :value="prompt.name"
-                class="text-pole"
-                @input="updatePromptField(index, 'name', ($event.target as HTMLInputElement).value)"
-              />
-            </label>
-
-            <template v-if="!prompt.marker">
+            <!-- Editor Row (Expandable) -->
+            <div v-show="editingIdentifier === prompt.identifier" class="prompt-item-editor">
               <label>
-                {{ t('aiConfig.promptManager.role') }}
-                <select
-                  :value="prompt.role"
+                {{ t('common.name') }}
+                <input
+                  :value="prompt.name"
                   class="text-pole"
-                  @change="updatePromptField(index, 'role', ($event.target as HTMLSelectElement).value as MessageRole)"
-                >
-                  <option value="system">System</option>
-                  <option value="user">User</option>
-                  <option value="assistant">Assistant</option>
-                </select>
+                  @input="updatePromptField(index, 'name', ($event.target as HTMLInputElement).value)"
+                />
               </label>
 
-              <label>
-                {{ t('aiConfig.promptManager.content') }}
-                <textarea
-                  :value="prompt.content"
-                  class="text-pole"
-                  rows="5"
-                  @input="updatePromptField(index, 'content', ($event.target as HTMLTextAreaElement).value)"
-                ></textarea>
-              </label>
-            </template>
-            <div v-else class="prompt-empty-state" style="padding: 5px; font-size: 0.9em">
-              {{ t('aiConfig.promptManager.markerHint') }}
+              <template v-if="!prompt.marker">
+                <label>
+                  {{ t('aiConfig.promptManager.role') }}
+                  <select
+                    :value="prompt.role"
+                    class="text-pole"
+                    @change="
+                      updatePromptField(index, 'role', ($event.target as HTMLSelectElement).value as MessageRole)
+                    "
+                  >
+                    <option value="system">System</option>
+                    <option value="user">User</option>
+                    <option value="assistant">Assistant</option>
+                  </select>
+                </label>
+
+                <label>
+                  {{ t('aiConfig.promptManager.content') }}
+                  <textarea
+                    :value="prompt.content"
+                    class="text-pole"
+                    rows="5"
+                    @input="updatePromptField(index, 'content', ($event.target as HTMLTextAreaElement).value)"
+                  ></textarea>
+                </label>
+              </template>
+              <div v-else class="prompt-empty-state" style="padding: 5px; font-size: 0.9em">
+                {{ t('aiConfig.promptManager.markerHint') }}
+              </div>
             </div>
           </div>
-        </div>
+        </template>
+      </DraggableList>
 
-        <div v-if="displayPrompts.length === 0" class="prompt-empty-state">
-          <i class="fa-solid fa-layer-group"></i>
-          <p>{{ t('aiConfig.promptManager.noPrompts') }}</p>
-        </div>
+      <div v-if="displayPrompts.length === 0" class="prompt-empty-state">
+        <i class="fa-solid fa-layer-group"></i>
+        <p>{{ t('aiConfig.promptManager.noPrompts') }}</p>
       </div>
     </div>
   </div>

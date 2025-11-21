@@ -861,16 +861,6 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function reorderMembers(fromIndex: number, toIndex: number) {
-    if (!activeChat.value) return;
-    const members = activeChat.value.metadata.members || [];
-    if (toIndex >= 0 && toIndex < members.length) {
-      const item = members.splice(fromIndex, 1)[0];
-      members.splice(toIndex, 0, item);
-      saveChatDebounced();
-    }
-  }
-
   async function addMember(avatar: string) {
     if (!activeChat.value) return;
     if (activeChat.value.metadata.members?.includes(avatar)) return;
@@ -1104,7 +1094,6 @@ export const useChatStore = defineStore('chat', () => {
     setActiveChatFile,
     createNewChatForCharacter,
     toggleMemberMute,
-    reorderMembers,
     addMember,
     removeMember,
   };
