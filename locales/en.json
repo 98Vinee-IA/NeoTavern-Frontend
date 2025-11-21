@@ -380,6 +380,7 @@
     "continue": "Continue the last message",
     "send": "Send a message",
     "loadError": "Failed to load chat.",
+    "createError": "Failed to create chat message.",
     "generate": {
       "noPrompts": "No prompts were built for the AI. Please check your prompt settings.",
       "errorFallback": "Failed to get a response from the AI.",

@@ -58,11 +58,12 @@ export async function listChats(): Promise<ChatInfo[]> {
 }
 
 export async function deleteChat(chatFile: string): Promise<void> {
+  const fixedChatFile = !chatFile.endsWith('.jsonl') ? `${chatFile}.jsonl` : chatFile;
   const response = await fetch('/api/chats/delete', {
     method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify({
-      chatfile: chatFile,
+      chatfile: fixedChatFile,
       avatar_url: '',
     }),
   });

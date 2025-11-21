@@ -201,7 +201,7 @@ export const CHARACTER_FIELD_MAPPINGS: Record<string, string> = {
   tags: 'data.tags',
 };
 
-export const DEFAULT_CHARACTER: Partial<Character> = {
+export const DEFAULT_CHARACTER: Character = {
   name: '',
   description: '',
   first_mes: '',

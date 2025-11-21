@@ -37,20 +37,26 @@ async function selectChat(chatFile: string) {
   close();
 }
 
-async function createNewChat() {
-  const firstCharacter = characterStore.activeCharacters?.[0];
-  const { result, value: newName } = await popupStore.show({
-    title: t('chatManagement.newChat'),
-    content: t('chatManagement.createPrompt'),
-    type: POPUP_TYPE.INPUT,
-    inputValue: `${firstCharacter?.avatar} - ${humanizedDateTime()}`,
-  });
+async function createNewChat(askConfirmation = true) {
+  if (!characterStore.activeCharacters) {
+    console.warn("No active characters to create a chat for. This shouldn't happen.");
+    return;
+  }
+  const firstCharacter = characterStore.activeCharacters[0];
+  let result: POPUP_RESULT = POPUP_RESULT.AFFIRMATIVE;
+  let value = `${firstCharacter?.avatar} - ${humanizedDateTime()}`;
+  if (askConfirmation) {
+    ({ result, value } = await popupStore.show({
+      title: t('chatManagement.newChat'),
+      content: t('chatManagement.createPrompt'),
+      type: POPUP_TYPE.INPUT,
+      inputValue: `${firstCharacter?.avatar} - ${humanizedDateTime()}`,
+    }));
+  }
 
-  if (result === POPUP_RESULT.AFFIRMATIVE && newName && characterStore.activeCharacters) {
-    const newFileName = `${newName.trim()}`;
+  if (result === POPUP_RESULT.AFFIRMATIVE && value) {
     try {
-      await api.saveChat(newFileName);
-      await selectChat(newFileName);
+      await chatStore.createNewChatForCharacter(firstCharacter.avatar, value.trim());
     } catch {
       toast.error(t('chatManagement.errors.create'));
     }
@@ -89,15 +95,19 @@ async function deleteChat(chatFile: string) {
   if (result === POPUP_RESULT.AFFIRMATIVE && characterStore.activeCharacters) {
     try {
       await api.deleteChat(chatFile);
-      if (chatStore.activeChatFile === chatFile && chats.value) {
-        // If we deleted the active chat, switch to another one or create a new one
-        const remainingChats = chats.value.filter((f) => f.file_id !== chatFile);
-        if (remainingChats.length > 0) {
-          await selectChat(remainingChats[0].file_id);
+      const index = chats.value.findIndex((chat) => chat.file_id === chatFile);
+      const isActiveChat = chatStore.activeChatFile === chatFile;
+      if (isActiveChat) {
+        // Select another chat if available
+        if (chats.value.length > 1) {
+          const newIndex = index === 0 ? 1 : index - 1;
+          const newChatFile = chats.value[newIndex].file_id;
+          await selectChat(newChatFile);
         } else {
-          await createNewChat();
+          await createNewChat(false);
         }
       }
+      chatStore.chatInfos = chatStore.chatInfos.filter((chat) => chat.file_id !== chatFile);
     } catch {
       toast.error(t('chatManagement.errors.delete'));
     }
@@ -109,7 +119,7 @@ async function deleteChat(chatFile: string) {
   <div class="popup-body">
     <h3>{{ t('chatManagement.title') }}</h3>
     <div class="chat-management-actions">
-      <button v-show="characterStore.activeCharacters" class="menu-button" @click="createNewChat">
+      <button v-show="characterStore.activeCharacters" class="menu-button" @click="createNewChat()">
         {{ t('chatManagement.newChat') }}
       </button>
     </div>

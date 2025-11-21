@@ -29,7 +29,7 @@ import { useSettingsStore } from './settings.store';
 import { onlyUnique } from '../utils/array';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { getFirstMessage } from '../utils/chat';
-import { get, set, defaultsDeep, debounce } from 'lodash-es';
+import { get, set, debounce } from 'lodash-es';
 import { eventEmitter } from '../utils/event-emitter';
 import { ApiTokenizer } from '../api/tokenizer';
 
@@ -60,7 +60,7 @@ export const useCharacterStore = defineStore('character', () => {
   });
 
   const isCreating = ref(false);
-  const draftCharacter = ref<Character | null>(null);
+  const draftCharacter = ref<Character>(DEFAULT_CHARACTER);
 
   const activeCharacterAvatars = computed<Set<string>>(() => {
     const members = chatStore.activeChat?.metadata?.members;
@@ -76,7 +76,12 @@ export const useCharacterStore = defineStore('character', () => {
     }
 
     if (uiStore.selectedCharacterAvatarForEditing) {
-      return characters.value.find((char) => char.avatar === uiStore.selectedCharacterAvatarForEditing) ?? null;
+      const editingCharacter = characters.value.find(
+        (char) => char.avatar === uiStore.selectedCharacterAvatarForEditing,
+      );
+      if (editingCharacter) {
+        return editingCharacter;
+      }
     }
 
     return null;
@@ -221,15 +226,18 @@ export const useCharacterStore = defineStore('character', () => {
       cancelCreating();
     }
 
-    const uiStore = useUiStore();
     uiStore.selectedCharacterAvatarForEditing = avatar;
     if (uiStore.isChatSaving) {
       toast.info(t('character.switch.wait'));
       return;
     }
 
-    if (!activeCharacterAvatars.value.has(avatar)) {
-      await chatStore.setActiveChatFile(character.chat, character);
+    const isChatExist = chatStore.chatInfos.some((chat) => chat.file_id === character.chat);
+    if (isChatExist) {
+      await chatStore.setActiveChatFile(character.chat);
+    } else {
+      const filename = `${character.name.replace(/\s+/g, '_')}_${humanizedDateTime()}`;
+      await chatStore.createNewChatForCharacter(avatar, filename);
     }
   }
 
@@ -343,7 +351,6 @@ export const useCharacterStore = defineStore('character', () => {
   }, DEFAULT_SAVE_EDIT_TIMEOUT);
 
   async function importCharacter(file: File): Promise<string | undefined> {
-    const uiStore = useUiStore();
     if (uiStore.isSendPress) {
       toast.error(t('character.import.abortedMessage'), t('character.import.aborted'));
       throw new Error('Cannot import character while generating');
@@ -455,9 +462,6 @@ export const useCharacterStore = defineStore('character', () => {
     // Clear active selection
     uiStore.selectedCharacterAvatarForEditing = null;
 
-    // Prepare draft with defaults
-    draftCharacter.value = defaultsDeep({}, DEFAULT_CHARACTER) as Character;
-
     // Set creation mode
     isCreating.value = true;
 
@@ -467,12 +471,9 @@ export const useCharacterStore = defineStore('character', () => {
 
   function cancelCreating() {
     isCreating.value = false;
-    draftCharacter.value = null;
   }
 
   async function createNewCharacter(character: Character, file?: File) {
-    const uiStore = useUiStore();
-
     if (uiStore.isSendPress) {
       toast.error(t('character.import.abortedMessage'));
       return;
@@ -526,7 +527,7 @@ export const useCharacterStore = defineStore('character', () => {
         const newCharIndex = characters.value.findIndex((c) => c.avatar === result.file_name);
         if (newCharIndex !== -1) {
           isCreating.value = false;
-          draftCharacter.value = null;
+          draftCharacter.value = DEFAULT_CHARACTER;
           await selectCharacterByAvatar(result.file_name);
           const createdChar = characters.value[newCharIndex];
           await nextTick();

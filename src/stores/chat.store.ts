@@ -13,15 +13,14 @@ import {
   type FullChat,
   type ChatHeader,
   type ChatInfo,
-  type Character,
 } from '../types';
 import { usePromptStore } from './prompt.store';
 import { useCharacterStore } from './character.store';
 import { useUiStore } from './ui.store';
 import { useApiStore } from './api.store';
-import { fetchChat, saveChat as apiSaveChat } from '../api/chat';
+import { fetchChat, saveChat as apiSaveChat, saveChat } from '../api/chat';
 import { getMessageTimeStamp } from '../utils/date';
-import { uuidv4 } from '../utils/common';
+import { uuidv4 } from '@/utils/common';
 import { getFirstMessage } from '../utils/chat';
 import { toast } from '../composables/useToast';
 import { useStrictI18n } from '../composables/useStrictI18n';
@@ -63,11 +62,12 @@ export const useChatStore = defineStore('chat', () => {
   const chatsMetadataByCharacterAvatars = computed(() => {
     const mapping: Record<string, ChatInfo[]> = {};
     for (const chatInfo of chatInfos.value) {
-      const avatar = chatInfo.chat_metadata.character_avatar;
-      if (!mapping[avatar]) {
-        mapping[avatar] = [];
+      for (const memberAvatar of chatInfo.chat_metadata.members) {
+        if (!mapping[memberAvatar]) {
+          mapping[memberAvatar] = [];
+        }
+        mapping[memberAvatar].push(chatInfo);
       }
-      mapping[avatar].push(chatInfo);
     }
     return mapping;
   });
@@ -161,58 +161,78 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  async function setActiveChatFile(chatFile: string, character?: Character) {
+  async function setActiveChatFile(chatFile: string) {
     if (activeChatFile.value === chatFile) return;
     await clearChat(false);
-    activeChatFile.value = chatFile;
 
     // TODO: unshallow character logic if needed
     isChatLoading.value = true;
-    let wasNewChatCreated = false;
 
     try {
-      const response = await fetchChat(activeChatFile.value);
+      const response = await fetchChat(chatFile);
       if (response.length > 0) {
-        // Chat exists, load it
         const metadataItem = response.shift() as ChatHeader;
+        activeChatFile.value = chatFile;
         activeChat.value = {
           metadata: metadataItem.chat_metadata,
           messages: response as ChatMessage[],
         };
-      } else {
-        // No chat exists, create a new one
-        wasNewChatCreated = true;
-        // activeChat.value.metadata
-        activeChat.value = {
-          metadata: { members: character ? [character.avatar] : [] },
-          messages: [],
-        };
-
-        const firstMessage = getFirstMessage(character);
-        if (firstMessage?.mes) {
-          activeChat.value.messages.push(firstMessage);
-          await nextTick();
-          await eventEmitter.emit('message:created', firstMessage);
-        }
-      }
-
-      if (!activeChat.value.metadata['integrity']) {
-        activeChat.value.metadata['integrity'] = uuidv4();
       }
 
       if (activeChatFile.value) {
+        for (const character of characterStore.activeCharacters) {
+          await characterStore.updateAndSaveCharacter(character.avatar, { chat: chatFile });
+        }
+
         await promptStore.loadItemizedPrompts(activeChatFile.value);
+        await nextTick();
+        await eventEmitter.emit('chat:entered', activeChatFile.value as string);
       }
-      await nextTick();
-      await eventEmitter.emit('chat:entered', activeChatFile.value as string);
     } catch (error) {
       console.error('Failed to refresh chat:', error);
       toast.error(t('chat.loadError'));
     } finally {
       isChatLoading.value = false;
-      if (wasNewChatCreated) {
-        saveChatDebounced();
+    }
+  }
+
+  async function createNewChatForCharacter(avatar: string, filename: string) {
+    const character = characterStore.characters.find((c) => c.avatar === avatar);
+    if (!character) {
+      throw new Error('Character not found for creating new chat.');
+    }
+
+    try {
+      isChatLoading.value = true;
+      const firstMessage = getFirstMessage(character);
+      activeChat.value = {
+        metadata: { members: [character.avatar], integrity: uuidv4() },
+        messages: firstMessage && firstMessage.mes ? [firstMessage] : [],
+      };
+      const fullChat: FullChat = [{ chat_metadata: activeChat.value.metadata }, ...activeChat.value.messages];
+      await saveChat(filename, fullChat);
+      characterStore.updateAndSaveCharacter(character.avatar, { chat: filename });
+      activeChatFile.value = filename;
+      chatInfos.value.push({
+        chat_metadata: activeChat.value.metadata,
+        chat_items: activeChat.value.messages.length,
+        file_id: filename,
+        file_name: `${filename}.jsonl`,
+        file_size: JSON.stringify(fullChat).length,
+        last_mes: Date.now(),
+        mes: firstMessage?.mes || '',
+      });
+
+      await nextTick();
+      await eventEmitter.emit('chat:entered', filename);
+      if (firstMessage?.mes) {
+        await eventEmitter.emit('message:created', firstMessage);
       }
+    } catch (error) {
+      console.error('Failed to create new chat:', error);
+      toast.error(t('chat.createError'));
+    } finally {
+      isChatLoading.value = false;
     }
   }
 
@@ -817,5 +837,6 @@ export const useChatStore = defineStore('chat', () => {
     swipeMessage,
     moveMessage,
     setActiveChatFile,
+    createNewChatForCharacter,
   };
 });

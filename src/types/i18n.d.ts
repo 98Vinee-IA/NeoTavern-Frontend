@@ -383,6 +383,7 @@ export interface MessageSchema {
     continue: string;
     send: string;
     loadError: string;
+    createError: string;
     generate: {
       noPrompts: string;
       errorFallback: string;

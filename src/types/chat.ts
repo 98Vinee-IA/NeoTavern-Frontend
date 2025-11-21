@@ -1,5 +1,5 @@
 export interface ChatMetadata {
-  integrity?: string;
+  integrity: string;
   custom_background?: string;
   chat_backgrounds?: string[];
 
