@@ -4,7 +4,6 @@ import { type Character, POPUP_RESULT, POPUP_TYPE } from '../types';
 import {
   fetchAllCharacters,
   saveCharacter as apiSaveCharacter,
-  fetchCharacterByAvatar,
   importCharacter as apiImportCharacter,
   createCharacter as apiCreateCharacter,
   deleteCharacter as apiDeleteCharacter,
@@ -12,7 +11,6 @@ import {
 } from '../api/characters';
 import DOMPurify from 'dompurify';
 import { toast } from '../composables/useToast';
-import { useChatStore } from './chat.store';
 import { useUiStore } from './ui.store';
 import { usePopupStore } from './popup.store';
 import { useWorldInfoStore } from './world-info.store';
@@ -21,7 +19,6 @@ import { DEFAULT_CHARACTER, DEFAULT_PRINT_TIMEOUT, DEFAULT_SAVE_EDIT_TIMEOUT } f
 import { useSettingsStore } from './settings.store';
 import { onlyUnique } from '../utils/array';
 import { useStrictI18n } from '../composables/useStrictI18n';
-import { getFirstMessage } from '../utils/chat';
 import { debounce } from 'lodash-es';
 import { eventEmitter } from '../utils/event-emitter';
 import { getThumbnailUrl } from '../utils/image';
@@ -39,7 +36,6 @@ const IMPORT_EXLCUDED_TAGS: string[] = [];
 export const useCharacterStore = defineStore('character', () => {
   const { t } = useStrictI18n();
   const settingsStore = useSettingsStore();
-  const chatStore = useChatStore();
   const uiStore = useUiStore();
   const popupStore = usePopupStore();
   const worldInfoStore = useWorldInfoStore();
@@ -55,15 +51,14 @@ export const useCharacterStore = defineStore('character', () => {
   const isCreating = ref(false);
   const draftCharacter = ref<Character>(DEFAULT_CHARACTER);
 
+  const characterImageTimestamps = ref<Record<string, number>>({});
+
   const sortOrder = computed({
     get: () => settingsStore.settings.account.characterSortOrder ?? 'name:asc',
     set: (value) => (settingsStore.settings.account.characterSortOrder = value),
   });
 
-  const activeCharacterAvatars = computed<Set<string>>(() => {
-    const members = chatStore.activeChat?.metadata?.members;
-    return new Set(members ?? []);
-  });
+  const activeCharacterAvatars = ref<Set<string>>(new Set());
 
   const activeCharacters = computed<Character[]>(() => {
     return characters.value.filter((char) => activeCharacterAvatars.value.has(char.avatar));
@@ -121,7 +116,12 @@ export const useCharacterStore = defineStore('character', () => {
 
       characters.value = newCharacters;
 
-      // TODO: refreshGroups()
+      const now = Date.now();
+      for (const char of newCharacters) {
+        if (!characterImageTimestamps.value[char.avatar]) {
+          characterImageTimestamps.value[char.avatar] = now;
+        }
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error('Failed to fetch characters:', error);
@@ -152,12 +152,12 @@ export const useCharacterStore = defineStore('character', () => {
     try {
       await apiSaveCharacter(dataToSave);
 
-      const updatedCharacter = await fetchCharacterByAvatar(avatar);
-      updatedCharacter.name = DOMPurify.sanitize(updatedCharacter.name);
-
       const index = characters.value.findIndex((c) => c.avatar === avatar);
       if (index !== -1) {
+        const updatedCharacter = { ...characters.value[index], ...changes };
+        updatedCharacter.name = DOMPurify.sanitize(updatedCharacter.name);
         characters.value[index] = updatedCharacter;
+
         await nextTick();
         await eventEmitter.emit('character:updated', updatedCharacter, changes);
       } else {
@@ -202,20 +202,8 @@ export const useCharacterStore = defineStore('character', () => {
 
     if (changes) {
       await updateAndSaveCharacter(avatar, changes);
-
       if ('first_mes' in changes && changes.first_mes !== undefined) {
-        if (chatStore.activeChat?.messages.length === 1 && !chatStore.activeChat.messages[0].is_user) {
-          const updatedCharacterForGreeting = { ...character, ...characterData } as Character;
-          const newFirstMessageDetails = getFirstMessage(updatedCharacterForGreeting);
-          if (newFirstMessageDetails) {
-            await chatStore.updateMessageObject(0, {
-              mes: newFirstMessageDetails.mes,
-              swipes: newFirstMessageDetails.swipes,
-              swipe_id: newFirstMessageDetails.swipe_id,
-              swipe_info: newFirstMessageDetails.swipe_info,
-            });
-          }
-        }
+        await eventEmitter.emit('character:first-message-updated', character.avatar, characterData);
       }
     }
   }
@@ -282,7 +270,6 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   async function importTagsForCharacters(avatarFileNames: string[]) {
-    const settingsStore = useSettingsStore();
     if (settingsStore.settings.character.tagImportSetting === 'none') {
       return;
     }
@@ -297,7 +284,6 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   async function handleTagImport(character: Character) {
-    const settingsStore = useSettingsStore();
     const setting = settingsStore.settings.character.tagImportSetting;
 
     const alreadyAssignedTags = character.tags ?? [];
@@ -415,24 +401,17 @@ export const useCharacterStore = defineStore('character', () => {
 
       await apiDeleteCharacter(avatar, deleteChats);
 
-      // Delete chat is not going to work for root chats, so we handle it here
-      const isThereOnlyCharacter =
-        chatStore.activeChat?.metadata.members?.length === 1 && chatStore.activeChat.metadata.members[0] === avatar;
-      if (isThereOnlyCharacter) {
-        await chatStore.clearChat();
-        chatStore.activeChat = null;
-      }
+      await eventEmitter.emit('character:deleted', avatar);
 
       const index = characters.value.findIndex((c) => c.avatar === avatar);
       if (index !== -1) {
         characters.value.splice(index, 1);
       }
+      delete characterImageTimestamps.value[avatar];
 
       uiStore.selectedCharacterAvatarForEditing = null;
 
       toast.success(t('character.delete.success', { name: charName }));
-      await nextTick();
-      await eventEmitter.emit('character:deleted', avatar);
     } catch (error) {
       console.error('Failed to delete character:', error);
       toast.error(t('character.delete.error'));
@@ -444,8 +423,9 @@ export const useCharacterStore = defineStore('character', () => {
       await apiUpdateCharacterImage(avatar, imageFile);
       const character = characters.value.find((c) => c.avatar === avatar);
       if (character) {
-        // Force refresh
+        // Force refresh and update timestamp
         character.avatar = character.avatar;
+        characterImageTimestamps.value[avatar] = Date.now();
       }
       await refreshCharacters();
     } catch (error) {
@@ -477,12 +457,17 @@ export const useCharacterStore = defineStore('character', () => {
     }
   }
 
+  function setActiveCharacterAvatars(avatars: string[]) {
+    activeCharacterAvatars.value = new Set(avatars);
+  }
+
   const getDifferences = getCharacterDifferences;
 
   return {
     characters,
     activeCharacters,
     activeCharacterAvatars,
+    characterImageTimestamps,
     favoriteCharacterChecked,
     displayableCharacters,
     paginatedCharacters,
@@ -515,5 +500,6 @@ export const useCharacterStore = defineStore('character', () => {
     updateCharacterImage,
     updateAndSaveCharacter,
     duplicateCharacter,
+    setActiveCharacterAvatars,
   };
 });

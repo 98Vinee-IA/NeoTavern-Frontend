@@ -12,14 +12,15 @@ export function useDraggable(target: Ref<HTMLElement | null>, handle: Ref<HTMLEl
     isDragging.value = true;
     pos3 = e.clientX;
     pos4 = e.clientY;
-    document.onmouseup = onMouseUp;
-    document.onmousemove = onMouseMove;
+
+    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mousemove', onMouseMove);
   };
 
   const onMouseUp = () => {
     isDragging.value = false;
-    document.onmouseup = null;
-    document.onmousemove = null;
+    document.removeEventListener('mouseup', onMouseUp);
+    document.removeEventListener('mousemove', onMouseMove);
   };
 
   const onMouseMove = (e: MouseEvent) => {
@@ -46,8 +47,8 @@ export function useDraggable(target: Ref<HTMLElement | null>, handle: Ref<HTMLEl
       handle.value.removeEventListener('mousedown', onMouseDown);
     }
     // Clean up global listeners if component is unmounted while dragging
-    document.onmouseup = null;
-    document.onmousemove = null;
+    document.removeEventListener('mouseup', onMouseUp);
+    document.removeEventListener('mousemove', onMouseMove);
   });
 
   return { isDragging };

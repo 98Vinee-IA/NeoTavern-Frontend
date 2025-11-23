@@ -124,7 +124,7 @@ export const usePersonaStore = defineStore('persona', () => {
   async function updateActivePersonaName() {
     if (!activePersona.value) return;
 
-    const { result, value: newName } = await popupStore.show({
+    const { result, value: newName } = await popupStore.show<string>({
       title: t('personaManagement.rename.title'),
       content: t('personaManagement.rename.prompt'),
       type: POPUP_TYPE.INPUT,

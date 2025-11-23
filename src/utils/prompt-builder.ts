@@ -12,7 +12,7 @@ import type {
   WorldInfoSettings,
 } from '../types';
 import { WorldInfoProcessor } from './world-info-processor';
-import { defaultSamplerSettings } from '../constants';
+import { defaultSamplerSettings, GroupGenerationHandlingMode } from '../constants';
 import { eventEmitter } from './event-emitter';
 import { joinCharacterField } from './group-chat';
 import Handlebars from 'handlebars';
@@ -91,7 +91,6 @@ export class PromptBuilder {
     let currentTokenCount = 0;
 
     // 1. Process World Info
-
     const processor = new WorldInfoProcessor({
       books: this.books,
       chat: this.chatHistory,
@@ -115,6 +114,9 @@ export class PromptBuilder {
     const enabledPrompts = promptOrderConfig.order.filter((p) => p.enabled);
     const historyPlaceholder = { role: 'system', content: '[[CHAT_HISTORY_PLACEHOLDER]]' } as const;
 
+    const handlingMode = this.chatMetadata.group?.config?.handlingMode ?? GroupGenerationHandlingMode.SWAP;
+    const isGroupContext = this.characters.length > 1 || handlingMode !== GroupGenerationHandlingMode.SWAP;
+
     for (const promptConfig of enabledPrompts) {
       const promptDefinition = this.samplerSettings.prompts?.find((p) => p.identifier === promptConfig.identifier);
       if (!promptDefinition) continue;
@@ -125,14 +127,24 @@ export class PromptBuilder {
             fixedPrompts.push(historyPlaceholder);
             break;
           case 'charDescription': {
-            const content = this.getContent((c) => c.description, this.character.description);
+            let content = '';
+            if (isGroupContext) {
+              content = this.getContent((c) => c.description);
+            } else {
+              content = this.character.description || '';
+            }
             if (content) {
               fixedPrompts.push({ role: promptDefinition.role ?? 'system', content });
             }
             break;
           }
           case 'charPersonality': {
-            const content = this.getContent((c) => c.personality, this.character.personality);
+            let content = '';
+            if (isGroupContext) {
+              content = this.getContent((c) => c.personality);
+            } else {
+              content = this.character.personality || '';
+            }
             if (content) {
               fixedPrompts.push({ role: promptDefinition.role ?? 'system', content });
             }
@@ -143,7 +155,11 @@ export class PromptBuilder {
             if (this.chatMetadata.promptOverrides?.scenario) {
               content = this.chatMetadata.promptOverrides.scenario;
             } else {
-              content = this.getContent((c) => c.scenario, this.character.scenario);
+              if (isGroupContext) {
+                content = this.getContent((c) => c.scenario);
+              } else {
+                content = this.character.scenario || '';
+              }
             }
 
             if (content) {
@@ -152,10 +168,8 @@ export class PromptBuilder {
             break;
           }
           case 'dialogueExamples': {
-            // Join mode concatenates examples.
             let content = '';
-            if (this.characters.length > 1) {
-              // For examples, we might want to substitute {{char}} before joining to ensure names are correct per block
+            if (isGroupContext) {
               content = this.characters
                 .map((c) => {
                   if (!c.mes_example) return null;
@@ -214,6 +228,8 @@ export class PromptBuilder {
         content: msg.mes,
       };
 
+      // Configuration for appending name to bot messages in group chats
+      // In Join mode or large groups, we often want "Name: Message" to help the model distinguish speakers.
       // TODO: Configuration?
       if (!msg.is_user && (this.chatMetadata.members?.length ?? 0) > 1) {
         apiMsg.content = `${msg.name}: ${msg.mes}`;

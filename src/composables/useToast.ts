@@ -1,4 +1,4 @@
-import { createApp, reactive } from 'vue';
+import { createVNode, render, reactive, type App } from 'vue';
 import ToastContainer from '../components/Toast/ToastContainer.vue';
 import { uuidv4 } from '../utils/common';
 
@@ -18,12 +18,24 @@ export interface ToastOptions {
 
 const toasts = reactive<Toast[]>([]);
 let isInitialized = false;
+let mainAppContext: App | null = null;
+
+export function setToastContext(app: App) {
+  mainAppContext = app;
+}
 
 function init() {
   if (isInitialized) return;
   const container = document.createElement('div');
   document.body.appendChild(container);
-  createApp(ToastContainer, { toasts }).mount(container);
+
+  const vnode = createVNode(ToastContainer, { toasts });
+
+  if (mainAppContext) {
+    vnode.appContext = mainAppContext._context;
+  }
+
+  render(vnode, container);
   isInitialized = true;
 }
 

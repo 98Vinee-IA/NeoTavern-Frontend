@@ -18,11 +18,6 @@ export interface ExtensionEventMap {
   // General Application Events
   'app:loaded': [];
   'chat:cleared': [];
-  /**
-   * This updated when something changed on the chat. Even deeper changes some message.extra. So try not to use it too much.
-   * Prefer more specific events like message:created/updated/deleted where possible.
-   */
-  'chat:updated': [chatFile: string];
   'chat:entered': [chatFile: string];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   'setting:changed': [path: SettingsPath, value: any, oldValue: any];
@@ -38,6 +33,7 @@ export interface ExtensionEventMap {
   'character:updated': [character: Character, changes: Partial<Character>];
   'character:deleted': [avatar: string];
   'character:imported': [character: Character];
+  'character:first-message-updated': [avatar: string, characterData: Character];
 
   // Persona Events
   'persona:created': [persona: Persona];

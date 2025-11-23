@@ -228,7 +228,7 @@ async function handleDuplicate() {
 async function handleRename() {
   if (!localCharacter.value) return;
 
-  const { result, value: newName } = await popupStore.show({
+  const { result, value: newName } = await popupStore.show<string>({
     title: t('characterEditor.moreOptions.rename'),
     type: POPUP_TYPE.INPUT,
     inputValue: localCharacter.value.name,

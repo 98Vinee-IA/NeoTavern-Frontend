@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useChatStore } from '../../stores/chat.store';
 import { useCharacterStore } from '../../stores/character.store';
 import { usePopupStore } from '../../stores/popup.store';
@@ -10,11 +10,12 @@ import { useStrictI18n } from '../../composables/useStrictI18n';
 import { formatTimeStamp, humanizedDateTime } from '../../utils/date';
 import * as api from '../../api/chat';
 import { toast } from '../../composables/useToast';
-import { GenerationMode, GroupGenerationHandlingMode, GroupReplyStrategy } from '../../constants';
+import { DebounceTimeout, GenerationMode, GroupGenerationHandlingMode, GroupReplyStrategy } from '../../constants';
 import { getThumbnailUrl } from '../../utils/image';
 import { useUiStore } from '../../stores/ui.store';
 import { Button, Input, Select, Textarea, Checkbox, Tabs, Search, ListItem, FormItem, CollapsibleSection } from '../UI';
 import { EmptyState, Pagination, DraggableList } from '../Common';
+import { debounce } from 'lodash-es';
 
 const { t } = useStrictI18n();
 const chatStore = useChatStore();
@@ -84,7 +85,7 @@ async function createNewChat(askConfirmation = true) {
 }
 
 async function renameChat(fileId: string, currentName?: string) {
-  const { result, value: newName } = await popupStore.show({
+  const { result, value: newName } = await popupStore.show<string>({
     title: t('chatManagement.actions.rename'),
     content: t('chatManagement.renamePrompt'),
     type: POPUP_TYPE.INPUT,
@@ -203,6 +204,7 @@ function updateMembersOrder(newMembers: Character[]) {
 
   if (chatStore.activeChat.metadata) {
     chatStore.activeChat.metadata.members = newMemberIds;
+    chatStore.saveChatDebounced();
   }
 }
 
@@ -218,6 +220,31 @@ async function addMember(avatar: string) {
 async function removeMember(avatar: string) {
   await chatStore.removeMember(avatar);
 }
+const saveDebounced = debounce(() => {
+  chatStore.saveChatDebounced();
+}, DebounceTimeout.RELAXED);
+
+// Watch Group Config changes
+watch(
+  () => chatStore.groupConfig,
+  () => {
+    if (chatStore.activeChat) saveDebounced();
+  },
+  { deep: true },
+);
+
+// Watch Prompt Overrides
+watch(
+  () => chatStore.activeChat?.metadata.promptOverrides,
+  () => {
+    if (chatStore.activeChat) saveDebounced();
+  },
+  { deep: true },
+);
+
+watch(activeChatLorebooks, () => {
+  saveDebounced();
+});
 </script>
 
 <template>

@@ -98,6 +98,24 @@ export function setMainAppInstance(app: App) {
 }
 
 /**
+ * Internal registry to track cleanup functions for each extension.
+ * This allows us to enforce cleanup even if the extension doesn't do it manually.
+ */
+const extensionCleanupRegistry = new Map<string, () => void>();
+
+/**
+ * Calls the cleanup function for a specific extension ID, disposing of
+ * any event listeners or resources managed by the scoped API proxy.
+ */
+export function disposeExtension(extensionId: string) {
+  const cleanup = extensionCleanupRegistry.get(extensionId);
+  if (cleanup) {
+    cleanup();
+    extensionCleanupRegistry.delete(extensionId);
+  }
+}
+
+/**
  * The public API exposed to extensions.
  * This facade provides controlled access to the application's state and actions,
  * ensuring stability and preventing extensions from breaking on internal refactors.
@@ -786,6 +804,9 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const listenerMap = new Map<Function, Function>();
+  // Track active listeners for auto-cleanup
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  const activeListeners = new Set<{ event: string; listener: Function }>();
 
   // Helper to wrap AbortController to inject extension identity on abort
   const createIdentifiableAbortController = (controller: AbortController): AbortController => {
@@ -820,7 +841,7 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
           if (arg instanceof AbortController) {
             return createIdentifiableAbortController(arg);
           }
-          // Detect GenerationContext (which has a controller property) and wrap the controller within it
+          // Detect GenerationContext (which has a controller property) and wrap it
           if (arg && typeof arg === 'object' && arg.controller instanceof AbortController) {
             // We need to proxy the context object to intercept access to the controller
             return new Proxy(arg, {
@@ -842,6 +863,10 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
       };
 
       listenerMap.set(listener, wrappedListener);
+
+      // Register cleanup handler
+      activeListeners.add({ event: eventName, listener: wrappedListener });
+
       return baseExtensionAPI.events.on(eventName, wrappedListener, priority);
     },
     off: <E extends keyof ExtensionEventMap>(
@@ -850,6 +875,13 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
     ): void => {
       const wrapped = listenerMap.get(listener);
       if (wrapped) {
+        // Remove from active tracking
+        activeListeners.forEach((al) => {
+          if (al.event === eventName && al.listener === wrapped) {
+            activeListeners.delete(al);
+          }
+        });
+
         baseExtensionAPI.events.off(eventName, wrapped as (...args: ExtensionEventMap[E]) => Promise<void> | void);
         listenerMap.delete(listener);
       } else {
@@ -862,8 +894,7 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
   const scopedUi = {
     ...baseExtensionAPI.ui,
     /**
-     * Registers a sidebar but scoped to the extension ID if needed (though UI store registry is global).
-     * We pass the extension ID as a prefix if we wanted to, but for now, let's keep it clean.
+     * Registers a sidebar but scoped to the extension ID.
      */
     registerSidebar: async (
       id: string,
@@ -876,7 +907,6 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
 
       // Apply Vanilla Adapter logic
       const effectiveComponent = component || VanillaSidebar;
-      // If using Vanilla Adapter, we pass the ID prop to the wrapper
       const effectiveProps = component ? options.props : { id: namespacedId, ...options.props };
 
       useUiStore().registerSidebar(
@@ -907,6 +937,17 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
       }
     },
   };
+
+  // Store a cleanup function in the registry to be called when the extension is disabled
+  extensionCleanupRegistry.set(extensionId, () => {
+    // Cleanup event listeners
+    activeListeners.forEach(({ event, listener }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      baseExtensionAPI.events.off(event as any, listener as any);
+    });
+    activeListeners.clear();
+    listenerMap.clear();
+  });
 
   return {
     ...baseExtensionAPI,

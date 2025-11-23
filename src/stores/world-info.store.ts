@@ -201,7 +201,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     let affirmative = !!data;
     let newName = data?.book.name;
     if (!data) {
-      const { result, value } = await popupStore.show({
+      const { result, value } = await popupStore.show<string>({
         title: t('worldInfo.popup.newBookTitle'),
         content: t('worldInfo.popup.newBookContent'),
         type: POPUP_TYPE.INPUT,
@@ -327,7 +327,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
       toast.error(t('worldInfo.errors.bookNotFound', { name: filename }));
       return;
     }
-    const { result, value: newName } = await popupStore.show({
+    const { result, value: newName } = await popupStore.show<string>({
       title: t('worldInfo.popup.renameBookTitle'),
       type: POPUP_TYPE.INPUT,
       inputValue: book.name,
@@ -351,7 +351,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
   }
 
   async function duplicateBook(name: string) {
-    const { result, value: newName } = await popupStore.show({
+    const { result, value: newName } = await popupStore.show<string>({
       title: t('worldInfo.popup.duplicateBookTitle'),
       type: POPUP_TYPE.INPUT,
       inputValue: `${name}${t('worldInfo.popup.duplicateBookInputSuffix')}`,

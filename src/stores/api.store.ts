@@ -221,7 +221,7 @@ export const useApiStore = defineStore('api', () => {
       toast.warning(t('aiConfig.presets.errors.renameDefault'));
       return;
     }
-    const { result, value: newName } = await popupStore.show({
+    const { result, value: newName } = await popupStore.show<string>({
       title: t('aiConfig.presets.renamePopupTitle'),
       type: POPUP_TYPE.INPUT,
       inputValue: oldName,
@@ -335,7 +335,7 @@ export const useApiStore = defineStore('api', () => {
       return;
     }
 
-    const { result, value: newName } = await popupStore.show({
+    const { result, value: newName } = await popupStore.show<string>({
       title: t('apiConnections.profileManagement.renamePopupTitle'),
       type: POPUP_TYPE.INPUT,
       inputValue: oldName,

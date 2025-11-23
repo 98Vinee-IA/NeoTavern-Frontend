@@ -2,7 +2,7 @@ import { createApp } from 'vue';
 import pinia from './stores';
 import App from './App.vue';
 import { useAuthStore } from './stores/auth.store';
-import { toast } from './composables/useToast';
+import { setToastContext, toast } from './composables/useToast';
 import i18n from './i18n';
 import type { StrictT } from './composables/useStrictI18n';
 
@@ -17,6 +17,7 @@ async function initializeApp() {
   // Dynamically import and initialize the extension API
   const { setMainAppInstance } = await import('./utils/extension-api');
   setMainAppInstance(app);
+  setToastContext(app);
 
   // @ts-expect-error 'i18n.global' is of type 'unknown'
   const t = i18n.global.t as StrictT;

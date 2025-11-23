@@ -35,6 +35,10 @@ class WorldInfoBuffer {
   #characters: Character[];
   #character: Character;
   #persona: Persona;
+
+  #cachedFullString: string | null = null;
+  #cachedRecursionString: string | null = null;
+
   constructor(chat: ChatMessage[], settings: WorldInfoSettings, characters: Character[], persona: Persona) {
     this.#settings = settings;
     this.#characters = characters;
@@ -59,18 +63,36 @@ class WorldInfoBuffer {
   // Gets the full text to be scanned for a given entry
   get(entry: WorldInfoEntry): string {
     const depth = entry.scanDepth ?? this.#settings.depth;
-    let buffer = this.#depthBuffer.slice(0, depth).join('\n');
 
-    // Add other scannable sources
-    if (entry.matchCharacterDescription) buffer += `\n${this.#character.description ?? ''}`;
-    if (entry.matchCharacterPersonality) buffer += `\n${this.#character.personality ?? ''}`;
-    if (entry.matchCharacterDepthPrompt) buffer += `\n${this.#character.data?.depth_prompt?.prompt ?? ''}`;
-    if (entry.matchCreatorNotes) buffer += `\n${this.#character.data?.creator_notes ?? ''}`;
-    if (entry.matchScenario) buffer += `\n${this.#character.scenario ?? ''}`;
-    if (entry.matchPersonaDescription) buffer += `\n${this.#persona.description ?? ''}`;
+    // If this entry's depth matches default, use cached version of history
+    // Otherwise construct specific slice.
+    let buffer = '';
+
+    if (depth === this.#settings.depth && this.#cachedFullString !== null) {
+      buffer = this.#cachedFullString;
+    } else {
+      // Build base buffer
+      buffer = this.#depthBuffer.slice(0, depth).join('\n');
+
+      if (entry.matchCharacterDescription) buffer += `\n${this.#character.description ?? ''}`;
+      if (entry.matchCharacterPersonality) buffer += `\n${this.#character.personality ?? ''}`;
+      if (entry.matchCharacterDepthPrompt) buffer += `\n${this.#character.data?.depth_prompt?.prompt ?? ''}`;
+      if (entry.matchCreatorNotes) buffer += `\n${this.#character.data?.creator_notes ?? ''}`;
+      if (entry.matchScenario) buffer += `\n${this.#character.scenario ?? ''}`;
+      if (entry.matchPersonaDescription) buffer += `\n${this.#persona.description ?? ''}`;
+
+      // Cache it if it's using default depth for future calls in this loop
+      if (depth === this.#settings.depth) {
+        this.#cachedFullString = buffer;
+      }
+    }
 
     if (this.#recurseBuffer.length > 0) {
-      buffer += `\n${this.#recurseBuffer.join('\n')}`;
+      // Optimization: Cache the recursion string join
+      if (!this.#cachedRecursionString) {
+        this.#cachedRecursionString = this.#recurseBuffer.join('\n');
+      }
+      buffer += `\n${this.#cachedRecursionString}`;
     }
 
     return buffer;
@@ -78,23 +100,38 @@ class WorldInfoBuffer {
 
   // Checks if a given keyword (needle) exists in the buffer (haystack)
   matchKeys(haystack: string, needle: string, entry: WorldInfoEntry): boolean {
-    // TODO: Implement regex support from original `parseRegexFromString`
+    // Check for regex pattern like /pattern/flags
+    const regexMatch = needle.match(/^\/(.+)\/([a-z]*)$/);
+
+    if (regexMatch) {
+      try {
+        const pattern = regexMatch[1];
+        const flags = regexMatch[2];
+        const regex = new RegExp(pattern, flags);
+        return regex.test(haystack);
+      } catch (e) {
+        console.warn(`Invalid regex in World Info entry: ${needle}`, e);
+        return false;
+      }
+    }
+
     const transformedHaystack = this.#transformString(haystack, entry);
     const transformedNeedle = this.#transformString(needle, entry);
     const matchWholeWords = entry.matchWholeWords ?? this.#settings.matchWholeWords;
 
     if (matchWholeWords) {
       // Simple whole word match for single words
-      if (!transformedNeedle.includes(' ')) {
-        const regex = new RegExp(`\\b${transformedNeedle}\\b`);
-        return regex.test(transformedHaystack);
-      }
+      // Escape special regex characters in the needle to prevent accidental regex matching in the fallback
+      const escapedNeedle = transformedNeedle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escapedNeedle}\\b`);
+      return regex.test(transformedHaystack);
     }
     return transformedHaystack.includes(transformedNeedle);
   }
 
   addRecurse(message: string) {
     this.#recurseBuffer.push(message);
+    this.#cachedRecursionString = null; // Invalidate cache
   }
 }
 
@@ -155,7 +192,7 @@ export class WorldInfoProcessor {
       loopCount++;
       const activatedInThisLoop = new Set<ProcessingEntry>();
       let newContentForRecursion = '';
-      let currentContentForBudget = '';
+      let currentUsedBudget = 0;
 
       for (const entry of sortedEntries) {
         if (allActivatedEntries.has(entry) || entry.disable) continue;
@@ -221,6 +258,8 @@ export class WorldInfoProcessor {
       // TODO: Filter by inclusion groups
 
       if (activatedInThisLoop.size > 0) {
+        const candidates: { entry: ProcessingEntry; content: string; rawContent: string }[] = [];
+
         for (const entry of activatedInThisLoop) {
           if (tokenBudgetOverflowed && !entry.ignoreBudget) continue;
 
@@ -232,20 +271,30 @@ export class WorldInfoProcessor {
 
           const substitutedContent = substituteParams(entry.content, this.character, this.persona.name);
           const contentForBudget = `\n${substitutedContent}`;
-          const currentTokens = await this.tokenizer.getTokenCount(currentContentForBudget);
-          const entryTokens = await this.tokenizer.getTokenCount(contentForBudget);
 
-          if (!entry.ignoreBudget && currentTokens + entryTokens > budget) {
-            tokenBudgetOverflowed = true;
-            continue;
-          }
+          candidates.push({ entry, content: contentForBudget, rawContent: substitutedContent });
+        }
 
-          currentContentForBudget += contentForBudget;
-          allActivatedEntries.add(entry);
-          await eventEmitter.emit('world-info:entry-activated', entry);
+        if (candidates.length > 0) {
+          const tokenCounts = await Promise.all(candidates.map((c) => this.tokenizer.getTokenCount(c.content)));
 
-          if (this.settings.recursive && !entry.preventRecursion) {
-            newContentForRecursion += `\n${substitutedContent}`;
+          for (let i = 0; i < candidates.length; i++) {
+            const { entry, rawContent } = candidates[i];
+            const entryTokens = tokenCounts[i];
+
+            if (!entry.ignoreBudget && currentUsedBudget + entryTokens > budget) {
+              tokenBudgetOverflowed = true;
+              continue;
+            }
+
+            currentUsedBudget += entryTokens;
+
+            allActivatedEntries.add(entry);
+            await eventEmitter.emit('world-info:entry-activated', entry);
+
+            if (this.settings.recursive && !entry.preventRecursion) {
+              newContentForRecursion += `\n${rawContent}`;
+            }
           }
         }
 

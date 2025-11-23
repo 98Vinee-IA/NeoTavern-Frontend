@@ -45,7 +45,7 @@ function getVisibleItems(section: AiConfigSection) {
 }
 
 async function handleNewPreset() {
-  const { result, value } = await popupStore.show({
+  const { result, value } = await popupStore.show<string>({
     title: t('aiConfig.presets.newName'),
     type: POPUP_TYPE.INPUT,
     inputValue: settingsStore.settings.api.selectedSampler || 'New Preset',

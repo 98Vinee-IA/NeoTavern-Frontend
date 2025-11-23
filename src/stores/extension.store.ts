@@ -5,7 +5,7 @@ import type { BuiltInExtensionModule, ExtensionManifest } from '../types';
 import { loadScript, loadStyle } from '../utils/extension-loader';
 import { sanitizeSelector } from '../utils/dom';
 import { builtInExtensions } from '../extensions/built-in';
-import { createScopedApiProxy } from '../utils/extension-api';
+import { createScopedApiProxy, disposeExtension } from '../utils/extension-api';
 import { useSettingsStore } from './settings.store';
 
 export interface Extension {
@@ -175,7 +175,7 @@ export const useExtensionStore = defineStore('extension', () => {
       // --- DEACTIVATION ---
       if (!ext.isActive) return;
 
-      // 1. Run cleanup
+      // 1. Run cleanup (built-ins or manual returns)
       const cleanup = cleanupFunctions.get(id);
       if (cleanup) {
         try {
@@ -186,7 +186,14 @@ export const useExtensionStore = defineStore('extension', () => {
         cleanupFunctions.delete(id);
       }
 
-      // 2. Update state
+      // 2. Dispose of resources managed by the proxy (listeners, etc)
+      try {
+        disposeExtension(id);
+      } catch (e) {
+        console.error(`Error during API disposal of ${id}`, e);
+      }
+
+      // 3. Update state
       ext.isActive = false;
       if (save && !settingsStore.settings.disabledExtensions.includes(id)) {
         settingsStore.settings.disabledExtensions.push(id);

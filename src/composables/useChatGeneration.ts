@@ -330,7 +330,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           if (!lastMessage.extra) lastMessage.extra = {};
           lastMessage.extra.token_count = await tokenizer.getTokenCount(lastMessage.mes);
 
-          if (lastMessage.swipes && lastMessage.swipe_id !== undefined && lastMessage.swipes[lastMessage.swipe_id] !== undefined) {
+          if (
+            lastMessage.swipes &&
+            lastMessage.swipe_id !== undefined &&
+            lastMessage.swipes[lastMessage.swipe_id] !== undefined
+          ) {
             lastMessage.swipes[lastMessage.swipe_id] = lastMessage.mes;
           }
 

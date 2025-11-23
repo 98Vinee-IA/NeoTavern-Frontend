@@ -3,18 +3,17 @@ import { ref } from 'vue';
 import { POPUP_TYPE, POPUP_RESULT, type PopupShowOptions, type PopupState } from '../types';
 import { uuidv4 } from '../utils/common';
 
-interface PopupPromise {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  resolve: (payload: { result: number; value: any }) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  reject: (reason?: any) => void;
+interface PopupPromise<T = unknown> {
+  resolve: (payload: { result: number; value: T }) => void;
+  reject: (reason?: unknown) => void;
 }
+
 export const usePopupStore = defineStore('popup', () => {
   const popups = ref<PopupState[]>([]);
-  const promises = ref<Record<string, PopupPromise>>({});
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function show(options: PopupShowOptions): Promise<{ result: number; value: any }> {
+  const promises = ref<Record<string, PopupPromise<any>>>({});
+
+  function show<T = unknown>(options: PopupShowOptions): Promise<{ result: number; value: T }> {
     const id = uuidv4();
     const newPopup: PopupState = {
       id,
@@ -41,8 +40,7 @@ export const usePopupStore = defineStore('popup', () => {
     delete promises.value[id];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function confirm(id: string, payload: { result: number; value: any }) {
+  function confirm<T = unknown>(id: string, payload: { result: number; value: T }) {
     promises.value[id]?.resolve(payload);
     hide(id);
   }

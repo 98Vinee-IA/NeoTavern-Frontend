@@ -46,7 +46,11 @@ class EventEmitter {
       return;
     }
     for (const listenerObject of [...listeners]) {
-      await listenerObject.listener(...args);
+      try {
+        await listenerObject.listener(...args);
+      } catch (error) {
+        console.error(`Error in event listener for event "${eventName}":`, error);
+      }
     }
   }
 }

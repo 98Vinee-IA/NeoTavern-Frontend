@@ -1,28 +1,38 @@
 import { default_avatar } from '../constants';
 import type { ThumbnailType } from '../types';
 import { usePersonaStore } from '../stores/persona.store';
+import { useCharacterStore } from '../stores/character.store';
 
-export function getThumbnailUrl(type: ThumbnailType, file: string | undefined): string {
+/**
+ * Generates a thumbnail URL for a given image type and file.
+ * Appends a timestamp to bypass browser caching if the image has been updated.
+ * @param type The type of entity (persona, avatar, bg).
+ * @param file The filename.
+ * @param timestampOverride An optional explicit timestamp. If not provided, it will be looked up from stores.
+ */
+export function getThumbnailUrl(type: ThumbnailType, file: string | undefined, timestampOverride?: number): string {
   if (!file || file === 'none') {
     return default_avatar;
   }
 
-  if (type === 'persona') {
-    const personaStore = usePersonaStore();
-    const timestamp = personaStore.lastAvatarUpdate;
-    return `/thumbnail?type=persona&file=${encodeURIComponent(file)}&t=${timestamp}`;
+  let timestamp = timestampOverride;
+
+  if (!timestamp) {
+    if (type === 'persona') {
+      const personaStore = usePersonaStore();
+      timestamp = personaStore.lastAvatarUpdate;
+    } else if (type === 'avatar') {
+      const charStore = useCharacterStore();
+      // Look up character update time from the store map
+      timestamp = charStore.characterImageTimestamps[file];
+    }
+    // For 'bg', we currently don't have a persistent store tracker for updates,
+    // so we might default to nothing (browser cache) or assume rarely changed.
+    // If explicit bust is needed, timestampOverride should be used.
   }
-  if (type === 'avatar') {
-    // TODO: I know this is a bit hacky, we might want to revisit this later
-    const timestamp = Date.now();
-    return `/thumbnail?type=avatar&file=${encodeURIComponent(file)}&t=${timestamp}`;
-  }
-  if (type === 'bg') {
-    // TODO: This is also hacky, so you know what that means
-    const timestamp = Date.now();
-    return `/thumbnail?type=bg&file=${encodeURIComponent(file)}&t=${timestamp}`;
-  }
-  return `/thumbnail?type=avatar&file=${encodeURIComponent(file)}`;
+
+  const query = timestamp ? `&t=${timestamp}` : '';
+  return `/thumbnail?type=${type}&file=${encodeURIComponent(file)}${query}`;
 }
 
 interface AvatarDetails {

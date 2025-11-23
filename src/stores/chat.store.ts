@@ -9,6 +9,7 @@ import {
   type ChatInfo,
   POPUP_TYPE,
   POPUP_RESULT,
+  type Character,
 } from '../types';
 import { usePromptStore } from './prompt.store';
 import { useCharacterStore } from './character.store';
@@ -23,6 +24,7 @@ import {
   GenerationMode,
   GroupGenerationHandlingMode,
   GroupReplyStrategy,
+  EventPriority,
 } from '../constants';
 import { useSettingsStore } from './settings.store';
 import { usePersonaStore } from './persona.store';
@@ -127,6 +129,7 @@ export const useChatStore = defineStore('chat', () => {
     }
     await nextTick();
     await eventEmitter.emit('message:updated', messageIndex, message);
+    saveChatDebounced();
   }
 
   function stopAutoModeTimer() {
@@ -176,20 +179,64 @@ export const useChatStore = defineStore('chat', () => {
     }
   }, DEFAULT_SAVE_EDIT_TIMEOUT);
 
-  watch(
-    [activeChat],
-    () => {
-      nextTick(async () => {
-        if (activeChatFile.value) {
-          await eventEmitter.emit('chat:updated', activeChatFile.value);
-        }
-      });
+  eventEmitter.on(
+    'generation:finished',
+    async () => {
+      saveChatDebounced();
+    },
+    EventPriority.HIGH,
+  );
 
-      if (!isChatLoading.value && activeChat.value) {
-        saveChatDebounced();
+  eventEmitter.on(
+    'message:created',
+    async () => {
+      saveChatDebounced();
+    },
+    EventPriority.HIGH,
+  );
+
+  eventEmitter.on(
+    'message:deleted',
+    async () => {
+      saveChatDebounced();
+    },
+    EventPriority.HIGH,
+  );
+
+  eventEmitter.on(
+    'character:deleted',
+    async (avatar: string) => {
+      const isThereOnlyCharacter =
+        activeChat.value?.metadata.members?.length === 1 && activeChat.value.metadata.members[0] === avatar;
+      if (isThereOnlyCharacter) {
+        await clearChat(true);
       }
     },
-    { deep: true },
+    EventPriority.HIGH,
+  );
+
+  // Listen for character updates that affect chat (e.g., first message changed)
+  eventEmitter.on(
+    'character:first-message-updated',
+    async (avatar: string, charData: Character) => {
+      if (
+        activeChat.value?.messages.length === 1 &&
+        !activeChat.value.messages[0].is_user &&
+        activeChat.value.messages[0].original_avatar === avatar
+      ) {
+        const updatedChar = { ...characterStore.characters.find((c) => c.avatar === avatar), ...charData } as Character;
+        const newFirstMessageDetails = getFirstMessage(updatedChar);
+        if (newFirstMessageDetails) {
+          await updateMessageObject(0, {
+            mes: newFirstMessageDetails.mes,
+            swipes: newFirstMessageDetails.swipes,
+            swipe_id: newFirstMessageDetails.swipe_id,
+            swipe_info: newFirstMessageDetails.swipe_info,
+          });
+        }
+      }
+    },
+    EventPriority.HIGH,
   );
 
   watch(
@@ -203,6 +250,18 @@ export const useChatStore = defineStore('chat', () => {
     },
   );
 
+  watch(
+    () => activeChat.value?.metadata.members,
+    (newMembers) => {
+      if (newMembers) {
+        characterStore.setActiveCharacterAvatars(newMembers);
+      } else {
+        characterStore.setActiveCharacterAvatars([]);
+      }
+    },
+    { immediate: true, deep: true },
+  );
+
   function startAutoModeTimer() {
     stopAutoModeTimer();
     if (!groupConfig.value?.config.autoMode) return;
@@ -212,15 +271,16 @@ export const useChatStore = defineStore('chat', () => {
     }, groupConfig.value.config.autoMode * 1000);
   }
 
-
   async function clearChat(recreateFirstMessage = false) {
-    if (!activeChat.value) return;
     isChatLoading.value = true;
 
     saveChatDebounced.cancel();
-    activeChat.value.messages = [];
+    if (activeChat.value) {
+      activeChat.value.messages = [];
+    }
 
     activeChatFile.value = null;
+    activeChat.value = null;
 
     promptStore.extensionPrompts = {};
     promptStore.itemizedPrompts = [];
@@ -229,15 +289,15 @@ export const useChatStore = defineStore('chat', () => {
     await eventEmitter.emit('chat:cleared');
 
     if (recreateFirstMessage && characterStore.activeCharacters.length > 0) {
-      // Group chat? Recreate first message for the *primary* character (first in list)
       const activeCharacter = characterStore.activeCharacters[0];
       if (activeCharacter) {
-        const firstMessage = getFirstMessage(activeCharacter);
-        if (firstMessage?.mes) {
-          activeChat.value.messages.push(firstMessage);
-          await nextTick();
-          await eventEmitter.emit('message:created', firstMessage);
-        }
+        activeChat.value = {
+          metadata: {
+            members: [activeCharacter.avatar],
+            integrity: uuidv4(),
+          },
+          messages: [],
+        };
       }
     }
 
@@ -246,9 +306,10 @@ export const useChatStore = defineStore('chat', () => {
 
   async function setActiveChatFile(chatFile: string) {
     if (activeChatFile.value === chatFile) return;
-    await clearChat(false);
+    activeChat.value = null;
+    activeChatFile.value = null;
+    saveChatDebounced.cancel();
 
-    // TODO: unshallow character logic if needed
     isChatLoading.value = true;
 
     try {
@@ -532,6 +593,7 @@ export const useChatStore = defineStore('chat', () => {
       cancelEditing();
       await nextTick();
       await eventEmitter.emit('message:updated', index, message);
+      saveChatDebounced();
     }
   }
 
@@ -551,6 +613,7 @@ export const useChatStore = defineStore('chat', () => {
 
     await nextTick();
     await eventEmitter.emit('message:updated', index, message);
+    saveChatDebounced();
   }
 
   async function swipeMessage(messageIndex: number, direction: 'left' | 'right') {
@@ -625,6 +688,7 @@ export const useChatStore = defineStore('chat', () => {
         activeMessageEditState.value.index = index;
       }
     }
+    saveChatDebounced();
   }
 
   return {
@@ -658,5 +722,6 @@ export const useChatStore = defineStore('chat', () => {
     syncPersonaName,
     updateChatName,
     syncSwipeToMes,
+    saveChatDebounced,
   };
 });

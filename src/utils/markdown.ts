@@ -1,4 +1,4 @@
-import { Marked } from 'marked';
+import { Marked, type TokenizerAndRendererExtension } from 'marked';
 import DOMPurify, { type Config } from 'dompurify';
 import type { ChatMessage } from '../types';
 
@@ -18,7 +18,46 @@ const renderer = {
   // Showdown supported parsing dimensions from the URL/alt text, whereas standard Markdown does not.
 };
 
-marked.use({ renderer });
+/**
+ * Custom Tokenizer to safely style text inside double quotes (Dialogue)
+ * It runs as a Marked extension, ensuring it doesn't break HTML attributes or Link titles.
+ */
+const dialogueExtension: TokenizerAndRendererExtension = {
+  name: 'dialogue',
+  level: 'inline',
+  // Hint to Marked: start checking for this token when you see a double quote
+  start(src: string) {
+    return src.indexOf('"');
+  },
+  tokenizer(src: string) {
+    // Match a double quote, followed by non-quotes (non-greedy), followed by a double quote.
+    // We use [^"]* to allow the quote to span multiple lines (unlike the original dot . regex),
+    // which is generally an improvement for roleplay text.
+    const rule = /^"([^"]*?)"/;
+    const match = rule.exec(src);
+
+    if (match) {
+      return {
+        type: 'dialogue',
+        raw: match[0], // The full string to consume: "Content"
+        text: match[0], // The text to display
+        // We parse the content *inside* the quotes (match[1]) so bold/italic works inside dialogue.
+        tokens: this.lexer.inlineTokens(match[1]),
+      };
+    }
+    return undefined;
+  },
+  renderer(token) {
+    // Wrap the parsed inner tokens in quotes and the <q> tag.
+    // Using this.parser.parseInline ensures inner markdown (like *emphasis*) is rendered.
+    return `<q>"${this.parser.parseInline(token.tokens || [])}"</q>`;
+  },
+};
+
+marked.use({
+  renderer,
+  extensions: [dialogueExtension],
+});
 
 /**
  * Formats a raw string with Markdown and sanitizes it.
@@ -26,19 +65,9 @@ marked.use({ renderer });
  * @param options Formatting options.
  * @returns An HTML string.
  */
-export function formatText(text: string, options?: { isSystem?: boolean }): string {
+export function formatText(text: string): string {
   if (!text) return '';
-
-  let contentToParse = text;
-
-  // Legacy SillyTavern behavior: Wrap quotes in <q> tags.
-  // TODO: This regex is simplistic and might break HTML attributes containing quotes.
-  // A more robust solution would be a custom Tokenizer in marked.
-  if (!options?.isSystem) {
-    contentToParse = contentToParse.replace(/"(.*?)"/g, '<q>"$1"</q>');
-  }
-
-  const rawHtml = marked.parse(contentToParse) as string;
+  const rawHtml = marked.parse(text) as string;
 
   const config: Config = {
     RETURN_DOM: false,
@@ -58,7 +87,7 @@ export function formatText(text: string, options?: { isSystem?: boolean }): stri
  */
 export function formatMessage(message: ChatMessage): string {
   const textToFormat = message?.extra?.display_text || message.mes;
-  return formatText(textToFormat, { isSystem: message.is_system });
+  return formatText(textToFormat);
 }
 
 /**
@@ -70,5 +99,5 @@ export function formatMessage(message: ChatMessage): string {
 export function formatReasoning(message: ChatMessage): string {
   if (!message.extra?.reasoning) return '';
   const textToFormat = message.extra.reasoning_display_text || message.extra.reasoning;
-  return formatText(textToFormat, { isSystem: message.is_system });
+  return formatText(textToFormat);
 }

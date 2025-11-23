@@ -52,37 +52,38 @@ export function getMessageTimeStamp() {
 
 export function formatTimeStamp(dateString?: string | number): string {
   if (!dateString) return '';
-  try {
-    const d = new Date(dateString);
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    const month = months[d.getMonth()];
-    const day = d.getDate();
-    const year = d.getFullYear();
-    let hours = d.getHours();
-    const minutes = ('0' + d.getMinutes()).slice(-2);
-    let meridiem = 'am';
-    if (hours >= 12) {
-      meridiem = 'pm';
-      hours -= 12;
-    }
-    if (hours === 0) {
-      hours = 12;
-    }
-    return `${month} ${day}, ${year} ${hours}:${minutes}${meridiem}`;
-  } catch {
-    return String(dateString); // TODO: Really? How in the world we have try/catch in date formatting?
+
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) {
+    return String(dateString);
   }
+
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  const month = months[d.getMonth()];
+  const day = d.getDate();
+  const year = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = ('0' + d.getMinutes()).slice(-2);
+  let meridiem = 'am';
+  if (hours >= 12) {
+    meridiem = 'pm';
+    hours -= 12;
+  }
+  if (hours === 0) {
+    hours = 12;
+  }
+  return `${month} ${day}, ${year} ${hours}:${minutes}${meridiem}`;
 }
