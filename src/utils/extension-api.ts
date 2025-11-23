@@ -136,11 +136,18 @@ const baseExtensionAPI: ExtensionAPI = {
      * @param messageText The content of the message to send.
      * @param options Configuration for sending the message.
      * @param options.triggerGeneration If true (default), an AI response will be generated.
+     * @param options.generationId Optional ID for tracking the generation process.
      * @returns A promise that resolves when the message is sent (and generation begins, if applicable).
      */
-    sendMessage: async (messageText: string, options?: { triggerGeneration?: boolean }): Promise<void> => {
+    sendMessage: async (
+      messageText: string,
+      options?: { triggerGeneration?: boolean; generationId?: string },
+    ): Promise<void> => {
       const shouldTriggerGeneration = options?.triggerGeneration ?? true;
-      await useChatStore().sendMessage(messageText, shouldTriggerGeneration);
+      await useChatStore().sendMessage(messageText, {
+        triggerGeneration: shouldTriggerGeneration,
+        generationId: options?.generationId,
+      });
     },
 
     /**
@@ -220,15 +227,15 @@ const baseExtensionAPI: ExtensionAPI = {
     /**
      * Triggers a regeneration of the last AI response.
      */
-    regenerateResponse: async (): Promise<void> => {
-      return await useChatStore().generateResponse(GenerationMode.REGENERATE);
+    regenerateResponse: async (options?: { generationId?: string }): Promise<void> => {
+      return await useChatStore().generateResponse(GenerationMode.REGENERATE, options);
     },
 
     /**
      * Triggers a "continue" generation from the last AI response.
      */
-    continueResponse: async (): Promise<void> => {
-      return await useChatStore().generateResponse(GenerationMode.CONTINUE);
+    continueResponse: async (options?: { generationId?: string }): Promise<void> => {
+      return await useChatStore().generateResponse(GenerationMode.CONTINUE, options);
     },
 
     /**

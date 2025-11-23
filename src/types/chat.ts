@@ -37,6 +37,7 @@ export interface SwipeInfo {
   send_date: string;
   gen_started?: string;
   gen_finished?: string;
+  generation_id?: string;
   extra: {
     reasoning?: string;
     token_count?: number;

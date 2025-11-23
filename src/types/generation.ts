@@ -75,6 +75,7 @@ export type BuildChatCompletionPayloadOptions = {
 };
 
 export type GenerationContext = {
+  generationId: string;
   mode: GenerationMode;
   characters: Character[];
   chatMetadata: ChatMetadata;
@@ -92,6 +93,7 @@ export type GenerationContext = {
 } & { controller: AbortController };
 
 export type PromptBuilderOptions = {
+  generationId: string;
   characters: Character[];
   chatMetadata: ChatMetadata;
   chatHistory: ChatMessage[];
@@ -126,6 +128,7 @@ export interface PromptTokenBreakdown {
 }
 
 export interface ItemizedPrompt {
+  generationId: string;
   messageIndex: number; // Map to chat message index (the bot response)
   model: string;
   api: string;

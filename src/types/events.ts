@@ -52,15 +52,18 @@ export interface ExtensionEventMap {
   'world-info:entry-deleted': [bookName: string, uid: number];
 
   // Generation Flow Events
-  'generation:started': [controller: AbortController];
-  'generation:finished': [message: ChatMessage | null, error?: Error];
-  'generation:before-message-create': [message: ChatMessage, controller: AbortController];
+  'generation:started': [context: { controller: AbortController; generationId: string }];
+  'generation:finished': [result: { message: ChatMessage | null; error?: Error }, context: { generationId: string }];
+  'generation:before-message-create': [
+    message: ChatMessage,
+    context: { controller: AbortController; generationId: string },
+  ];
 
   'prompt:building-started': [options: PromptBuilderOptions];
-  'prompt:built': [messages: ApiChatMessage[]];
+  'prompt:built': [messages: ApiChatMessage[], context: { generationId: string }];
   'world-info:processing-started': [options: WorldInfoOptions];
-  'world-info:entry-activated': [entry: WorldInfoEntry];
-  'world-info:processing-finished': [result: ProcessedWorldInfo];
+  'world-info:entry-activated': [entry: WorldInfoEntry, context: { generationId: string }];
+  'world-info:processing-finished': [result: ProcessedWorldInfo, context: { generationId: string }];
 
   /**
    * Data Processing Events
@@ -68,7 +71,16 @@ export interface ExtensionEventMap {
    * They are fired sequentially and awaited by the core application.
    */
   'process:generation-context': [context: GenerationContext];
-  'process:request-payload': [payload: ChatCompletionPayload, controller: AbortController];
-  'process:response': [response: GenerationResponse, payload: ChatCompletionPayload, controller: AbortController];
-  'process:stream-chunk': [chunk: StreamedChunk, payload: ChatCompletionPayload, controller: AbortController];
+  'process:request-payload': [
+    payload: ChatCompletionPayload,
+    context: { controller: AbortController; generationId: string },
+  ];
+  'process:response': [
+    response: GenerationResponse,
+    context: { payload: ChatCompletionPayload; controller: AbortController; generationId: string },
+  ];
+  'process:stream-chunk': [
+    chunk: StreamedChunk,
+    context: { payload: ChatCompletionPayload; controller: AbortController; generationId: string },
+  ];
 }

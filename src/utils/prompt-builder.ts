@@ -61,6 +61,7 @@ export class PromptBuilder {
   public processedWorldInfo: ProcessedWorldInfo | null = null;
   public worldInfo: WorldInfoSettings;
   public books: WorldInfoBook[];
+  public generationId: string;
 
   constructor({
     characters,
@@ -71,6 +72,7 @@ export class PromptBuilder {
     chatMetadata,
     worldInfo,
     books,
+    generationId,
   }: PromptBuilderOptions) {
     this.characters = characters;
     this.character = characters[0];
@@ -81,6 +83,7 @@ export class PromptBuilder {
     this.tokenizer = tokenizer;
     this.worldInfo = worldInfo;
     this.books = books;
+    this.generationId = generationId;
 
     this.maxContext = this.samplerSettings.max_context ?? defaultSamplerSettings.max_context;
   }
@@ -102,6 +105,7 @@ export class PromptBuilder {
       persona: this.persona,
       tokenizer: this.tokenizer,
       worldInfo: this.worldInfo,
+      generationId: this.generationId,
     };
     await eventEmitter.emit('prompt:building-started', options);
     const finalMessages: ApiChatMessage[] = [];
@@ -116,6 +120,7 @@ export class PromptBuilder {
       persona: this.persona,
       maxContext: this.maxContext,
       tokenizer: this.tokenizer,
+      generationId: this.generationId,
     });
 
     this.processedWorldInfo = await processor.process();
@@ -271,7 +276,7 @@ export class PromptBuilder {
       }
     }
 
-    await eventEmitter.emit('prompt:built', finalMessages);
+    await eventEmitter.emit('prompt:built', finalMessages, { generationId: this.generationId });
     return finalMessages;
   }
 }

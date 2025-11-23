@@ -22,6 +22,7 @@ import { getMessageTimeStamp } from '../utils/date';
 import { getThumbnailUrl } from '../utils/image';
 import { toast } from './useToast';
 import { determineNextSpeaker } from '../utils/group-chat-logic';
+import { uuidv4 } from '../utils/common';
 
 // Stores
 import { useCharacterStore } from '../stores/character.store';
@@ -66,7 +67,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     }
   }
 
-  async function sendMessage(messageText: string, triggerGeneration = true) {
+  async function sendMessage(
+    messageText: string,
+    { triggerGeneration = true, generationId }: { triggerGeneration?: boolean; generationId?: string } = {},
+  ) {
     if (!messageText.trim() || isGenerating.value || deps.activeChat.value === null || !personaStore.activePersona) {
       return;
     }
@@ -111,11 +115,14 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     await eventEmitter.emit('message:created', userMessage);
 
     if (triggerGeneration) {
-      await generateResponse(GenerationMode.NEW);
+      await generateResponse(GenerationMode.NEW, { generationId });
     }
   }
 
-  async function generateResponse(mode: GenerationMode, forceSpeakerAvatar?: string) {
+  async function generateResponse(
+    mode: GenerationMode,
+    { generationId, forceSpeakerAvatar }: { generationId?: string; forceSpeakerAvatar?: string } = {},
+  ) {
     if (isGenerating.value) return;
 
     if (!deps.activeChat.value) {
@@ -124,9 +131,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     }
 
     const currentChatContext = deps.activeChat.value;
+    const finalGenerationId = generationId || uuidv4();
 
     const startController = new AbortController();
-    await eventEmitter.emit('generation:started', startController);
+    await eventEmitter.emit('generation:started', { controller: startController, generationId: finalGenerationId });
     if (startController.signal.aborted) {
       return;
     }
@@ -245,6 +253,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       );
 
       const context: GenerationContext = {
+        generationId: finalGenerationId,
         mode,
         characters: charactersForContext,
         chatMetadata: currentChatContext.metadata,
@@ -267,6 +276,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       if (context.controller.signal.aborted) return;
 
       const promptBuilder = new PromptBuilder({
+        generationId: finalGenerationId,
         characters: context.characters,
         chatMetadata: context.chatMetadata,
         chatHistory: context.history,
@@ -336,6 +346,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       }
 
       const itemizedPrompt: ItemizedPrompt = {
+        generationId: finalGenerationId,
         messageIndex: mode === GenerationMode.CONTINUE ? activeChatMessages.length - 1 : activeChatMessages.length,
         model: context.settings.model,
         api: context.settings.source,
@@ -359,7 +370,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       });
 
       const payloadController = new AbortController();
-      await eventEmitter.emit('process:request-payload', payload, payloadController);
+      await eventEmitter.emit('process:request-payload', payload, {
+        controller: payloadController,
+        generationId: finalGenerationId,
+      });
       if (payloadController.signal.aborted) return;
 
       const handleGenerationResult = async (content: string, reasoning?: string) => {
@@ -374,6 +388,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           send_date: getMessageTimeStamp(),
           gen_started: genStarted,
           gen_finished: genFinished,
+          generation_id: finalGenerationId,
           extra: { reasoning, token_count },
         };
 
@@ -419,7 +434,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           };
 
           const createController = new AbortController();
-          await eventEmitter.emit('generation:before-message-create', botMessage, createController);
+          await eventEmitter.emit('generation:before-message-create', botMessage, {
+            controller: createController,
+            generationId: finalGenerationId,
+          });
           if (createController.signal.aborted) return;
 
           activeChatMessages.push(botMessage);
@@ -438,7 +456,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         if (deps.activeChat.value !== currentChatContext) throw new Error('Context switched');
 
         const responseController = new AbortController();
-        await eventEmitter.emit('process:response', response, payload, responseController);
+        await eventEmitter.emit('process:response', response, {
+          payload,
+          controller: responseController,
+          generationId: finalGenerationId,
+        });
         if (responseController.signal.aborted) return;
 
         await handleGenerationResult(response.content, response.reasoning);
@@ -467,7 +489,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           };
 
           const createController = new AbortController();
-          await eventEmitter.emit('generation:before-message-create', botMessage, createController);
+          await eventEmitter.emit('generation:before-message-create', botMessage, {
+            controller: createController,
+            generationId: finalGenerationId,
+          });
           if (createController.signal.aborted) return;
 
           if (deps.activeChat.value !== currentChatContext) throw new Error('Context switched');
@@ -496,7 +521,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
             }
 
             const chunkController = new AbortController();
-            await eventEmitter.emit('process:stream-chunk', chunk, payload, chunkController);
+            await eventEmitter.emit('process:stream-chunk', chunk, {
+              payload,
+              controller: chunkController,
+              generationId: finalGenerationId,
+            });
             if (chunkController.signal.aborted) {
               generationController.value?.abort();
               break;
@@ -536,6 +565,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
                 send_date: finalMessage.send_date!,
                 gen_started: genStarted,
                 gen_finished: finalMessage.gen_finished,
+                generation_id: finalGenerationId,
                 extra: { ...finalMessage.extra },
               };
               if (!finalMessage.swipe_info) finalMessage.swipe_info = [];
@@ -565,7 +595,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       generationController.value = null;
       await nextTick();
       if (deps.activeChat.value === currentChatContext) {
-        await eventEmitter.emit('generation:finished', generatedMessage, generationError);
+        await eventEmitter.emit(
+          'generation:finished',
+          { message: generatedMessage, error: generationError },
+          { generationId: finalGenerationId },
+        );
       }
     }
   }

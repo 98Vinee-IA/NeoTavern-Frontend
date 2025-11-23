@@ -17,6 +17,7 @@ export interface LlmGenerationOptions {
   connectionProfileName?: string;
   samplerOverrides?: Partial<SamplerSettings>;
   signal?: AbortSignal;
+  generationId?: string;
 }
 
 export enum MountableComponent {
@@ -219,15 +220,18 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
   meta: ExtensionMetadata;
 
   chat: {
-    sendMessage: (messageText: string, options?: { triggerGeneration?: boolean }) => Promise<void>;
+    sendMessage: (
+      messageText: string,
+      options?: { triggerGeneration?: boolean; generationId?: string },
+    ) => Promise<void>;
     getHistory: () => readonly ChatMessage[];
     getLastMessage: () => Readonly<ChatMessage> | null;
     insertMessage: (message: Omit<ChatMessage, 'send_date'> & { send_date?: string }, index?: number) => void;
     updateMessage: (index: number, newContent: string, newReasoning?: string) => Promise<void>;
     updateMessageObject: (index: number, updates: Partial<ChatMessage>) => Promise<void>;
     deleteMessage: (index: number) => Promise<void>;
-    regenerateResponse: () => Promise<void>;
-    continueResponse: () => Promise<void>;
+    regenerateResponse: (options?: { generationId?: string }) => Promise<void>;
+    continueResponse: (options?: { generationId?: string }) => Promise<void>;
     clear: () => Promise<void>;
     abortGeneration: () => void;
     generate: (

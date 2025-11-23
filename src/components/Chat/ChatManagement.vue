@@ -205,7 +205,7 @@ function toggleMute(avatar: string) {
 }
 
 function forceTalk(avatar: string) {
-  chatStore.generateResponse(GenerationMode.NEW, avatar);
+  chatStore.generateResponse(GenerationMode.NEW, { forceSpeakerAvatar: avatar });
 }
 
 function updateMembersOrder(newMembers: Character[]) {

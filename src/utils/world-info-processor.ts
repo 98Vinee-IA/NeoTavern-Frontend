@@ -145,8 +145,9 @@ export class WorldInfoProcessor {
   public books: WorldInfoBook[];
   public persona: Persona;
   public tokenizer: Tokenizer;
+  public generationId: string;
 
-  constructor({ chat, characters, settings, books, maxContext, persona, tokenizer }: WorldInfoOptions) {
+  constructor({ chat, characters, settings, books, maxContext, persona, tokenizer, generationId }: WorldInfoOptions) {
     this.chat = chat;
     this.characters = characters;
     this.character = characters[0]; // Assuming first character for now
@@ -155,6 +156,7 @@ export class WorldInfoProcessor {
     this.persona = persona;
     this.maxContext = maxContext;
     this.tokenizer = tokenizer;
+    this.generationId = generationId;
   }
 
   public async process(): Promise<ProcessedWorldInfo> {
@@ -166,6 +168,7 @@ export class WorldInfoProcessor {
       persona: this.persona,
       maxContext: this.maxContext,
       tokenizer: this.tokenizer,
+      generationId: this.generationId,
     };
     await eventEmitter.emit('world-info:processing-started', options);
 
@@ -290,7 +293,7 @@ export class WorldInfoProcessor {
             currentUsedBudget += entryTokens;
 
             allActivatedEntries.add(entry);
-            await eventEmitter.emit('world-info:entry-activated', entry);
+            await eventEmitter.emit('world-info:entry-activated', entry, { generationId: this.generationId });
 
             if (this.settings.recursive && !entry.preventRecursion) {
               newContentForRecursion += `\n${rawContent}`;
@@ -370,7 +373,7 @@ export class WorldInfoProcessor {
     result.worldInfoBefore = result.worldInfoBefore.trim();
     result.worldInfoAfter = result.worldInfoAfter.trim();
 
-    await eventEmitter.emit('world-info:processing-finished', result);
+    await eventEmitter.emit('world-info:processing-finished', result, { generationId: this.generationId });
     return result;
   }
 }

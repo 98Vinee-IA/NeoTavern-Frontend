@@ -111,6 +111,7 @@ export interface ProcessedWorldInfo {
 export type WorldInfoSettings = ExperimentalWorldInfoSettings;
 
 export type WorldInfoOptions = {
+  generationId: string;
   chat: ChatMessage[];
   characters: Character[];
   settings: WorldInfoSettings;
