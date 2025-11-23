@@ -16,26 +16,22 @@ import { useChatStore } from './chat.store';
 import { useUiStore } from './ui.store';
 import { usePopupStore } from './popup.store';
 import { useWorldInfoStore } from './world-info.store';
-import {
-  CHARACTER_FIELD_MAPPINGS,
-  DEFAULT_CHARACTER,
-  DEFAULT_PRINT_TIMEOUT,
-  DEFAULT_SAVE_EDIT_TIMEOUT,
-  DebounceTimeout,
-  depth_prompt_depth_default,
-  depth_prompt_role_default,
-  talkativeness_default,
-} from '../constants';
+import { useCharacterTokens } from '../composables/useCharacterTokens';
+import { DEFAULT_CHARACTER, DEFAULT_PRINT_TIMEOUT, DEFAULT_SAVE_EDIT_TIMEOUT } from '../constants';
 import { useSettingsStore } from './settings.store';
 import { onlyUnique } from '../utils/array';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { getFirstMessage } from '../utils/chat';
-import { get, set, debounce } from 'lodash-es';
+import { debounce } from 'lodash-es';
 import { eventEmitter } from '../utils/event-emitter';
-import { ApiTokenizer } from '../api/tokenizer';
 import { getThumbnailUrl } from '../utils/image';
 import { convertCharacterBookToWorldInfoBook } from '../utils/world-info-conversion';
 import { uuidv4 } from '../utils/common';
+import {
+  getCharacterDifferences,
+  createCharacterFormData,
+  filterAndSortCharacters,
+} from '../utils/character-manipulation';
 
 const ANTI_TROLL_MAX_TAGS = 50;
 const IMPORT_EXLCUDED_TAGS: string[] = [];
@@ -47,30 +43,28 @@ export const useCharacterStore = defineStore('character', () => {
   const uiStore = useUiStore();
   const popupStore = usePopupStore();
   const worldInfoStore = useWorldInfoStore();
+
+  const { tokenCounts, totalTokens, permanentTokens, calculateAllTokens } = useCharacterTokens();
+
   const characters = ref<Array<Character>>([]);
   const favoriteCharacterChecked = ref<boolean>(false);
   const currentPage = ref(1);
   const itemsPerPage = ref(25);
   const highlightedAvatar = ref<string | null>(null);
-  const tokenCounts = ref<{ total: number; permanent: number; fields: Record<string, number> }>({
-    total: 0,
-    permanent: 0,
-    fields: {},
-  });
   const searchTerm = ref('');
+  const isCreating = ref(false);
+  const draftCharacter = ref<Character>(DEFAULT_CHARACTER);
 
   const sortOrder = computed({
     get: () => settingsStore.settings.account.characterSortOrder ?? 'name:asc',
     set: (value) => (settingsStore.settings.account.characterSortOrder = value),
   });
 
-  const isCreating = ref(false);
-  const draftCharacter = ref<Character>(DEFAULT_CHARACTER);
-
   const activeCharacterAvatars = computed<Set<string>>(() => {
     const members = chatStore.activeChat?.metadata?.members;
     return new Set(members ?? []);
   });
+
   const activeCharacters = computed<Character[]>(() => {
     return characters.value.filter((char) => activeCharacterAvatars.value.has(char.avatar));
   });
@@ -92,47 +86,8 @@ export const useCharacterStore = defineStore('character', () => {
     return null;
   });
 
-  const totalTokens = computed(() => tokenCounts.value.total);
-  const permanentTokens = computed(() => tokenCounts.value.permanent);
-
   const displayableCharacters = computed<Character[]>(() => {
-    // 1. Filter characters based on search term
-    const lowerSearchTerm = searchTerm.value.toLowerCase();
-    const filteredCharacters =
-      lowerSearchTerm.length > 0
-        ? characters.value.filter((char) => {
-            return (
-              char.name.toLowerCase().includes(lowerSearchTerm) ||
-              char.description?.toLowerCase().includes(lowerSearchTerm) ||
-              char.tags?.join(',').toLowerCase().includes(lowerSearchTerm)
-            );
-          })
-        : characters.value;
-
-    // 2. Sort the filtered characters
-    const [sortKey, sortDir] = sortOrder.value.split(':') as ['name' | 'create_date' | 'fav', 'asc' | 'desc'];
-    const sortedCharacters = [...filteredCharacters].sort((a, b) => {
-      const dir = sortDir === 'asc' ? 1 : -1;
-      switch (sortKey) {
-        case 'name':
-          return a.name.localeCompare(b.name) * dir;
-        case 'create_date': {
-          const dateA = a.create_date ? new Date(a.create_date).getTime() : 0;
-          const dateB = b.create_date ? new Date(b.create_date).getTime() : 0;
-          return (dateA - dateB) * dir;
-        }
-        case 'fav': {
-          const favA = a.fav ? 1 : 0;
-          const favB = b.fav ? 1 : 0;
-          if (favA !== favB) return (favB - favA) * dir; // Favorites first
-          return a.name.localeCompare(b.name); // Then sort by name
-        }
-        default:
-          return 0;
-      }
-    });
-
-    return sortedCharacters;
+    return filterAndSortCharacters(characters.value, searchTerm.value, sortOrder.value);
   });
 
   const paginatedCharacters = computed<Character[]>(() => {
@@ -151,50 +106,6 @@ export const useCharacterStore = defineStore('character', () => {
   const refreshCharactersDebounced = debounce(() => {
     refreshCharacters();
   }, DEFAULT_PRINT_TIMEOUT);
-
-  const calculateAllTokens = debounce(async (characterData: Partial<Character>) => {
-    if (!characterData) {
-      tokenCounts.value = { total: 0, permanent: 0, fields: {} };
-      return;
-    }
-
-    const fieldPaths = [
-      'description',
-      'first_mes',
-      'personality',
-      'scenario',
-      'mes_example',
-      'data.system_prompt',
-      'data.post_history_instructions',
-      'data.depth_prompt.prompt',
-    ];
-
-    const tokenizer = ApiTokenizer.default;
-    const newFieldCounts: Record<string, number> = {};
-    const promises = fieldPaths.map((path) =>
-      tokenizer.getTokenCount(get(characterData, path)).then((count) => {
-        newFieldCounts[path] = count;
-      }),
-    );
-
-    await Promise.all(promises);
-
-    const total = Object.values(newFieldCounts).reduce((sum, count) => sum + count, 0);
-
-    tokenCounts.value = {
-      total: total,
-      permanent: total, // TODO: Refine permanent token logic
-      fields: newFieldCounts,
-    };
-
-    const settingsStore = useSettingsStore();
-    const maxContext = settingsStore.settings.api.samplers.max_context;
-    const warningThreshold = maxContext * 0.75;
-
-    if (total > warningThreshold) {
-      toast.warning(t('character.tokenWarning', { tokens: total, percentage: 75 }), undefined, { timeout: 8000 });
-    }
-  }, DebounceTimeout.RELAXED);
 
   async function refreshCharacters() {
     try {
@@ -262,49 +173,10 @@ export const useCharacterStore = defineStore('character', () => {
   async function renameCharacter(avatar: string, newName: string) {
     const character = characters.value.find((c) => c.avatar === avatar);
     if (!character) return;
-    const changes = getDifferences(character, { ...character, name: newName });
+    const changes = getCharacterDifferences(character, { ...character, name: newName });
     if (!changes) return;
     await updateAndSaveCharacter(avatar, changes);
     toast.success(t('character.rename.success', { name: newName }));
-  }
-
-  function getDifferences(oldChar: Character, newChar: Character): Partial<Character> | null {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const diffs: Record<string, any> = {};
-
-    // 1. Map specific fields based on CHARACTER_FIELD_MAPPINGS
-    for (const [frontendKey, backendPath] of Object.entries(CHARACTER_FIELD_MAPPINGS)) {
-      const newValue = get(newChar, frontendKey);
-      const oldValue = get(oldChar, frontendKey);
-
-      // Only add if the value is present in the update data and different
-      if (newValue !== undefined && JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
-        set(diffs, backendPath, newValue);
-        set(diffs, frontendKey, newValue);
-      }
-    }
-
-    // 2. Handle 'data' object changes generally (for fields not in mapping but still relevant)
-    if (newChar.data) {
-      const backendDataPath = 'data';
-      const newData = newChar.data;
-      const oldData = oldChar.data || {};
-
-      const ignoreKeys = ['extensions']; // Handled via mapping or specific logic
-
-      for (const key in newData) {
-        if (ignoreKeys.includes(key)) continue;
-
-        const newSubValue = newData[key];
-        const oldSubValue = oldData[key];
-
-        if (JSON.stringify(newSubValue) !== JSON.stringify(oldSubValue)) {
-          set(diffs, `${backendDataPath}.${key}`, newSubValue);
-        }
-      }
-    }
-
-    return Object.keys(diffs).length > 0 ? diffs : null;
   }
 
   async function saveCharacterOnEditForm(characterData: Character) {
@@ -326,7 +198,7 @@ export const useCharacterStore = defineStore('character', () => {
       return;
     }
 
-    const changes = getDifferences(character, characterData);
+    const changes = getCharacterDifferences(character, characterData);
 
     if (changes) {
       await updateAndSaveCharacter(avatar, changes);
@@ -459,7 +331,7 @@ export const useCharacterStore = defineStore('character', () => {
 
     if (tagsToImport.length > 0) {
       const newTags = [...alreadyAssignedTags, ...tagsToImport].filter(onlyUnique);
-      const changes = getDifferences(character, { ...character, tags: newTags });
+      const changes = getCharacterDifferences(character, { ...character, tags: newTags });
       if (!changes) return;
       await updateAndSaveCharacter(character.avatar, changes);
       toast.success(
@@ -506,53 +378,11 @@ export const useCharacterStore = defineStore('character', () => {
       return;
     }
 
-    const formData = new FormData();
-
     const uuid = uuidv4();
     const fileName = `${uuid}.png`;
     const fileToSend = file ? new File([file], fileName, { type: file.type }) : null;
 
-    // Basic fields
-    formData.append('ch_name', character.name);
-    if (fileToSend) {
-      formData.append('avatar', fileToSend);
-    }
-    formData.append('preserved_name', uuid);
-    formData.append('fav', String(character.fav || false));
-    formData.append('description', character.description || '');
-    formData.append('first_mes', character.first_mes || '');
-
-    // Empty fields for compatibility with SillyTavern backend
-    formData.append('json_data', '');
-    formData.append('avatar_url', '');
-    formData.append('chat', '');
-    formData.append('create_date', '');
-    formData.append('last_mes', '');
-    formData.append('world', '');
-
-    // Advanced fields
-    formData.append('system_prompt', character.data?.system_prompt || '');
-    formData.append('post_history_instructions', character.data?.post_history_instructions || '');
-    formData.append('creator', character.data?.creator || '');
-    formData.append('character_version', character.data?.character_version || '');
-    formData.append('creator_notes', character.data?.creator_notes || '');
-    formData.append('tags', (character.tags || []).join(','));
-    formData.append('personality', character.personality || '');
-    formData.append('scenario', character.scenario || '');
-
-    // Depth Prompt (Flattened structure)
-    formData.append('depth_prompt_prompt', character.data?.depth_prompt?.prompt || '');
-    formData.append('depth_prompt_depth', String(character.data?.depth_prompt?.depth ?? depth_prompt_depth_default));
-    formData.append('depth_prompt_role', character.data?.depth_prompt?.role || depth_prompt_role_default);
-
-    // Character Book
-    if (character.data?.character_book) {
-      formData.append('character_book', JSON.stringify(character.data.character_book));
-    }
-
-    formData.append('talkativeness', String(character.talkativeness ?? talkativeness_default));
-    formData.append('mes_example', character.mes_example || '');
-    formData.append('extensions', JSON.stringify({}));
+    const formData = createCharacterFormData(character, fileToSend, uuid);
 
     try {
       const result = await apiCreateCharacter(formData);
@@ -646,6 +476,8 @@ export const useCharacterStore = defineStore('character', () => {
       toast.error(t('character.duplicate.error'));
     }
   }
+
+  const getDifferences = getCharacterDifferences;
 
   return {
     characters,
