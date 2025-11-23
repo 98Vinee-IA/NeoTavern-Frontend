@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { markRaw, ref } from 'vue';
-import type { DrawerType, SidebarDefinition, ZoomedAvatar } from '../types';
+import type { NavBarItemDefinition, SidebarDefinition, ZoomedAvatar } from '../types';
 
 export const useUiStore = defineStore('ui', () => {
   const isChatSaving = ref<boolean>(false);
@@ -12,7 +12,7 @@ export const useUiStore = defineStore('ui', () => {
   const activePlayerAvatar = ref<string | null>(null);
   const zoomedAvatars = ref<ZoomedAvatar[]>([]);
 
-  const activeDrawer = ref<DrawerType | null>(null);
+  const activeDrawer = ref<string | null>(null);
 
   const isLeftSidebarOpen = ref(false);
   const leftSidebarView = ref<string | null>(null);
@@ -22,6 +22,7 @@ export const useUiStore = defineStore('ui', () => {
 
   const leftSidebarRegistry = ref<Map<string, SidebarDefinition>>(new Map());
   const rightSidebarRegistry = ref<Map<string, SidebarDefinition>>(new Map());
+  const navBarRegistry = ref<Map<string, NavBarItemDefinition>>(new Map());
 
   function registerSidebar(id: string, definition: Omit<SidebarDefinition, 'id'>, side: 'left' | 'right') {
     const rawComponent = markRaw(definition.component);
@@ -37,6 +38,18 @@ export const useUiStore = defineStore('ui', () => {
       closeLeftSidebar();
     } else if (side === 'right' && rightSidebarView.value === id) {
       closeRightSidebar();
+    }
+  }
+
+  function registerNavBarItem(id: string, definition: Omit<NavBarItemDefinition, 'id'>) {
+    const rawComponent = definition.component ? markRaw(definition.component) : undefined;
+    navBarRegistry.value.set(id, { ...definition, component: rawComponent, id });
+  }
+
+  function unregisterNavBarItem(id: string) {
+    navBarRegistry.value.delete(id);
+    if (activeDrawer.value === id) {
+      activeDrawer.value = null;
     }
   }
 
@@ -127,10 +140,13 @@ export const useUiStore = defineStore('ui', () => {
     // Registries
     leftSidebarRegistry,
     rightSidebarRegistry,
+    navBarRegistry,
 
     // Actions
     registerSidebar,
     unregisterSidebar,
+    registerNavBarItem,
+    unregisterNavBarItem,
     toggleLeftSidebar,
     closeLeftSidebar,
     toggleRightSidebar,

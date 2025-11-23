@@ -356,6 +356,17 @@ const baseExtensionAPI: ExtensionAPI = {
       await Vue.nextTick();
       return id;
     },
+    registerNavBarItem: async (id, options) => {
+      useUiStore().registerNavBarItem(id, {
+        icon: options.icon,
+        title: options.title,
+        component: options.component ?? undefined,
+        onClick: options.onClick,
+        layout: options.layout,
+      });
+      await Vue.nextTick();
+      return id;
+    },
     openSidebar: (id) => useUiStore().toggleRightSidebar(id),
     mountComponent: async (container, componentName, props) => {
       if (!container) return;
@@ -517,6 +528,28 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
         { component: effectiveComponent, componentProps: effectiveProps, title: options.title, icon: options.icon },
         side,
       );
+      await Vue.nextTick();
+      return namespacedId;
+    },
+    registerNavBarItem: async (
+      id: string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      options: {
+        icon: string;
+        title: string;
+        component?: Vue.Component | null;
+        onClick?: () => void;
+        layout?: 'default' | 'wide';
+      },
+    ) => {
+      const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
+      useUiStore().registerNavBarItem(namespacedId, {
+        icon: options.icon,
+        title: options.title,
+        component: options.component ?? undefined,
+        onClick: options.onClick,
+        layout: options.layout,
+      });
       await Vue.nextTick();
       return namespacedId;
     },

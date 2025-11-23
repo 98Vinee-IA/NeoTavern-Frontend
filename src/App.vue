@@ -4,8 +4,17 @@ import ChatHeader from './components/Chat/ChatHeader.vue';
 import ChatInterface from './components/Chat/ChatInterface.vue';
 import ChatManagement from './components/Chat/ChatManagement.vue';
 import RecentChats from './components/Chat/RecentChats.vue';
+
+import CharacterPanel from './components/CharacterPanel/CharacterPanel.vue';
 import AiConfigDrawer from './components/NavBar/AiConfigDrawer.vue';
-import Navbar from './components/NavBar/NavBar.vue';
+import ApiConnectionsDrawer from './components/NavBar/ApiConnectionsDrawer.vue';
+import BackgroundsDrawer from './components/NavBar/BackgroundsDrawer.vue';
+import ExtensionsDrawer from './components/NavBar/ExtensionsDrawer.vue';
+import FormattingDrawer from './components/NavBar/FormattingDrawer.vue';
+import NavBar from './components/NavBar/NavBar.vue';
+import PersonaManagementDrawer from './components/NavBar/PersonaManagementDrawer.vue';
+import UserSettingsDrawer from './components/NavBar/UserSettingsDrawer.vue';
+import WorldInfoDrawer from './components/NavBar/WorldInfoDrawer.vue';
 import Popup from './components/Popup/Popup.vue';
 import Sidebar from './components/Shared/Sidebar.vue';
 import ZoomedAvatar from './components/ZoomedAvatar.vue';
@@ -30,7 +39,7 @@ const isFullScreen = computed(() => settingsStore.settings.account.chatFullScree
 onMounted(() => {
   settingsStore.initializeSettings();
 
-  // TODO: Add i18n
+  // Register Left Sidebar
   uiStore.registerSidebar(
     'recent-chats',
     {
@@ -41,6 +50,7 @@ onMounted(() => {
     'left',
   );
 
+  // Register Right Sidebars
   uiStore.registerSidebar(
     'ai-config',
     {
@@ -60,12 +70,71 @@ onMounted(() => {
     },
     'right',
   );
+
+  // Register NavBar Items
+  uiStore.registerNavBarItem('ai-config', {
+    icon: 'fa-sliders',
+    title: t('navbar.aiConfig'),
+    component: AiConfigDrawer,
+  });
+
+  uiStore.registerNavBarItem('api-status', {
+    icon: 'fa-plug',
+    title: t('navbar.apiConnections'),
+    component: ApiConnectionsDrawer,
+  });
+
+  uiStore.registerNavBarItem('formatting', {
+    icon: 'fa-font',
+    title: t('navbar.formatting'),
+    component: FormattingDrawer,
+  });
+
+  uiStore.registerNavBarItem('world-info', {
+    icon: 'fa-book-atlas',
+    title: t('navbar.worldInfo'),
+    component: WorldInfoDrawer,
+    layout: 'wide',
+  });
+
+  uiStore.registerNavBarItem('user-settings', {
+    icon: 'fa-user-cog',
+    title: t('navbar.userSettings'),
+    component: UserSettingsDrawer,
+  });
+
+  uiStore.registerNavBarItem('backgrounds', {
+    icon: 'fa-panorama',
+    title: t('navbar.backgrounds'),
+    component: BackgroundsDrawer,
+  });
+
+  uiStore.registerNavBarItem('extensions', {
+    icon: 'fa-cubes',
+    title: t('navbar.extensions'),
+    component: ExtensionsDrawer,
+    layout: 'wide',
+  });
+
+  uiStore.registerNavBarItem('persona', {
+    icon: 'fa-face-smile',
+    title: t('navbar.personaManagement'),
+    component: PersonaManagementDrawer,
+    layout: 'wide',
+  });
+
+  uiStore.registerNavBarItem('character', {
+    icon: 'fa-address-card',
+    title: t('navbar.characterManagement'),
+    component: CharacterPanel,
+    layout: 'wide',
+  });
 });
 </script>
 
 <template>
   <div id="background" :style="backgroundStyle"></div>
-  <Navbar />
+  <NavBar />
 
   <Sidebar side="left" :is-open="uiStore.isLeftSidebarOpen" storage-key="leftSidebarWidth">
     <template v-for="[id, def] in uiStore.leftSidebarRegistry" :key="id">

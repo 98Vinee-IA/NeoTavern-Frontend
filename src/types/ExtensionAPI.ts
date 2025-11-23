@@ -330,6 +330,22 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
     ) => Promise<string>;
 
     /**
+     * Registers a custom item in the main navigation bar (and optional drawer).
+     * @param id Unique identifier for the item.
+     * @param options Configuration options.
+     */
+    registerNavBarItem: (
+      id: string,
+      options: {
+        icon: string;
+        title: string;
+        component?: Component | null;
+        onClick?: () => void;
+        layout?: 'default' | 'wide';
+      },
+    ) => Promise<string>;
+
+    /**
      * Opens a specific sidebar view.
      * @param id The ID of the sidebar to open.
      */

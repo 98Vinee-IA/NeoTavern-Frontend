@@ -15,3 +15,12 @@ export interface SidebarDefinition {
   title?: string | I18nKey;
   icon?: string; // FontAwesome class
 }
+
+export interface NavBarItemDefinition {
+  id: string;
+  icon: string;
+  title: string;
+  component?: Component;
+  onClick?: () => void;
+  layout?: 'default' | 'wide';
+}
