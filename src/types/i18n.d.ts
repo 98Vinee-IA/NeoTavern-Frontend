@@ -28,6 +28,7 @@ export interface MessageSchema {
     noChatsFound: string;
     scenarioOverride: string;
     scenarioOverridePlaceholder: string;
+    connectionProfile: string;
     deleteSelectedConfirmContent: string;
     deleteSuccess: string;
     chatLorebooks: string;

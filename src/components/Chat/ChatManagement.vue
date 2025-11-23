@@ -14,7 +14,7 @@ import { DebounceTimeout, GenerationMode, GroupGenerationHandlingMode, GroupRepl
 import { getThumbnailUrl } from '../../utils/image';
 import { useUiStore } from '../../stores/ui.store';
 import { Button, Input, Select, Textarea, Checkbox, Tabs, Search, ListItem, FormItem, CollapsibleSection } from '../UI';
-import { EmptyState, Pagination, DraggableList } from '../Common';
+import { EmptyState, Pagination, DraggableList, ConnectionProfileSelector } from '../Common';
 import { debounce } from 'lodash-es';
 
 const { t } = useStrictI18n();
@@ -186,6 +186,16 @@ const activeChatLorebooks = computed({
   set: (val) => {
     if (chatStore.activeChat) {
       chatStore.activeChat.metadata.chat_lorebooks = val;
+    }
+  },
+});
+
+const activeChatConnectionProfile = computed({
+  get: () => chatStore.activeChat?.metadata.connection_profile,
+  set: (val) => {
+    if (chatStore.activeChat) {
+      chatStore.activeChat.metadata.connection_profile = val;
+      saveDebounced();
     }
   },
 });
@@ -447,6 +457,12 @@ watch(activeChatLorebooks, () => {
               :rows="6"
               :placeholder="t('chatManagement.scenarioOverridePlaceholder')"
             />
+          </FormItem>
+
+          <hr />
+
+          <FormItem :label="t('chatManagement.connectionProfile')">
+            <ConnectionProfileSelector v-model="activeChatConnectionProfile" />
           </FormItem>
 
           <hr />

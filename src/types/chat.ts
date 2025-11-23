@@ -13,6 +13,7 @@ export interface ChatMetadata {
 
   members?: string[];
   active_persona?: string;
+  connection_profile?: string;
 
   promptOverrides?: {
     scenario?: string;

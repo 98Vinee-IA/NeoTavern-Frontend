@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { usePersonaStore } from '../../stores/persona.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useStrictI18n } from '../../composables/useStrictI18n';
@@ -11,6 +11,9 @@ import { Button, Select, Checkbox, Textarea, Search, ListItem, FileInput, FormIt
 import { useChatStore } from '../../stores/chat.store';
 import { useCharacterStore } from '../../stores/character.store';
 import { useWorldInfoStore } from '../../stores/world-info.store';
+import { ApiTokenizer } from '../../api/tokenizer';
+import { debounce } from 'lodash-es';
+import { DebounceTimeout } from '../../constants';
 
 const { t } = useStrictI18n();
 const personaStore = usePersonaStore();
@@ -27,6 +30,7 @@ const itemsPerPage = ref(10);
 const isGridView = ref(false);
 
 const viewMode = ref<'editor' | 'settings'>('editor');
+const descriptionTokenCount = ref(0);
 
 const sortOptions = [
   { label: 'A-Z', value: 'asc' },
@@ -79,6 +83,18 @@ const isDefaultPersona = computed(() => {
 const lorebookOptions = computed(() => {
   return worldInfoStore.bookInfos.map((info) => ({ label: info.name, value: info.file_id }));
 });
+
+const calculateDescriptionTokens = debounce(async (text: string) => {
+  descriptionTokenCount.value = await ApiTokenizer.default.getTokenCount(text);
+}, DebounceTimeout.RELAXED);
+
+watch(
+  () => personaStore.activePersona?.description,
+  (newVal) => {
+    calculateDescriptionTokens(newVal || '');
+  },
+  { immediate: true },
+);
 
 function selectPersona(id: string) {
   viewMode.value = 'editor';
@@ -312,6 +328,9 @@ onMounted(() => {
                 :placeholder="t('personaManagement.description.placeholder')"
                 @update:model-value="personaStore.updateActivePersonaField('description', $event)"
               />
+              <div class="token-counter" style="text-align: right; font-size: 0.8em; opacity: 0.7; margin-top: 2px">
+                {{ t('common.tokens') }}: {{ descriptionTokenCount }}
+              </div>
             </FormItem>
 
             <FormItem :label="t('personaManagement.lorebooks.label')">
@@ -323,8 +342,6 @@ onMounted(() => {
                 @update:model-value="personaStore.updateActivePersonaField('lorebooks', $event)"
               />
             </FormItem>
-
-            <!-- TODO: Add token counter -->
 
             <h4 class="standoutHeader">{{ t('personaManagement.connections.title') }}</h4>
             <div class="persona-editor-connections">

@@ -10,6 +10,7 @@ import {
   type Character,
   type WorldInfoBook,
   type ChatMetadata,
+  type ConnectionProfile,
 } from '../types';
 import { GenerationMode, GroupGenerationHandlingMode, default_user_avatar } from '../constants';
 import { eventEmitter } from '../utils/event-emitter';
@@ -190,10 +191,42 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       if (!activePersona) throw new Error(t('chat.generate.noPersonaError'));
 
       const settings = settingsStore.settings;
-      const activeModel = apiStore.activeModel;
-      if (!activeModel) throw new Error(t('chat.generate.noModelError'));
 
-      const tokenizer = new ApiTokenizer({ tokenizerType: settings.api.tokenizer, model: activeModel });
+      const chatMetadata = currentChatContext.metadata;
+      const connectionProfileName = chatMetadata.connection_profile;
+      let profileSettings: ConnectionProfile | null = null;
+
+      if (connectionProfileName) {
+        const profile = apiStore.connectionProfiles.find((p) => p.name === connectionProfileName);
+        if (profile) {
+          profileSettings = profile;
+        }
+      }
+
+      // Determine Source
+      const effectiveSource = profileSettings?.chat_completion_source || settings.api.chatCompletionSource;
+
+      // Determine Model
+      let effectiveModel = profileSettings?.model;
+      if (!effectiveModel) {
+        effectiveModel = settings.api.selectedProviderModels[effectiveSource] || apiStore.activeModel || '';
+      }
+
+      if (!effectiveModel) throw new Error(t('chat.generate.noModelError'));
+
+      // Determine Sampler Settings
+      let effectiveSamplerSettings = settings.api.samplers;
+      if (profileSettings?.sampler) {
+        if (apiStore.presets.length === 0) {
+          await apiStore.loadPresetsForApi();
+        }
+        const preset = apiStore.presets.find((p) => p.name === profileSettings!.sampler);
+        if (preset) {
+          effectiveSamplerSettings = preset.preset;
+        }
+      }
+
+      const tokenizer = new ApiTokenizer({ tokenizerType: settings.api.tokenizer, model: effectiveModel });
       const handlingMode = deps.groupConfig.value?.config.handlingMode ?? GroupGenerationHandlingMode.SWAP;
 
       const mutedMap: Record<string, boolean> = {};
@@ -218,9 +251,9 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         history: chatHistoryForPrompt,
         persona: activePersona,
         settings: {
-          sampler: settings.api.samplers,
-          source: settings.api.chatCompletionSource,
-          model: activeModel,
+          sampler: effectiveSamplerSettings,
+          source: effectiveSource,
+          model: effectiveModel,
           providerSpecific: settings.api.providerSpecific,
         },
         playerName: uiStore.activePlayerName || 'User',
@@ -307,7 +340,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         model: context.settings.model,
         api: context.settings.source,
         tokenizer: settings.api.tokenizer,
-        presetName: settings.api.selectedSampler || 'Default',
+        presetName: profileSettings?.sampler || settings.api.selectedSampler || 'Default',
         messages: messages,
         breakdown: breakdown,
         timestamp: Date.now(),
