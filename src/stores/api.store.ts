@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { fetchChatCompletionStatus } from '../api/connection';
 import {
-  deletePreset as apiDeletePreset,
+  deleteExperimentalPreset as apideleteExperimentalPreset,
   fetchAllExperimentalPresets,
   saveExperimentalPreset,
   type Preset,
@@ -221,7 +221,7 @@ export const useApiStore = defineStore('api', () => {
         if (!presetToRename) throw new Error('Preset not found');
 
         // Rename is a delete and save operation
-        await apiDeletePreset(oldName);
+        await apideleteExperimentalPreset(oldName);
         await saveExperimentalPreset(newName, presetToRename.preset);
 
         await loadPresetsForApi();
@@ -233,7 +233,7 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
-  async function deletePreset(name?: string) {
+  async function deleteExperimentalPreset(name?: string) {
     if (!name) {
       toast.warning(t('aiConfig.presets.errors.deleteDefault'));
       return;
@@ -246,7 +246,7 @@ export const useApiStore = defineStore('api', () => {
 
     if (result === POPUP_RESULT.AFFIRMATIVE) {
       try {
-        await apiDeletePreset(name);
+        await apideleteExperimentalPreset(name);
         if (settingsStore.settings.api.selectedSampler === name) {
           settingsStore.settings.api.selectedSampler = 'Default';
         }
@@ -426,7 +426,7 @@ export const useApiStore = defineStore('api', () => {
     saveCurrentPresetAs,
     updateCurrentPreset,
     renamePreset,
-    deletePreset,
+    deleteExperimentalPreset,
     importPreset,
     exportPreset,
     updatePromptOrder,

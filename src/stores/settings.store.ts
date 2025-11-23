@@ -1,7 +1,7 @@
 import { cloneDeep, debounce, defaultsDeep, get, set } from 'lodash-es';
 import { defineStore } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
-import { migratePreset, saveExperimentalPreset } from '../api/presets';
+import { migrateExperimentalPreset, saveExperimentalPreset } from '../api/presets';
 import {
   saveUserSettings as apiSaveUserSettings,
   fetchUserSettings,
@@ -92,7 +92,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
   ) {
     userSettingsResponse.openai_setting_names.forEach(async (name: string, i: number) => {
       try {
-        await saveExperimentalPreset(name, migratePreset(userSettingsResponse.openai_settings[i]));
+        await saveExperimentalPreset(name, migrateExperimentalPreset(userSettingsResponse.openai_settings[i]));
       } catch (e: unknown) {
         console.error(`Failed to parse legacy preset "${name}":`, userSettingsResponse.openai_settings[i]);
         console.error(e);

@@ -110,7 +110,7 @@ onMounted(() => {
                     icon="fa-trash-can"
                     variant="danger"
                     :title="t('aiConfig.presets.delete')"
-                    @click="apiStore.deletePreset(settingsStore.getSetting(item.id))"
+                    @click="apiStore.deleteExperimentalPreset(settingsStore.getSetting(item.id))"
                   />
                 </div>
               </div>

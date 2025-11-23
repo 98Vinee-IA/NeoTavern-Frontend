@@ -8,7 +8,7 @@ export interface Preset {
   preset: SamplerSettings;
 }
 
-export function migratePreset(legacyPreset: LegacyOaiPresetSettings): SamplerSettings {
+export function migrateExperimentalPreset(legacyPreset: LegacyOaiPresetSettings): SamplerSettings {
   const newPreset: SamplerSettings = {
     temperature: legacyPreset.temperature ?? defaultSamplerSettings.temperature,
     frequency_penalty: legacyPreset.frequency_penalty ?? defaultSamplerSettings.frequency_penalty,
@@ -88,7 +88,7 @@ export async function saveExperimentalPreset(name: string, preset: SamplerSettin
   await response.json();
 }
 
-export async function deletePreset(name: string): Promise<void> {
+export async function deleteExperimentalPreset(name: string): Promise<void> {
   const response = await fetch('/api/presets/delete', {
     method: 'POST',
     headers: getRequestHeaders(),
