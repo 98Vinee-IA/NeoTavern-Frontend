@@ -177,7 +177,7 @@ const handlingModeOptions = computed(() => [
 ]);
 
 const availableLorebooks = computed(() => {
-  return worldInfoStore.bookNames.map((name) => ({ label: name, value: name }));
+  return worldInfoStore.bookInfos.map((info) => ({ label: info.name, value: info.file_id }));
 });
 
 const activeChatLorebooks = computed({

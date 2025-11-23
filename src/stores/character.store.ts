@@ -10,7 +10,6 @@ import {
   deleteCharacter as apiDeleteCharacter,
   updateCharacterImage as apiUpdateCharacterImage,
 } from '../api/characters';
-import * as apiWorldInfo from '../api/world-info';
 import DOMPurify from 'dompurify';
 import { toast } from '../composables/useToast';
 import { useChatStore } from './chat.store';
@@ -392,10 +391,10 @@ export const useCharacterStore = defineStore('character', () => {
             });
 
             if (result === POPUP_RESULT.AFFIRMATIVE) {
-              const wiBook = convertCharacterBookToWorldInfoBook(importedChar.data.character_book);
-              wiBook.name = bookName; // Ensure name matches
-              await apiWorldInfo.saveWorldInfoBook(bookName, wiBook);
-              await worldInfoStore.refresh();
+              await worldInfoStore.createNewBook({
+                filename: uuidv4(),
+                book: convertCharacterBookToWorldInfoBook(importedChar.data.character_book),
+              });
               toast.success(t('worldInfo.importSuccess', { name: bookName }));
             }
           }

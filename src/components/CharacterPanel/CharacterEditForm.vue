@@ -285,7 +285,7 @@ async function handleMoreAction(action: string) {
 const lorebookOptions = computed(() => {
   return [
     { label: t('common.none'), value: '' },
-    ...worldInfoStore.bookNames.map((name) => ({ label: name, value: name })),
+    ...worldInfoStore.bookInfos.map((info) => ({ label: info.name, value: info.file_id })),
   ];
 });
 

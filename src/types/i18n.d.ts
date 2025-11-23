@@ -239,6 +239,18 @@ export interface MessageSchema {
       importEmbeddedTitle: string;
       importEmbeddedContent: string;
     };
+    errors: {
+      loadListFailed: string;
+      loadFailed: string;
+      saveFailed: string;
+      createFailed: string;
+      deleteFailed: string;
+      duplicateFailed: string;
+      renameFailed: string;
+      bookNotFound: string;
+      importFailed: string;
+      exportFailed: string;
+    };
   };
   backgrounds: {
     add: string;

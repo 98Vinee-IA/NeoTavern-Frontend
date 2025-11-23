@@ -16,6 +16,7 @@ import {
   type SamplerSettings,
   type PersonaDescription,
   type WorldInfoSettings,
+  type WorldInfoHeader,
   type WorldInfoBook,
   type WorldInfoEntry,
   type LlmGenerationOptions,
@@ -54,7 +55,7 @@ function deepClone<T>(obj: T): T {
   if (typeof obj !== 'object') {
     return obj;
   }
-  return JSON.parse(JSON.stringify(obj));
+  return structuredClone(obj);
 }
 
 /**
@@ -475,8 +476,8 @@ const baseExtensionAPI: ExtensionAPI = {
      * Gets a list of all lorebook names.
      * @returns An array of lorebook names.
      */
-    getAllBookNames: (): readonly string[] => {
-      return deepClone(useWorldInfoStore().bookNames);
+    getAllBookNames: (): readonly WorldInfoHeader[] => {
+      return deepClone(useWorldInfoStore().bookInfos);
     },
 
     /**

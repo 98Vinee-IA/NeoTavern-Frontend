@@ -47,7 +47,6 @@ import { getCharactersForContext } from '../utils/group-chat';
 import { useWorldInfoStore } from './world-info.store';
 import { usePopupStore } from './popup.store';
 import { convertCharacterBookToWorldInfoBook } from '../utils/world-info-conversion';
-import * as apiWorldInfo from '../api/world-info';
 
 export type ChatStoreState = {
   messages: ChatMessage[];
@@ -351,25 +350,29 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         // Check for embedded lorebooks in characters
-        for (const character of characterStore.activeCharacters) {
-          if (character.data?.character_book) {
-            const bookName = character.data.character_book.name || character.name;
-            // Check if book exists globally
-            const exists = await worldInfoStore.getBookFromCache(bookName, true);
-            if (!exists) {
-              // Ask to import
-              const { result } = await popupStore.show({
-                title: t('worldInfo.popup.importEmbeddedTitle'),
-                content: t('worldInfo.popup.importEmbeddedContent', { name: bookName }),
-                type: POPUP_TYPE.CONFIRM,
-              });
+        if (activeChat.value) {
+          const nextMembers = activeChat.value.metadata.members || [];
+          for (const member of nextMembers) {
+            const character = characterStore.characters.find((c) => c.avatar === member);
+            if (character?.data?.character_book?.name) {
+              const bookName = character.data.character_book.name;
+              // Check if book exists globally
+              const exists = worldInfoStore.bookInfos.find((b) => b.name === bookName);
+              if (!exists) {
+                // Ask to import
+                const { result } = await popupStore.show({
+                  title: t('worldInfo.popup.importEmbeddedTitle'),
+                  content: t('worldInfo.popup.importEmbeddedContent', { name: bookName }),
+                  type: POPUP_TYPE.CONFIRM,
+                });
 
-              if (result === POPUP_RESULT.AFFIRMATIVE) {
-                const wiBook = convertCharacterBookToWorldInfoBook(character.data.character_book);
-                wiBook.name = bookName;
-                await apiWorldInfo.saveWorldInfoBook(bookName, wiBook);
-                await worldInfoStore.refresh();
-                toast.success(t('worldInfo.importSuccess', { name: bookName }));
+                if (result === POPUP_RESULT.AFFIRMATIVE) {
+                  await worldInfoStore.createNewBook({
+                    filename: uuidv4(),
+                    book: convertCharacterBookToWorldInfoBook(character.data.character_book),
+                  });
+                  toast.success(t('worldInfo.importSuccess', { name: bookName }));
+                }
               }
             }
           }
@@ -451,6 +454,33 @@ export const useChatStore = defineStore('chat', () => {
       await eventEmitter.emit('chat:entered', filename);
       if (firstMessage?.mes) {
         await eventEmitter.emit('message:created', firstMessage);
+      }
+
+      // Check for embedded lorebooks in characters
+      const nextMembers = activeChat.value.metadata.members || [];
+      for (const member of nextMembers) {
+        const character = characterStore.characters.find((c) => c.avatar === member);
+        if (character?.data?.character_book?.name) {
+          const bookName = character.data.character_book.name;
+          // Check if book exists globally
+          const exists = worldInfoStore.bookInfos.find((b) => b.name === bookName);
+          if (!exists) {
+            // Ask to import
+            const { result } = await popupStore.show({
+              title: t('worldInfo.popup.importEmbeddedTitle'),
+              content: t('worldInfo.popup.importEmbeddedContent', { name: bookName }),
+              type: POPUP_TYPE.CONFIRM,
+            });
+
+            if (result === POPUP_RESULT.AFFIRMATIVE) {
+              await worldInfoStore.createNewBook({
+                filename: uuidv4(),
+                book: convertCharacterBookToWorldInfoBook(character.data.character_book),
+              });
+              toast.success(t('worldInfo.importSuccess', { name: bookName }));
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to create new chat:', error);

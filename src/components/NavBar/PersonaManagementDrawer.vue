@@ -77,7 +77,7 @@ const isDefaultPersona = computed(() => {
 });
 
 const lorebookOptions = computed(() => {
-  return worldInfoStore.bookNames.map((name) => ({ label: name, value: name }));
+  return worldInfoStore.bookInfos.map((info) => ({ label: info.name, value: info.file_id }));
 });
 
 function selectPersona(id: string) {
@@ -152,7 +152,7 @@ onMounted(() => {
   if (personaStore.personas.length === 0) {
     personaStore.initialize();
   }
-  if (worldInfoStore.bookNames.length === 0) {
+  if (worldInfoStore.bookInfos.length === 0) {
     worldInfoStore.initialize();
   }
 });

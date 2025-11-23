@@ -1,23 +1,29 @@
 import { getRequestHeaders } from '../utils/api';
-import type { WorldInfoBook, WorldInfoEntry } from '../types';
-import { fetchUserSettings } from './settings';
+import type { WorldInfoBook, WorldInfoEntry, WorldInfoHeader } from '../types';
 
-export async function fetchAllWorldInfoNames(): Promise<string[]> {
-  const response = await fetchUserSettings();
-  return response.world_names;
-}
-
-export async function fetchWorldInfoBook(name: string): Promise<WorldInfoBook> {
-  const response = await fetch('/api/worldinfo/get', {
+export async function listAllWorldInfoBooks(): Promise<WorldInfoHeader[]> {
+  const response = await fetch('/api/worldinfo/list', {
     method: 'POST',
     headers: getRequestHeaders(),
-    body: JSON.stringify({ name }),
     cache: 'no-cache',
   });
   if (!response.ok) {
-    throw new Error(`Failed to fetch world info book: ${name}`);
+    throw new Error('Failed to fetch world info books list');
   }
-  const bookData = await response.json();
+  return (await response.json()) as WorldInfoHeader[];
+}
+
+export async function fetchWorldInfoBook(filename: string): Promise<WorldInfoBook> {
+  const response = await fetch('/api/worldinfo/get', {
+    method: 'POST',
+    headers: getRequestHeaders(),
+    body: JSON.stringify({ name: filename }),
+    cache: 'no-cache',
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch world info book: ${filename}`);
+  }
+  const bookData = (await response.json()) as WorldInfoBook;
 
   let entriesArray: WorldInfoEntry[] = [];
   if (Array.isArray(bookData.entries)) {
@@ -26,43 +32,28 @@ export async function fetchWorldInfoBook(name: string): Promise<WorldInfoBook> {
     entriesArray = Object.values(bookData.entries);
   }
 
-  return { name, entries: entriesArray };
+  return { ...bookData, entries: entriesArray };
 }
 
-export async function saveWorldInfoBook(name: string, data: WorldInfoBook): Promise<void> {
+export async function saveWorldInfoBook(filename: string, data: WorldInfoBook): Promise<void> {
   await fetch('/api/worldinfo/edit', {
     method: 'POST',
     headers: getRequestHeaders(),
-    body: JSON.stringify({ name, data }),
+    body: JSON.stringify({ name: filename, data }),
   });
 }
 
-export async function deleteWorldInfoBook(name: string): Promise<void> {
+export async function deleteWorldInfoBook(filename: string): Promise<void> {
   await fetch('/api/worldinfo/delete', {
     method: 'POST',
     headers: getRequestHeaders(),
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name: filename }),
   });
-}
-
-export async function renameWorldInfoBook(oldName: string, newName: string): Promise<void> {
-  const book = await fetchWorldInfoBook(oldName);
-  await saveWorldInfoBook(newName, { ...book, name: newName });
-  await deleteWorldInfoBook(oldName);
-}
-
-export async function duplicateWorldInfoBook(sourceName: string, newName: string): Promise<void> {
-  const book = await fetchWorldInfoBook(sourceName);
-  await saveWorldInfoBook(newName, { ...book, name: newName });
-}
-
-export async function exportWorldInfoBook(name: string): Promise<WorldInfoBook> {
-  return fetchWorldInfoBook(name);
 }
 
 export async function importWorldInfoBook(file: File): Promise<{ name: string }> {
   const formData = new FormData();
-  formData.append('avatar', file); // 'avatar' is the key used in the original backend
+  formData.append('avatar', file);
 
   const response = await fetch('/api/worldinfo/import', {
     method: 'POST',

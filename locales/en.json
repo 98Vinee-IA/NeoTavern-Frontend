@@ -235,6 +235,18 @@
       "deleteEntryContent": "Are you sure you want to delete the entry \"<b>{name}</b>\"?",
       "importEmbeddedTitle": "Import Embedded Lorebook",
       "importEmbeddedContent": "This character has an embedded lorebook named \"{name}\". Do you want to import it into your World Info library?"
+    },
+    "errors": {
+      "loadListFailed": "Failed to load lorebooks.",
+      "loadFailed": "Could not load lorebook: {name}.",
+      "saveFailed": "Failed to save lorebook.",
+      "createFailed": "Failed to create lorebook.",
+      "deleteFailed": "Failed to delete lorebook.",
+      "duplicateFailed": "Failed to duplicate lorebook.",
+      "renameFailed": "Failed to rename lorebook.",
+      "bookNotFound": "Book not found: {name}.",
+      "importFailed": "Failed to import lorebook.",
+      "exportFailed": "Failed to export lorebook."
     }
   },
   "backgrounds": {

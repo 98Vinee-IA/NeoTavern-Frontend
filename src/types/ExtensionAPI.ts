@@ -7,7 +7,7 @@ import type { SamplerSettings, Settings, SettingsPath } from './settings';
 import type { ApiChatMessage, ChatCompletionPayload, GenerationResponse, StreamedChunk } from './generation';
 import type { Character } from './character';
 import type { Persona, PersonaDescription } from './persona';
-import type { WorldInfoBook, WorldInfoEntry, WorldInfoSettings } from './world-info';
+import type { WorldInfoBook, WorldInfoEntry, WorldInfoHeader, WorldInfoSettings } from './world-info';
 import type { ExtensionEventMap } from './events';
 import type { PopupShowOptions } from './popup';
 import type { Component } from 'vue';
@@ -298,7 +298,7 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
   worldInfo: {
     getSettings: () => Readonly<WorldInfoSettings>;
     updateSettings: (settings: Partial<WorldInfoSettings>) => void;
-    getAllBookNames: () => readonly string[];
+    getAllBookNames: () => readonly WorldInfoHeader[];
     getBook: (name: string) => Promise<Readonly<WorldInfoBook> | null>;
     getActiveBookNames: () => readonly string[];
     setGlobalBookNames: (names: string[]) => void;

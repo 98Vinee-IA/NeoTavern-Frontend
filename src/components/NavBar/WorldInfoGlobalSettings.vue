@@ -24,9 +24,9 @@ const strategyOptions = computed(() => [
 ]);
 
 const bookOptions = computed(() => {
-  return worldInfoStore.bookNames.map((name) => ({
-    label: name,
-    value: name,
+  return worldInfoStore.bookInfos.map((bookInfo) => ({
+    label: bookInfo.name,
+    value: bookInfo.file_id,
   }));
 });
 </script>

@@ -214,7 +214,7 @@ export const usePersonaStore = defineStore('persona', () => {
       await uploadPersonaAvatar(newAvatarId, file, true);
 
       const newPersona: Persona = {
-        ...JSON.parse(JSON.stringify(persona)),
+        ...structuredClone(persona),
         avatarId: newAvatarId,
         name: newName,
       };

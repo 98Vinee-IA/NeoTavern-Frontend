@@ -427,8 +427,8 @@ export const useApiStore = defineStore('api', () => {
   }
 
   function resetPrompts() {
-    settingsStore.settings.api.samplers.prompts = JSON.parse(JSON.stringify(defaultPrompts));
-    settingsStore.settings.api.samplers.prompt_order = JSON.parse(JSON.stringify(defaultPromptOrder));
+    settingsStore.settings.api.samplers.prompts = structuredClone(defaultPrompts);
+    settingsStore.settings.api.samplers.prompt_order = structuredClone(defaultPromptOrder);
   }
 
   return {

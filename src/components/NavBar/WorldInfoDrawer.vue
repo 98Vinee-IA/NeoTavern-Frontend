@@ -14,7 +14,7 @@ const worldInfoStore = useWorldInfoStore();
 const isBrowserCollapsed = ref(false);
 
 onMounted(() => {
-  if (worldInfoStore.bookNames.length === 0) {
+  if (worldInfoStore.bookInfos.length === 0) {
     worldInfoStore.initialize();
   }
 });
@@ -31,17 +31,18 @@ async function handleFileImport(files: File[]) {
 
 const filteredBookNames = computed(() => {
   if (!worldInfoStore.browserSearchTerm) {
-    return worldInfoStore.bookNames;
+    return worldInfoStore.bookInfos;
   }
   const lowerSearch = worldInfoStore.browserSearchTerm.toLowerCase();
-  return worldInfoStore.bookNames.filter((name) => {
+  const books = worldInfoStore.bookInfos.filter((bookInfo) => {
     // Show book if its name matches
-    if (name.toLowerCase().includes(lowerSearch)) {
+    if (bookInfo.name.toLowerCase().includes(lowerSearch)) {
       return true;
     }
     // Or if it has any entries that match
-    return worldInfoStore.filteredAndSortedEntries(name).length > 0;
+    return worldInfoStore.filteredAndSortedEntries(bookInfo.file_id).length > 0;
   });
+  return books;
 });
 
 const sortOptions = computed(() => [
@@ -70,7 +71,7 @@ const sortOptions = computed(() => [
             @click="worldInfoStore.createNewBook"
           />
           <FileInput accept=".json" icon="fa-file-import" :label="t('worldInfo.import')" @change="handleFileImport" />
-          <Button variant="ghost" icon="fa-sync" :title="t('worldInfo.refresh')" @click="worldInfoStore.refresh" />
+          <Button variant="ghost" icon="fa-sync" :title="t('worldInfo.refresh')" @click="worldInfoStore.initialize" />
         </div>
         <div class="world-info-controls-row">
           <Search v-model="worldInfoStore.browserSearchTerm" :placeholder="t('worldInfo.searchPlaceholder')">
@@ -92,49 +93,49 @@ const sortOptions = computed(() => [
 
         <hr class="panel-divider" />
 
-        <div v-for="bookName in filteredBookNames" :key="bookName" class="lorebook-group">
-          <ListItem class="is-book" @click="worldInfoStore.toggleBookExpansion(bookName)">
+        <div v-for="bookInfo in filteredBookNames" :key="bookInfo.file_id" class="lorebook-group">
+          <ListItem class="is-book" @click="worldInfoStore.toggleBookExpansion(bookInfo.file_id)">
             <template #start>
               <i
                 class="fa-solid fa-chevron-right browser-item-chevron"
-                :class="{ 'is-open': worldInfoStore.expandedBooks.has(bookName) }"
+                :class="{ 'is-open': worldInfoStore.expandedBooks.has(bookInfo.file_id) }"
                 style="font-size: 0.8em; width: 15px; text-align: center"
               ></i>
             </template>
             <template #default>
-              <span class="font-bold">{{ bookName }}</span>
+              <span class="font-bold">{{ bookInfo.name }}</span>
             </template>
             <template #end>
               <div class="browser-item-actions" @click.stop>
                 <Button
                   variant="ghost"
                   icon="fa-plus"
-                  :title="t('worldInfo.newEntryInBook', { bookName })"
-                  @click.stop="worldInfoStore.createNewEntry(bookName)"
+                  :title="t('worldInfo.newEntryInBook', { bookName: bookInfo.name })"
+                  @click.stop="worldInfoStore.createNewEntry(bookInfo.file_id)"
                 />
                 <Button
                   variant="ghost"
                   icon="fa-file-export"
                   :title="t('worldInfo.export')"
-                  @click.stop="worldInfoStore.exportBook(bookName)"
+                  @click.stop="worldInfoStore.exportBook(bookInfo.file_id)"
                 />
                 <Button
                   variant="ghost"
                   icon="fa-clone"
                   :title="t('worldInfo.duplicate')"
-                  @click.stop="worldInfoStore.duplicateBook(bookName)"
+                  @click.stop="worldInfoStore.duplicateBook(bookInfo.file_id)"
                 />
                 <Button
                   variant="ghost"
                   icon="fa-pencil"
                   :title="t('worldInfo.rename')"
-                  @click.stop="worldInfoStore.renameBook(bookName)"
+                  @click.stop="worldInfoStore.renameBook(bookInfo.file_id)"
                 />
                 <Button
                   variant="danger"
                   icon="fa-trash-can"
-                  :title="t('worldInfo.deleteBook', { bookName })"
-                  @click.stop="worldInfoStore.deleteBook(bookName)"
+                  :title="t('worldInfo.deleteBook', { bookName: bookInfo.name })"
+                  @click.stop="worldInfoStore.deleteBook(bookInfo.file_id)"
                 />
               </div>
             </template>
@@ -145,16 +146,16 @@ const sortOptions = computed(() => [
             TODO: What about pagination for large books?
           -->
           <Transition name="grid-slide">
-            <div v-if="worldInfoStore.expandedBooks.has(bookName)" class="lorebook-group-entries">
+            <div v-if="worldInfoStore.expandedBooks.has(bookInfo.file_id)" class="lorebook-group-entries">
               <div>
-                <div v-if="worldInfoStore.loadingBooks.has(bookName)" class="lorebook-group-loading">
+                <div v-if="worldInfoStore.loadingBooks.has(bookInfo.file_id)" class="lorebook-group-loading">
                   <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
                 <div v-else>
-                  <div v-for="entry in worldInfoStore.filteredAndSortedEntries(bookName)" :key="entry.uid">
+                  <div v-for="entry in worldInfoStore.filteredAndSortedEntries(bookInfo.file_id)" :key="entry.uid">
                     <ListItem
-                      :active="worldInfoStore.selectedItemId === `${bookName}/${entry.uid}`"
-                      @click="worldInfoStore.selectItem(`${bookName}/${entry.uid}`)"
+                      :active="worldInfoStore.selectedItemId === `${bookInfo.file_id}/${entry.uid}`"
+                      @click="worldInfoStore.selectItem(`${bookInfo.file_id}/${entry.uid}`)"
                     >
                       <template #default>
                         <span style="font-size: 0.95em">{{ entry.comment || '[Untitled Entry]' }}</span>

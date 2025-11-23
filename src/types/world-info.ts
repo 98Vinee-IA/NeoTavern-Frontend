@@ -56,6 +56,11 @@ export interface WorldInfoBook {
   entries: WorldInfoEntry[];
 }
 
+export type WorldInfoHeader = {
+  file_id: string;
+  name: string;
+};
+
 export interface LegacyWorldInfoSettings {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   world_info: Record<string, any>;

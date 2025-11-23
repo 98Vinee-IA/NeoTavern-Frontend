@@ -128,7 +128,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
   for (const name in legacyProfiles) {
     if (Object.prototype.hasOwnProperty.call(legacyProfiles, name)) {
       migratedConnectionProfiles.push({
-        name: name,
+        name,
         api: legacyProfiles[name].mode === 'cc' ? 'openai' : undefined,
         model: legacyProfiles[name].model,
         id: legacyProfiles[name].id,

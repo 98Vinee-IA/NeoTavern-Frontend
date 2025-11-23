@@ -14,7 +14,7 @@ export const usePromptStore = defineStore('prompt', () => {
       if (!chatId) {
         return;
       }
-      await promptStorage.setItem(chatId, JSON.parse(JSON.stringify(itemizedPrompts.value)));
+      await promptStorage.setItem(chatId, structuredClone(itemizedPrompts.value));
     } catch {
       console.log('Error saving itemized prompts for chat', chatId);
     }
