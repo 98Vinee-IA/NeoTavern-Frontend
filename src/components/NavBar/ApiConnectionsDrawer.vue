@@ -70,7 +70,6 @@ const providerOptions = computed(() => [
   {
     label: '',
     options: [
-      { label: t('apiConnections.providers.openai'), value: api_providers.OPENAI },
       { label: t('apiConnections.providers.custom'), value: api_providers.CUSTOM },
     ],
   },
@@ -91,6 +90,7 @@ const providerOptions = computed(() => [
       { label: t('apiConnections.providers.mistralai'), value: api_providers.MISTRALAI },
       { label: t('apiConnections.providers.moonshot'), value: api_providers.MOONSHOT },
       { label: t('apiConnections.providers.nanogpt'), value: api_providers.NANOGPT },
+      { label: t('apiConnections.providers.openai'), value: api_providers.OPENAI },
       { label: t('apiConnections.providers.openrouter'), value: api_providers.OPENROUTER },
       { label: t('apiConnections.providers.perplexity'), value: api_providers.PERPLEXITY },
       { label: t('apiConnections.providers.pollinations'), value: api_providers.POLLINATIONS },
