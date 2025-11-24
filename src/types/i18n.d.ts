@@ -429,6 +429,7 @@ export interface MessageSchema {
     selectAll: string;
     chat: string;
     new: string;
+    text: string;
   };
   popup: {
     cropAvatar: {
@@ -767,6 +768,17 @@ export interface MessageSchema {
     openrouterAllowFallbacks: string;
     openrouterFallbackProviders: string;
     openrouterMiddleout: string;
+    formatter: string;
+    instruct: {
+      title: string;
+      create: string;
+      edit: string;
+      delete: string;
+      import: string;
+      export: string;
+      deleteTitle: string;
+      deleteContent: string;
+    };
     middleout: {
       on: string;
       off: string;
@@ -883,6 +895,13 @@ export interface MessageSchema {
   persona: {
     createFromCharacter: {
       error: string;
+    };
+  };
+  instruct: {
+    namesBehavior: {
+      none: string;
+      force: string;
+      include: string;
     };
   };
 }

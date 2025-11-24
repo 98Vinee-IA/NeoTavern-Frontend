@@ -30,6 +30,7 @@ import { getThumbnailUrl } from '../utils/character';
 import { determineNextSpeaker, getCharactersForContext } from '../utils/chat';
 import { getMessageTimeStamp, uuidv4 } from '../utils/commons';
 import { eventEmitter } from '../utils/extensions';
+import { trimInstructResponse } from '../utils/instruct';
 import { useStrictI18n } from './useStrictI18n';
 
 export interface ChatStateRef {
@@ -232,6 +233,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         }
       }
 
+      const effectiveFormatter = profileSettings?.formatter || settings.api.formatter;
+      const effectiveTemplateName = profileSettings?.instructTemplate || settings.api.instructTemplateName;
+      const effectiveTemplate = apiStore.instructTemplates.find((t) => t.name === effectiveTemplateName);
+
       const tokenizer = new ApiTokenizer({ tokenizerType: settings.api.tokenizer, model: effectiveModel });
       const handlingMode = deps.groupConfig.value?.config.handlingMode ?? GroupGenerationHandlingMode.SWAP;
 
@@ -262,6 +267,8 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           provider: effectiveProvider,
           model: effectiveModel,
           providerSpecific: settings.api.providerSpecific,
+          formatter: effectiveFormatter,
+          instructTemplate: effectiveTemplate,
         },
         playerName: uiStore.activePlayerName || 'User',
         controller: new AbortController(),
@@ -365,6 +372,9 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         providerSpecific: context.settings.providerSpecific,
         playerName: context.playerName,
         modelList: apiStore.modelList,
+        formatter: context.settings.formatter,
+        instructTemplate: context.settings.instructTemplate,
+        activeCharacter: activeCharacter,
       });
 
       const payloadController = new AbortController();
@@ -380,8 +390,14 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           return;
         }
 
+        // Apply trimming logic (Post-processing)
+        let finalContent = content;
+        if (context.settings.formatter === 'text' && context.settings.instructTemplate) {
+          finalContent = trimInstructResponse(content, context.settings.instructTemplate);
+        }
+
         const genFinished = new Date().toISOString();
-        const token_count = await tokenizer.getTokenCount(content);
+        const token_count = await tokenizer.getTokenCount(finalContent);
         const swipeInfo: SwipeInfo = {
           send_date: getMessageTimeStamp(),
           gen_started: genStarted,
@@ -391,7 +407,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         };
 
         if (mode === GenerationMode.CONTINUE && lastMessage) {
-          lastMessage.mes += content;
+          lastMessage.mes += finalContent;
           lastMessage.gen_finished = genFinished;
           if (!lastMessage.extra) lastMessage.extra = {};
           lastMessage.extra.token_count = await tokenizer.getTokenCount(lastMessage.mes);
@@ -410,7 +426,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         } else if (mode === GenerationMode.ADD_SWIPE && lastMessage) {
           if (!Array.isArray(lastMessage.swipes)) lastMessage.swipes = [lastMessage.mes];
           if (!Array.isArray(lastMessage.swipe_info)) lastMessage.swipe_info = [];
-          lastMessage.swipes.push(content);
+          lastMessage.swipes.push(finalContent);
           lastMessage.swipe_info.push(swipeInfo);
           await deps.syncSwipeToMes(activeChatMessages.length - 1, lastMessage.swipes.length - 1);
           generatedMessage = lastMessage;
@@ -419,12 +435,12 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           const botMessage: ChatMessage = {
             name: activeCharacter!.name,
             is_user: false,
-            mes: content,
+            mes: finalContent,
             send_date: swipeInfo.send_date,
             gen_started: genStarted,
             gen_finished: genFinished,
             is_system: false,
-            swipes: [content],
+            swipes: [finalContent],
             swipe_info: [swipeInfo],
             swipe_id: 0,
             extra: { reasoning, token_count },
@@ -555,6 +571,15 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           if (deps.activeChat.value === currentChatContext) {
             const finalMessage = activeChatMessages[targetMessageIndex];
             if (finalMessage) {
+              // Post-processing for streamed text (apply trimming now that stream is done)
+              if (context.settings.formatter === 'text' && context.settings.instructTemplate) {
+                const trimmed = trimInstructResponse(finalMessage.mes, context.settings.instructTemplate);
+                finalMessage.mes = trimmed;
+                if (finalMessage.swipes && finalMessage.swipes[finalMessage.swipe_id] !== undefined) {
+                  finalMessage.swipes[finalMessage.swipe_id] = trimmed;
+                }
+              }
+
               finalMessage.gen_finished = new Date().toISOString();
               if (!finalMessage.extra) finalMessage.extra = {};
               finalMessage.extra.token_count = await tokenizer.getTokenCount(finalMessage.mes);

@@ -39,6 +39,7 @@ function createDefaultSettings(): Settings {
   // Manually set complex default objects that aren't in settingsDefinition
   defaultSettings.api = {
     provider: 'openai',
+    formatter: 'chat',
     reverseProxy: '',
     proxyPassword: '',
     selectedSampler: 'Default',
@@ -129,6 +130,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
     },
     api: {
       provider: oai.chat_completion_source,
+      formatter: 'chat',
       reverseProxy: oai.reverse_proxy,
       proxyPassword: oai.proxy_password,
       selectedSampler: oai.preset_settings_openai,

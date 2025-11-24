@@ -1,22 +1,29 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { apiConnectionDefinition } from '../../api-connection-definition';
+import { PROVIDER_CAPABILITIES } from '../../api/provider-definitions';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { TokenizerType } from '../../constants';
 import { useApiStore } from '../../stores/api.store';
+import { usePopupStore } from '../../stores/popup.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { api_providers, type AiConfigCondition, type AiConfigItem, type ConnectionProfile } from '../../types';
+import { POPUP_RESULT, POPUP_TYPE } from '../../types/popup';
 import { ConnectionProfileSelector } from '../Common';
 import { Button, Checkbox, FormItem, Input, Select } from '../UI';
 import type { SelectItem } from '../UI/Select.vue';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
+import InstructTemplatePopup from './InstructTemplatePopup.vue';
 
 const { t } = useStrictI18n();
 
 const apiStore = useApiStore();
 const settingsStore = useSettingsStore();
+const popupStore = usePopupStore();
 
 const isProfilePopupVisible = ref(false);
+const isInstructPopupVisible = ref(false);
+const editingTemplateId = ref<string | undefined>(undefined);
 
 const staticOpenAIModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'];
 const dynamicOpenAIModels = computed(() => {
@@ -181,6 +188,47 @@ const openRouterModelOptions = computed(() => {
   return opts;
 });
 
+// Instruct Logic
+const currentProviderCaps = computed(() => PROVIDER_CAPABILITIES[settingsStore.settings.api.provider]);
+const showFormatter = computed(() => {
+  const caps = currentProviderCaps.value;
+  return caps && caps.supportsText;
+});
+
+const formatterOptions = computed(() => [
+  { label: t('common.chat'), value: 'chat' },
+  { label: t('common.text'), value: 'text' },
+]);
+
+const instructTemplateOptions = computed(() => {
+  return apiStore.instructTemplates.map((t) => ({ label: t.name, value: t.name }));
+});
+
+function createTemplate() {
+  editingTemplateId.value = undefined;
+  isInstructPopupVisible.value = true;
+}
+
+function editTemplate() {
+  editingTemplateId.value = settingsStore.settings.api.instructTemplateName;
+  isInstructPopupVisible.value = true;
+}
+
+async function deleteTemplate() {
+  const name = settingsStore.settings.api.instructTemplateName;
+  if (!name) return;
+
+  const { result } = await popupStore.show({
+    title: t('apiConnections.instruct.deleteTitle'),
+    content: t('apiConnections.instruct.deleteContent', { name }),
+    type: POPUP_TYPE.CONFIRM,
+  });
+
+  if (result === POPUP_RESULT.AFFIRMATIVE) {
+    await apiStore.deleteInstructTemplate(name);
+  }
+}
+
 onMounted(() => {
   apiStore.initialize();
 });
@@ -276,9 +324,6 @@ onMounted(() => {
                   @update:model-value="setModelValue(item, String($event))"
                 />
               </template>
-
-              <!-- Fallback to simple select if simple list exists, or text input? Actually model-select implies complexity.
-                     For now only OpenAI and OpenRouter use 'model-select'. Others use 'select' or 'text-input' -->
             </FormItem>
 
             <!-- Standard Select -->
@@ -314,6 +359,47 @@ onMounted(() => {
         </div>
       </template>
 
+      <!-- Formatter Selection (Conditional) -->
+      <div v-if="showFormatter" class="api-connections-drawer-section">
+        <FormItem :label="t('apiConnections.formatter')">
+          <Select v-model="settingsStore.settings.api.formatter" :options="formatterOptions" />
+        </FormItem>
+      </div>
+
+      <!-- Instruct Template Manager -->
+      <div v-if="settingsStore.settings.api.formatter === 'text'" class="api-connections-drawer-section">
+        <h3>{{ t('apiConnections.instruct.title') }}</h3>
+        <div class="preset-manager-controls">
+          <!-- @vue-ignore -->
+          <Select v-model="settingsStore.settings.api.instructTemplateName" :options="instructTemplateOptions" />
+          <Button
+            variant="ghost"
+            icon="fa-file-circle-plus"
+            :title="t('apiConnections.instruct.create')"
+            @click="createTemplate"
+          />
+          <Button variant="ghost" icon="fa-pencil" :title="t('apiConnections.instruct.edit')" @click="editTemplate" />
+          <Button
+            variant="ghost"
+            icon="fa-trash-can"
+            :title="t('apiConnections.instruct.delete')"
+            @click="deleteTemplate"
+          />
+          <Button
+            variant="ghost"
+            icon="fa-file-import"
+            :title="t('apiConnections.instruct.import')"
+            @click="apiStore.importInstructTemplate"
+          />
+          <Button
+            variant="ghost"
+            icon="fa-file-export"
+            :title="t('apiConnections.instruct.export')"
+            @click="apiStore.exportInstructTemplate(settingsStore.settings.api.instructTemplateName || '')"
+          />
+        </div>
+      </div>
+
       <!-- Tokenizer Selection -->
       <FormItem :label="t('apiConnections.tokenizer')">
         <Select v-model="settingsStore.settings.api.tokenizer" :options="tokenizerOptions" />
@@ -338,6 +424,11 @@ onMounted(() => {
       :visible="isProfilePopupVisible"
       @close="isProfilePopupVisible = false"
       @save="handleProfileSave"
+    />
+    <InstructTemplatePopup
+      :visible="isInstructPopupVisible"
+      :template-id="editingTemplateId"
+      @close="isInstructPopupVisible = false"
     />
   </div>
 </template>

@@ -1,4 +1,5 @@
 import type { LegacyOaiPresetSettings, LegacyOaiSettings, LegacySettings, SamplerSettings } from '../types';
+import type { InstructTemplate } from '../types/instruct';
 import { getRequestHeaders } from '../utils/client';
 
 export interface UserSettingsResponse {
@@ -8,7 +9,7 @@ export interface UserSettingsResponse {
   v2ExperimentalSamplerPreset_names?: string[];
   v2ExperimentalSamplerPreset_settings?: string[]; // JSON string of SamplerSettings
   world_names: string[];
-  instruct: string; // TODO: Define type with text completion
+  instruct: InstructTemplate[];
 }
 
 export interface ParsedUserSettingsResponse {
@@ -18,7 +19,7 @@ export interface ParsedUserSettingsResponse {
   v2ExperimentalSamplerPreset_names: string[];
   v2ExperimentalSamplerPreset_settings: SamplerSettings[];
   world_names: string[];
-  instruct: unknown[]; // TODO: Define type with text completion
+  instruct: InstructTemplate[];
 }
 
 let cachedResponse: ParsedUserSettingsResponse | null = null;
@@ -62,7 +63,7 @@ export async function fetchUserSettings(force = false): Promise<ParsedUserSettin
           (s) => JSON.parse(s) as SamplerSettings,
         ),
         world_names: data.world_names,
-        instruct: JSON.parse(data.instruct) as unknown[], // TODO: Define type with text completion
+        instruct: data.instruct,
       };
 
       cachedResponse = parsed;

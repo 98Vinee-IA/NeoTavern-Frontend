@@ -1,5 +1,6 @@
 import { defaultSamplerSettings } from '../constants';
 import type { LegacyOaiPresetSettings, SamplerSettings } from '../types';
+import type { InstructTemplate } from '../types/instruct';
 import { getRequestHeaders } from '../utils/client';
 import { fetchUserSettings } from './settings';
 
@@ -97,6 +98,46 @@ export async function deleteExperimentalPreset(name: string): Promise<void> {
 
   if (!response.ok) {
     throw new Error('Failed to delete preset');
+  }
+
+  await response.json();
+}
+
+export async function fetchAllInstructTemplates(): Promise<InstructTemplate[]> {
+  const userSettingsResponse = await fetchUserSettings();
+  return userSettingsResponse.instruct;
+}
+
+export async function saveInstructTemplate(template: InstructTemplate): Promise<void> {
+  const response = await fetch('/api/presets/save', {
+    method: 'POST',
+    headers: getRequestHeaders(),
+    body: JSON.stringify({
+      apiId: 'instruct',
+      name: template.name,
+      preset: template,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to save instruct template');
+  }
+
+  await response.json();
+}
+
+export async function deleteInstructTemplate(name: string): Promise<void> {
+  const response = await fetch('/api/presets/delete', {
+    method: 'POST',
+    headers: getRequestHeaders(),
+    body: JSON.stringify({
+      apiId: 'instruct',
+      name: name,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete instruct template');
   }
 
   await response.json();

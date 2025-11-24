@@ -4,6 +4,7 @@ import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
 import type { SamplerSettings } from '../types/settings';
 import { getRequestHeaders } from '../utils/client';
+import { convertMessagesToInstructString } from '../utils/instruct';
 import {
   MODEL_INJECTIONS,
   PARAMETER_DEFINITIONS,
@@ -25,14 +26,46 @@ const REASONING_EFFORT_PROVIDERS: ApiProvider[] = [
 ];
 
 export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOptions): ChatCompletionPayload {
-  const { samplerSettings, messages, model, provider } = options;
+  const { samplerSettings, messages, model, provider, formatter, instructTemplate, playerName, activeCharacter } =
+    options;
 
   const payload: ChatCompletionPayload = {
-    messages,
     model,
     chat_completion_source: provider,
     include_reasoning: !!samplerSettings.show_thoughts,
   };
+
+  // Handle Formatter (Chat vs Text)
+  if (formatter === 'text' && instructTemplate && activeCharacter) {
+    // Text Completion Mode
+    const prompt = convertMessagesToInstructString(
+      messages,
+      instructTemplate,
+      playerName || 'User',
+      activeCharacter.name,
+    );
+    // @ts-ignore
+    payload.messages = prompt;
+
+    // Inject stopping strings from template
+    const stop = [...(samplerSettings.stop || [])];
+    if (instructTemplate.stop_sequence && instructTemplate.sequences_as_stop_strings) {
+      // Stop sequence might be single string or multiple
+      // In the type we defined it as string, but JSON can implies list logic sometimes.
+      // Based on reference logic, we merge various sequences.
+      if (instructTemplate.stop_sequence) stop.push(instructTemplate.stop_sequence);
+      if (instructTemplate.input_sequence) stop.push(instructTemplate.input_sequence);
+      if (instructTemplate.system_sequence) stop.push(instructTemplate.system_sequence);
+      // Remove empty strings
+      payload.stop = stop.filter((s) => s && s.trim());
+    } else {
+      payload.stop = stop;
+    }
+  } else {
+    // Default Chat Mode
+    payload.messages = messages;
+    payload.stop = samplerSettings.stop;
+  }
 
   // 1. Map Parameters (Per-Param Logic)
   for (const key in samplerSettings) {
@@ -44,18 +77,13 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
       samplerKey === 'prompt_order' ||
       samplerKey === 'providers' ||
       samplerKey === 'max_context_unlocked' ||
-      samplerKey === 'reasoning_effort' // Handled separately
+      samplerKey === 'reasoning_effort' ||
+      samplerKey === 'stop' // Handled above
     ) {
       continue;
     }
 
     const config = PARAMETER_DEFINITIONS[samplerKey];
-
-    // If a parameter has no definition, we default to "pass-through"
-    // UNLESS it is one of the strictly gated parameters defined in provider-definitions.ts with defaults: null.
-    // However, if the key is not in PARAMETER_DEFINITIONS at all, config is undefined.
-    // We treat undefined config as "safe to pass" (backward compatibility),
-    // but the critical ones (min_p, etc) ARE defined in PARAMETER_DEFINITIONS now.
 
     let rule: ParamHandling | null | undefined = config?.defaults;
 
@@ -337,8 +365,10 @@ export class ChatCompletionService {
       signal,
     } satisfies RequestInit;
 
+    const endpoint = '/api/backends/chat-completions/generate';
+
     if (!payload.stream) {
-      const response = await fetch('/api/backends/chat-completions/generate', commonOptions);
+      const response = await fetch(endpoint, commonOptions);
       const responseData = await response.json().catch(() => ({ error: 'Failed to parse JSON response' }));
 
       if (!response.ok) {
@@ -357,7 +387,7 @@ export class ChatCompletionService {
       };
     }
 
-    const response = await fetch('/api/backends/chat-completions/generate', commonOptions);
+    const response = await fetch(endpoint, commonOptions);
 
     if (!response.ok || !response.body) {
       let errorMessage = `Request failed with status ${response.status}`;

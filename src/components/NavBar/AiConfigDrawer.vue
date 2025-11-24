@@ -50,6 +50,7 @@ async function handleNewPreset() {
 
 onMounted(() => {
   apiStore.loadPresetsForApi();
+  apiStore.loadInstructTemplates();
 });
 </script>
 

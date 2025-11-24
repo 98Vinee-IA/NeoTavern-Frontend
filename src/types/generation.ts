@@ -3,8 +3,9 @@ import type { ApiModel, ApiProvider } from './api';
 import type { Character } from './character';
 import type { ChatMessage, ChatMetadata } from './chat';
 import type { MessageRole } from './common';
+import type { InstructTemplate } from './instruct';
 import type { Persona } from './persona';
-import type { SamplerSettings, Settings } from './settings';
+import type { ApiFormatter, SamplerSettings, Settings } from './settings';
 import type { Tokenizer } from './tokenizer';
 import type { WorldInfoBook, WorldInfoEntry, WorldInfoSettings } from './world-info';
 
@@ -17,7 +18,11 @@ export interface ApiChatMessage {
 
 export type ChatCompletionPayload = Partial<{
   stream: boolean;
+  // For chat
   messages: ApiChatMessage[];
+  // For text
+  prompt: string;
+
   model: string;
   chat_completion_source: string;
   max_tokens: number;
@@ -72,6 +77,9 @@ export type BuildChatCompletionPayloadOptions = {
   providerSpecific: Settings['api']['providerSpecific'];
   playerName?: string;
   modelList?: ApiModel[];
+  formatter?: ApiFormatter;
+  instructTemplate?: InstructTemplate;
+  activeCharacter?: Character;
 };
 
 export type GenerationContext = {
@@ -87,6 +95,8 @@ export type GenerationContext = {
     provider: ApiProvider;
     model: string;
     providerSpecific: Settings['api']['providerSpecific'];
+    formatter: ApiFormatter;
+    instructTemplate?: InstructTemplate;
   };
   // Other relevant data available to the interceptor for read-only purposes or modification
   playerName: string;

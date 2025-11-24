@@ -3,15 +3,20 @@ import { computed, ref, watch } from 'vue';
 import { fetchChatCompletionStatus } from '../api/connection';
 import {
   deleteExperimentalPreset as apideleteExperimentalPreset,
+  deleteInstructTemplate as apiDeleteInstructTemplate,
+  saveInstructTemplate as apiSaveInstructTemplate,
   fetchAllExperimentalPresets,
+  fetchAllInstructTemplates,
   saveExperimentalPreset,
   type Preset,
 } from '../api/presets';
+import { PROVIDER_CAPABILITIES } from '../api/provider-definitions';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { toast } from '../composables/useToast';
 import { defaultPromptOrder, defaultPrompts } from '../constants';
 import type { ApiModel, ConnectionProfile, PromptOrderConfig, SamplerSettings } from '../types';
-import { POPUP_RESULT, POPUP_TYPE, api_providers } from '../types';
+import { api_providers, POPUP_RESULT, POPUP_TYPE } from '../types';
+import type { InstructTemplate } from '../types/instruct';
 import { downloadFile, readFileAsText, uuidv4 } from '../utils/commons';
 import { usePopupStore } from './popup.store';
 import { useSettingsStore } from './settings.store';
@@ -25,6 +30,8 @@ export const useApiStore = defineStore('api', () => {
   const isConnecting = ref(false);
   const modelList = ref<ApiModel[]>([]);
   const presets = ref<Preset[]>([]);
+
+  const instructTemplates = ref<InstructTemplate[]>([]);
 
   // --- Connection Profiles ---
   const connectionProfiles = computed({
@@ -85,6 +92,18 @@ export const useApiStore = defineStore('api', () => {
         const provider = profile.provider ?? settingsStore.settings.api.provider;
         settingsStore.settings.api.selectedProviderModels[provider] = profile.model;
       }
+      if (profile.formatter) {
+        settingsStore.settings.api.formatter = profile.formatter;
+      }
+      if (profile.instructTemplate) {
+        settingsStore.settings.api.instructTemplateName = profile.instructTemplate;
+      }
+
+      const caps = PROVIDER_CAPABILITIES[settingsStore.settings.api.provider];
+      if (caps && !caps.supportsText && settingsStore.settings.api.formatter === 'text') {
+        settingsStore.settings.api.formatter = 'chat';
+      }
+
       // After applying, reconnect to validate the new settings.
       connect();
     }
@@ -97,6 +116,11 @@ export const useApiStore = defineStore('api', () => {
       if (settingsStore.settingsInitializing) return;
       // Only connect if the actual values have changed
       if (newProvider !== oldProvider) {
+        const caps = PROVIDER_CAPABILITIES[newProvider];
+        if (caps && !caps.supportsText && settingsStore.settings.api.formatter === 'text') {
+          settingsStore.settings.api.formatter = 'chat';
+        }
+
         connect();
       }
     },
@@ -413,6 +437,65 @@ export const useApiStore = defineStore('api', () => {
     settingsStore.settings.api.samplers.prompt_order = structuredClone(defaultPromptOrder);
   }
 
+  async function loadInstructTemplates() {
+    try {
+      const fetchedTemplates = await fetchAllInstructTemplates();
+      instructTemplates.value = fetchedTemplates;
+    } catch (e) {
+      console.warn('Failed to load instruct templates, using default', e);
+      instructTemplates.value = [];
+    }
+  }
+
+  async function saveInstructTemplate(template: InstructTemplate) {
+    try {
+      await apiSaveInstructTemplate(template);
+      await loadInstructTemplates();
+      settingsStore.settings.api.instructTemplateName = template.name;
+    } catch (e) {
+      toast.error('Error saving instruct template');
+      console.error(e);
+    }
+  }
+
+  async function deleteInstructTemplate(name: string) {
+    try {
+      await apiDeleteInstructTemplate(name);
+      await loadInstructTemplates();
+      if (settingsStore.settings.api.instructTemplateName === name) {
+        settingsStore.settings.api.instructTemplateName = 'ChatML';
+      }
+    } catch {
+      toast.error('Error deleting instruct template');
+    }
+  }
+
+  function importInstructTemplate() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const content = await readFileAsText(file);
+        const data = JSON.parse(content);
+        await saveInstructTemplate(data);
+        toast.success('Template imported');
+      } catch {
+        toast.error('Invalid template file');
+      }
+    };
+    input.click();
+  }
+
+  function exportInstructTemplate(name: string) {
+    const tpl = instructTemplates.value.find((t) => t.name === name);
+    if (tpl) {
+      downloadFile(JSON.stringify(tpl, null, 2), `${name}.json`, 'application/json');
+    }
+  }
+
   return {
     initialize,
     onlineStatus,
@@ -443,5 +526,12 @@ export const useApiStore = defineStore('api', () => {
     deleteConnectionProfile,
     importConnectionProfiles,
     exportConnectionProfile,
+    // Instruct
+    instructTemplates,
+    loadInstructTemplates,
+    saveInstructTemplate,
+    deleteInstructTemplate,
+    importInstructTemplate,
+    exportInstructTemplate,
   };
 });

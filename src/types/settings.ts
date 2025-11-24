@@ -17,6 +17,8 @@ import type { LegacyWorldInfoSettings, WorldInfoSettings } from './world-info';
 export type SettingsPath = Path<Settings>;
 export type OaiSettingsPath = Path<LegacyOaiSettings>;
 
+export type ApiFormatter = 'chat' | 'text';
+
 export interface Prompt {
   name: string;
   system_prompt: boolean;
@@ -229,6 +231,10 @@ export interface Settings {
     selectedConnectionProfile?: string;
     selectedProviderModels: Record<ApiProvider, string>;
     tokenizer: TokenizerType;
+
+    formatter: ApiFormatter;
+    instructTemplateName?: string;
+
     providerSpecific: {
       openrouter: {
         useFallback: boolean;

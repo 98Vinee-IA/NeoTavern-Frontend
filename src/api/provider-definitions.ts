@@ -74,6 +74,38 @@ export interface ModelInjection {
   inject: InjectionFunction;
 }
 
+// --- Capability Definitions ---
+
+export interface ProviderCapability {
+  supportsChat: boolean;
+  supportsText: boolean;
+}
+
+export const PROVIDER_CAPABILITIES: Record<string, ProviderCapability> = {
+  [api_providers.OPENROUTER]: { supportsChat: true, supportsText: true },
+  [api_providers.OPENAI]: { supportsChat: true, supportsText: false },
+  [api_providers.CLAUDE]: { supportsChat: true, supportsText: false },
+  [api_providers.AI21]: { supportsChat: true, supportsText: false },
+  [api_providers.MAKERSUITE]: { supportsChat: true, supportsText: false },
+  [api_providers.VERTEXAI]: { supportsChat: true, supportsText: false },
+  [api_providers.MISTRALAI]: { supportsChat: true, supportsText: false },
+  [api_providers.CUSTOM]: { supportsChat: true, supportsText: false },
+  [api_providers.COHERE]: { supportsChat: true, supportsText: false },
+  [api_providers.PERPLEXITY]: { supportsChat: true, supportsText: false },
+  [api_providers.GROQ]: { supportsChat: true, supportsText: false },
+  [api_providers.ELECTRONHUB]: { supportsChat: true, supportsText: false },
+  [api_providers.NANOGPT]: { supportsChat: true, supportsText: false },
+  [api_providers.DEEPSEEK]: { supportsChat: true, supportsText: false },
+  [api_providers.AIMLAPI]: { supportsChat: true, supportsText: false },
+  [api_providers.XAI]: { supportsChat: true, supportsText: false },
+  [api_providers.POLLINATIONS]: { supportsChat: true, supportsText: false },
+  [api_providers.MOONSHOT]: { supportsChat: true, supportsText: false },
+  [api_providers.FIREWORKS]: { supportsChat: true, supportsText: false },
+  [api_providers.COMETAPI]: { supportsChat: true, supportsText: false },
+  [api_providers.AZURE_OPENAI]: { supportsChat: true, supportsText: false },
+  [api_providers.ZAI]: { supportsChat: true, supportsText: false },
+};
+
 // --- Helper Transforms ---
 
 const googleStopTransform = (v: string[]) => v?.slice(0, 5).filter((x) => x.length >= 1 && x.length <= 16);

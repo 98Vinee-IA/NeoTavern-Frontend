@@ -7,6 +7,7 @@ import {
   type Settings,
   type WorldInfoSettings,
 } from './types';
+import { NamesBehavior, type InstructTemplate } from './types/instruct';
 
 export enum OpenrouterMiddleoutType {
   AUTO = 'auto',
@@ -262,6 +263,30 @@ export const DEFAULT_CHARACTER: Character = {
       role: depth_prompt_role_default,
     },
   },
+};
+
+export const defaultChatMLTemplate: InstructTemplate = {
+  id: 'chatml',
+  name: 'ChatML',
+  input_sequence: '<|im_start|>user\n',
+  output_sequence: '<|im_start|>assistant\n',
+  system_sequence: '<|im_start|>system\n',
+  input_suffix: '<|im_end|>\n',
+  output_suffix: '<|im_end|>\n',
+  system_suffix: '<|im_end|>\n',
+  first_output_sequence: '',
+  last_output_sequence: '',
+  last_system_sequence: '',
+  first_input_sequence: '',
+  last_input_sequence: '',
+  stop_sequence: '<|im_end|>',
+  sequences_as_stop_strings: true,
+  wrap: true,
+  macro: true,
+  names_behavior: NamesBehavior.FORCE,
+  skip_examples: false,
+  user_alignment_message: '',
+  system_same_as_user: false,
 };
 
 export enum CharacterSortOption {

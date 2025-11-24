@@ -13,7 +13,7 @@
   },
   "formatting": {
     "title": "AI Response Formatting",
-    "description": "Text completion, such as instruc preset."
+    "description": "Text completion."
   },
   "chatManagement": {
     "newChat": "New Chat",
@@ -425,7 +425,8 @@
     "selected": "Selected",
     "selectAll": "Select All",
     "chat": "Chat",
-    "new": "New"
+    "new": "New",
+    "text": "Text"
   },
   "popup": {
     "cropAvatar": {
@@ -764,6 +765,17 @@
     "openrouterAllowFallbacks": "Allow Fallbacks",
     "openrouterFallbackProviders": "Fallback Providers (comma-separated)",
     "openrouterMiddleout": "Middle-Out",
+    "formatter": "Formatter",
+    "instruct": {
+      "title": "Instruct Template",
+      "create": "Create Template",
+      "edit": "Edit Template",
+      "delete": "Delete Template",
+      "import": "Import Template",
+      "export": "Export Template",
+      "deleteTitle": "Delete Template",
+      "deleteContent": "Are you sure you want to delete {name}?"
+    },
     "middleout": {
       "on": "On",
       "off": "Off",
@@ -880,6 +892,13 @@
   "persona": {
     "createFromCharacter": {
       "error": "Failed to create persona from character."
+    }
+  },
+  "instruct": {
+    "namesBehavior": {
+      "none": "None",
+      "force": "Force",
+      "include": "Include"
     }
   }
 }

@@ -1,5 +1,5 @@
 import type { I18nKey } from './i18n';
-import type { SettingsPath } from './settings';
+import type { ApiFormatter, SettingsPath } from './settings';
 
 export const api_providers = {
   OPENAI: 'openai',
@@ -34,6 +34,8 @@ export interface ConnectionProfile {
   provider?: ApiProvider;
   model?: string;
   sampler?: string;
+  formatter?: ApiFormatter;
+  instructTemplate?: string;
 }
 
 export interface ApiModel {
