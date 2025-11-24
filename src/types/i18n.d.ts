@@ -305,8 +305,10 @@ export interface MessageSchema {
       newPrompt: string;
       role: string;
       content: string;
+      selectFromLibrary: string;
+      addFromLibrary: string;
+      globalPrompts: string;
       markerHint: string;
-      cannotDeleteMarker: string;
     };
     contextSize: {
       label: string;

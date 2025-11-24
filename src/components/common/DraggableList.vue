@@ -24,11 +24,19 @@ const dropPosition = ref<'top' | 'bottom' | null>(null);
 // State to track if we are currently hovering over a valid handle
 const isHoveringHandle = ref(false);
 
-function onMouseEnterHandle() {
-  if (props.handleClass) isHoveringHandle.value = true;
+function checkHandleHover(event: MouseEvent) {
+  if (!props.handleClass) return;
+
+  const target = event.target as HTMLElement;
+
+  if (target.closest(`.${props.handleClass}`)) {
+    isHoveringHandle.value = true;
+  } else {
+    isHoveringHandle.value = false;
+  }
 }
 
-function onMouseLeaveHandle() {
+function onMouseLeave() {
   if (props.handleClass) isHoveringHandle.value = false;
 }
 
@@ -171,7 +179,7 @@ function resetState() {
          Wrap slot in a container to easily bind handle events 
          if the user puts the handle inside the slot 
       -->
-      <div class="item-content" @mouseover="onMouseEnterHandle" @mouseout="onMouseLeaveHandle">
+      <div class="item-content" @mouseover="checkHandleHover" @mouseout="onMouseLeave">
         <slot :item="item" :index="index"></slot>
       </div>
     </div>

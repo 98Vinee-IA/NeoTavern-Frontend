@@ -19,7 +19,7 @@ export type OaiSettingsPath = Path<LegacyOaiSettings>;
 
 export type ApiFormatter = 'chat' | 'text';
 
-export interface Prompt {
+export interface LegacyPrompt {
   name: string;
   system_prompt: boolean;
   role?: MessageRole;
@@ -28,11 +28,20 @@ export interface Prompt {
   marker?: boolean;
 }
 
-export interface PromptOrderConfig {
+export interface LegacyPromptOrderConfig {
   order: {
     identifier: string;
     enabled: boolean;
   }[];
+}
+
+export interface Prompt {
+  identifier: string;
+  name: string;
+  role?: MessageRole;
+  content: string;
+  marker: boolean;
+  enabled: boolean;
 }
 
 export interface KoboldCppSettings {
@@ -105,7 +114,6 @@ export interface SamplerSettings {
   stop: string[];
   n: number;
   prompts: Prompt[];
-  prompt_order: PromptOrderConfig;
   providers: ProviderSettings;
   show_thoughts: boolean;
   reasoning_effort: ReasoningEffort;
@@ -161,7 +169,7 @@ export interface LegacyOaiSettings {
   openai_max_context?: number;
   max_context_unlocked?: boolean;
   openai_max_tokens?: number;
-  prompts?: Prompt[];
+  prompts?: LegacyPrompt[];
   prompt_order?: {
     character_id: number;
     order: { identifier: string; enabled: boolean }[];
@@ -217,7 +225,7 @@ export interface LegacyOaiPresetSettings {
   openai_max_tokens?: number;
   seed?: number;
   n?: number;
-  prompts?: Prompt[];
+  prompts?: LegacyPrompt[];
   prompt_order?: {
     character_id: number;
     order: { identifier: string; enabled: boolean }[];
@@ -264,6 +272,7 @@ export interface Settings {
     defaultPersonaId: string | null;
     personas: Persona[];
   };
+  prompts: Prompt[];
   api: {
     provider: ApiProvider;
     reverseProxy: string;
@@ -287,7 +296,6 @@ export interface Settings {
       };
       custom: {
         url: string;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         include_body?: string; // YAML
         exclude_body?: string[];
         include_headers?: Record<string, string>;

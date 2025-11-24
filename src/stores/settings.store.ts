@@ -1,7 +1,7 @@
 import { cloneDeep, debounce, defaultsDeep, get, set } from 'lodash-es';
 import { defineStore } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
-import { migrateExperimentalPreset, saveExperimentalPreset } from '../api/presets';
+import { saveExperimentalPreset } from '../api/presets';
 import {
   saveUserSettings as apiSaveUserSettings,
   fetchUserSettings,
@@ -11,6 +11,7 @@ import { toast } from '../composables/useToast';
 import {
   DEFAULT_SAVE_EDIT_TIMEOUT,
   defaultAccountSettings,
+  defaultPrompts,
   defaultProviderModels,
   defaultProviderSpecific,
   defaultSamplerSettings,
@@ -20,7 +21,16 @@ import {
   TokenizerType,
 } from '../constants';
 import { settingsDefinition } from '../settings-definition';
-import { type LegacySettings, type Persona, type SettingDefinition, type Settings, type SettingsPath } from '../types';
+import {
+  type LegacyOaiPresetSettings,
+  type LegacySettings,
+  type Persona,
+  type Prompt,
+  type SamplerSettings,
+  type SettingDefinition,
+  type Settings,
+  type SettingsPath,
+} from '../types';
 import type { ValueForPath } from '../types/utils';
 import { isMobile } from '../utils/client';
 import { eventEmitter } from '../utils/extensions';
@@ -37,6 +47,7 @@ function createDefaultSettings(): Settings {
   }
 
   // Manually set complex default objects that aren't in settingsDefinition
+  defaultSettings.prompts = structuredClone(defaultPrompts);
   defaultSettings.api = {
     provider: 'openai',
     formatter: 'chat',
@@ -61,6 +72,95 @@ function createDefaultSettings(): Settings {
   };
 
   return defaultSettings as Settings;
+}
+
+function migrateExperimentalPreset(legacyPreset: LegacyOaiPresetSettings): SamplerSettings {
+  // Migrate prompts from legacy ordered config to flat list
+  const migratedPrompts: Prompt[] = [];
+
+  if (legacyPreset.prompts && legacyPreset.prompt_order) {
+    const orderConfig = legacyPreset.prompt_order[0]?.order || [];
+    const definitionMap = new Map(legacyPreset.prompts.map((p) => [p.identifier, p]));
+
+    // 1. Add prompts defined in order
+    for (const item of orderConfig) {
+      const def = definitionMap.get(item.identifier);
+      if (def) {
+        migratedPrompts.push({
+          ...def,
+          content: def.content || '',
+          enabled: item.enabled,
+          marker: def.marker ?? false,
+        });
+        definitionMap.delete(item.identifier);
+      }
+    }
+
+    // 2. Add remaining prompts
+    for (const def of definitionMap.values()) {
+      migratedPrompts.push({ ...def, content: def.content || '', enabled: false, marker: def.marker ?? false });
+    }
+  } else {
+    // Fallback to default if no valid legacy data
+    migratedPrompts.push(...structuredClone(defaultSamplerSettings.prompts));
+  }
+
+  const newPreset: SamplerSettings = {
+    temperature: legacyPreset.temperature ?? defaultSamplerSettings.temperature,
+    frequency_penalty: legacyPreset.frequency_penalty ?? defaultSamplerSettings.frequency_penalty,
+    presence_penalty: legacyPreset.presence_penalty ?? defaultSamplerSettings.presence_penalty,
+    repetition_penalty: legacyPreset.repetition_penalty ?? defaultSamplerSettings.repetition_penalty,
+    top_p: legacyPreset.top_p ?? defaultSamplerSettings.top_p,
+    top_k: legacyPreset.top_k ?? defaultSamplerSettings.top_k,
+    top_a: legacyPreset.top_a ?? defaultSamplerSettings.top_a,
+    min_p: legacyPreset.min_p ?? defaultSamplerSettings.min_p,
+    max_context_unlocked: legacyPreset.max_context_unlocked ?? defaultSamplerSettings.max_context_unlocked,
+    max_context: legacyPreset.openai_max_context ?? defaultSamplerSettings.max_context,
+    max_tokens: legacyPreset.openai_max_tokens ?? defaultSamplerSettings.max_tokens,
+    stream: legacyPreset.stream_openai ?? defaultSamplerSettings.stream,
+    prompts: migratedPrompts,
+    seed: legacyPreset.seed ?? defaultSamplerSettings.seed,
+    n: legacyPreset.n ?? defaultSamplerSettings.n,
+    stop: defaultSamplerSettings.stop, // Legacy don't have it
+    providers: {
+      claude: {
+        use_sysprompt: legacyPreset.claude_use_sysprompt,
+        assistant_prefill: legacyPreset.assistant_prefill,
+      },
+      google: {
+        use_makersuite_sysprompt: legacyPreset.use_makersuite_sysprompt,
+      },
+      koboldcpp: structuredClone(defaultSamplerSettings.providers.koboldcpp),
+    },
+    show_thoughts: legacyPreset.show_thoughts ?? defaultSamplerSettings.show_thoughts,
+    reasoning_effort: legacyPreset.reasoning_effort ?? defaultSamplerSettings.reasoning_effort ?? 'auto',
+  };
+
+  return newPreset;
+}
+
+function collectPromptsFromLegacyPresets(presets: LegacyOaiPresetSettings[]): Prompt[] {
+  const promptMap = new Map<string, Prompt>();
+
+  for (const preset of presets) {
+    const prompts = preset.prompts || [];
+    for (const prompt of prompts) {
+      if (!promptMap.has(prompt.identifier)) {
+        const sameNamePrompt = Array.from(promptMap.values()).find((p) => p.name === prompt.name);
+        if (sameNamePrompt) {
+          continue;
+        }
+        promptMap.set(prompt.identifier, {
+          ...prompt,
+          content: prompt.content || '',
+          enabled: false,
+          marker: prompt.marker ?? false,
+        });
+      }
+    }
+  }
+
+  return Array.from(promptMap.values());
 }
 
 function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsResponse): Settings {
@@ -101,6 +201,11 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
     });
   }
 
+  let allPrompts: Prompt[] = [];
+  if (Array.isArray(userSettingsResponse.openai_settings)) {
+    allPrompts = collectPromptsFromLegacyPresets(userSettingsResponse.openai_settings);
+  }
+
   const migrated: Settings = {
     ui: {
       background: {
@@ -128,6 +233,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
       defaultPersonaId: p.default_persona,
       personas: migratedPersonas,
     },
+    prompts: allPrompts,
     api: {
       provider: oai.chat_completion_source,
       formatter: 'chat',
@@ -199,12 +305,11 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
         max_context_unlocked: oai.max_context_unlocked ?? defaultSamplerSettings.max_context_unlocked,
         max_tokens: oai.openai_max_tokens ?? defaultSamplerSettings.max_tokens,
         stream: oai.stream_openai ?? defaultSamplerSettings.stream,
-        prompts: oai.prompts ?? defaultSamplerSettings.prompts,
-        prompt_order: oai.prompt_order?.[0] ?? defaultSamplerSettings.prompt_order,
+        prompts: defaultPrompts, // TODO: Get from legacy prompts?
         show_thoughts: oai.show_thoughts ?? defaultSamplerSettings.show_thoughts,
         seed: oai.seed ?? defaultSamplerSettings.seed,
         n: oai.n ?? defaultSamplerSettings.n,
-        stop: defaultSamplerSettings.stop, // There is no `stop` in legacy settings
+        stop: defaultSamplerSettings.stop,
         providers: {
           claude: {
             use_sysprompt: oai.claude_use_sysprompt,

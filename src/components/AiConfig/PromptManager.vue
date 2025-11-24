@@ -1,49 +1,24 @@
 <script setup lang="ts">
 import { cloneDeep } from 'lodash-es';
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
-import { toast } from '../../composables/useToast';
+import { usePopupStore } from '../../stores/popup.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import type { MessageRole } from '../../types';
 import type { Prompt } from '../../types/settings';
 import { DraggableList, EmptyState } from '../Common';
 import { Button, FormItem, Input, Select, Textarea } from '../UI';
+import GlobalPromptManager from './GlobalPromptManager.vue';
 
 const settingsStore = useSettingsStore();
+const popupStore = usePopupStore();
 const { t } = useStrictI18n();
 
-// Local state for editing
-const editingIdentifier = ref<string | null>(null);
+const expandedPrompts = ref(new Set<string>());
 
-// Interface for the UI list
-interface DisplayPrompt extends Prompt {
-  enabled: boolean;
-}
-
-const displayPrompts = computed<DisplayPrompt[]>(() => {
-  const definitions = settingsStore.settings.api.samplers.prompts || [];
-  const orderConfig = settingsStore.settings.api.samplers.prompt_order?.order || [];
-
-  const defMap = new Map(definitions.map((p) => [p.identifier, p]));
-
-  const result: DisplayPrompt[] = [];
-  const processedIds = new Set<string>();
-
-  for (const item of orderConfig) {
-    const def = defMap.get(item.identifier);
-    if (def) {
-      result.push({ ...def, enabled: item.enabled });
-      processedIds.add(item.identifier);
-    }
-  }
-
-  for (const def of definitions) {
-    if (!processedIds.has(def.identifier)) {
-      result.push({ ...def, enabled: true });
-    }
-  }
-
-  return result;
+const presetPrompts = computed<Prompt[]>({
+  get: () => settingsStore.settings.api.samplers.prompts || [],
+  set: (val) => (settingsStore.settings.api.samplers.prompts = val),
 });
 
 const roleOptions = [
@@ -52,74 +27,83 @@ const roleOptions = [
   { label: 'Assistant', value: 'assistant' },
 ];
 
-function saveChanges(newDisplayList: DisplayPrompt[]) {
-  const newDefinitions: Prompt[] = newDisplayList.map((p) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { enabled, ...rest } = p;
-    return rest;
+const selectedLibraryPrompt = ref<string>('');
+
+const libraryOptions = computed(() => {
+  const globalPrompts = settingsStore.settings.prompts || [];
+  return [
+    { label: t('aiConfig.promptManager.selectFromLibrary'), value: '' },
+    ...globalPrompts
+      .filter((p) => presetPrompts.value.every((pp) => pp.identifier !== p.identifier && pp.name !== p.name))
+      .map((p) => ({
+        label: p.name,
+        value: p.identifier,
+      })),
+  ];
+});
+
+function openGlobalManager() {
+  popupStore.show({
+    component: shallowRef(GlobalPromptManager),
+    wide: true,
   });
+}
 
-  const newOrder = newDisplayList.map((p) => ({
-    identifier: p.identifier,
-    enabled: p.enabled,
-  }));
+function addFromLibrary(identifier: string) {
+  if (!identifier) return;
 
-  settingsStore.settings.api.samplers.prompts = newDefinitions;
-  settingsStore.settings.api.samplers.prompt_order = { order: newOrder };
+  const original = settingsStore.settings.prompts.find((p) => p.identifier === identifier);
+  if (!original) return;
+
+  const clone: Prompt = cloneDeep(original);
+  clone.identifier = `${original.identifier}-${Date.now()}`;
+  clone.enabled = true;
+
+  presetPrompts.value = [...presetPrompts.value, clone];
+  selectedLibraryPrompt.value = '';
+
+  expandedPrompts.value.add(clone.identifier);
 }
 
 function createNewPrompt() {
   const id = `custom-${Date.now()}`;
-  const newPrompt: DisplayPrompt = {
+  const newPrompt: Prompt = {
     name: 'New Prompt',
     identifier: id,
-    system_prompt: true,
     content: '',
     role: 'system',
     enabled: true,
+    marker: false,
   };
 
-  const newList = [...displayPrompts.value, newPrompt];
-  saveChanges(newList);
-  editingIdentifier.value = id;
+  presetPrompts.value = [...presetPrompts.value, newPrompt];
+  expandedPrompts.value.add(id);
 }
 
 function deletePrompt(identifier: string) {
-  const p = displayPrompts.value.find((x) => x.identifier === identifier);
-  if (!p) return;
-
-  if (p.marker) {
-    toast.error(t('aiConfig.promptManager.cannotDeleteMarker'));
-    return;
-  }
-
-  const newList = displayPrompts.value.filter((x) => x.identifier !== identifier);
-  saveChanges(newList);
-
-  if (editingIdentifier.value === identifier) {
-    editingIdentifier.value = null;
-  }
+  presetPrompts.value = presetPrompts.value.filter((x) => x.identifier !== identifier);
+  expandedPrompts.value.delete(identifier);
 }
 
-function toggleEdit(identifier: string) {
-  if (editingIdentifier.value === identifier) {
-    editingIdentifier.value = null;
+function toggleExpand(identifier: string) {
+  if (expandedPrompts.value.has(identifier)) {
+    expandedPrompts.value.delete(identifier);
   } else {
-    editingIdentifier.value = identifier;
+    expandedPrompts.value.add(identifier);
   }
 }
 
 function toggleEnabled(index: number) {
-  const newList = cloneDeep(displayPrompts.value);
+  const newList = cloneDeep(presetPrompts.value);
   newList[index].enabled = !newList[index].enabled;
-  saveChanges(newList);
+  presetPrompts.value = newList;
 }
 
 function updatePromptField(index: number, field: keyof Prompt, value: string | number | MessageRole) {
-  const newList = cloneDeep(displayPrompts.value);
+  const newList = cloneDeep(presetPrompts.value);
   // @ts-expect-error Dynamic assignment
   newList[index][field] = value;
-  saveChanges(newList);
+  presetPrompts.value = newList;
 }
 
 function getBadgeClass(role?: string) {
@@ -139,25 +123,42 @@ function getBadgeClass(role?: string) {
 <template>
   <div class="prompt-manager">
     <div class="prompt-manager-header">
-      <Button icon="fa-plus" @click="createNewPrompt">
-        {{ t('aiConfig.promptManager.newPrompt') }}
-      </Button>
+      <div class="prompt-manager-actions-row">
+        <div style="flex-grow: 1">
+          <!-- @vue-ignore -->
+          <Select
+            v-model="selectedLibraryPrompt"
+            :options="libraryOptions"
+            searchable
+            :placeholder="t('aiConfig.promptManager.addFromLibrary')"
+            @update:model-value="addFromLibrary"
+          />
+        </div>
+
+        <Button :title="t('aiConfig.promptManager.globalPrompts')" icon="fa-book" @click="openGlobalManager" />
+      </div>
+
+      <div class="prompt-manager-create-row">
+        <Button icon="fa-plus" class="full-width" @click="createNewPrompt">
+          {{ t('aiConfig.promptManager.newPrompt') }}
+        </Button>
+      </div>
     </div>
 
     <div class="prompt-manager-list-container">
       <DraggableList
-        :items="displayPrompts"
+        :items="presetPrompts"
         item-key="identifier"
         handle-class="prompt-item-drag-handle"
         class="prompt-manager-list"
-        @update:items="saveChanges"
+        @update:items="(items) => (presetPrompts = items)"
       >
         <template #default="{ item: prompt, index }">
           <div
             class="prompt-item"
             :class="{
               disabled: !prompt.enabled,
-              'is-editing': editingIdentifier === prompt.identifier,
+              'is-editing': expandedPrompts.has(prompt.identifier),
             }"
             :data-identifier="prompt.identifier"
           >
@@ -170,11 +171,10 @@ function getBadgeClass(role?: string) {
                 ></div>
               </div>
 
-              <div class="prompt-item-info" @click="toggleEdit(prompt.identifier)">
+              <div class="prompt-item-info" @click="toggleExpand(prompt.identifier)">
                 <span class="prompt-item-name">{{ prompt.name }}</span>
                 <div class="prompt-item-badges">
-                  <span v-if="prompt.marker" class="prompt-item-badge prompt-item-badge--marker">Marker</span>
-                  <span v-else class="prompt-item-badge" :class="getBadgeClass(prompt.role)">{{ prompt.role }}</span>
+                  <span class="prompt-item-badge" :class="getBadgeClass(prompt.role)">{{ prompt.role }}</span>
                 </div>
               </div>
 
@@ -186,51 +186,61 @@ function getBadgeClass(role?: string) {
                   @click.stop="toggleEnabled(index)"
                 />
 
-                <Button
-                  icon="fa-trash"
-                  variant="danger"
-                  :disabled="!!prompt.marker"
-                  @click.stop="deletePrompt(prompt.identifier)"
-                />
+                <Button icon="fa-trash" variant="danger" @click.stop="deletePrompt(prompt.identifier)" />
               </div>
             </div>
 
             <!-- Editor Row (Expandable) -->
-            <div v-show="editingIdentifier === prompt.identifier" class="prompt-item-editor">
+            <div v-if="expandedPrompts.has(prompt.identifier)" class="prompt-item-editor">
               <FormItem :label="t('common.name')">
                 <Input :model-value="prompt.name" @update:model-value="(v) => updatePromptField(index, 'name', v)" />
               </FormItem>
 
-              <template v-if="!prompt.marker">
-                <FormItem :label="t('aiConfig.promptManager.role')">
-                  <Select
-                    :model-value="prompt.role || 'system'"
-                    :options="roleOptions"
-                    @update:model-value="(v) => updatePromptField(index, 'role', v as MessageRole)"
-                  />
-                </FormItem>
+              <FormItem :label="t('aiConfig.promptManager.role')">
+                <Select
+                  :model-value="prompt.role || 'system'"
+                  :options="roleOptions"
+                  @update:model-value="(v) => updatePromptField(index, 'role', v as MessageRole)"
+                />
+              </FormItem>
 
-                <FormItem :label="t('aiConfig.promptManager.content')">
-                  <Textarea
-                    :model-value="prompt.content || ''"
-                    :rows="5"
-                    @update:model-value="(v) => updatePromptField(index, 'content', v)"
-                  />
-                </FormItem>
-              </template>
-              <div v-else class="prompt-empty-state" style="padding: 5px; font-size: 0.9em">
-                {{ t('aiConfig.promptManager.markerHint') }}
-              </div>
+              <FormItem :label="t('aiConfig.promptManager.content')">
+                <Textarea
+                  v-show="!prompt.marker"
+                  :model-value="prompt.content || ''"
+                  :rows="5"
+                  @update:model-value="(v) => updatePromptField(index, 'content', v)"
+                />
+                <div v-show="prompt.marker" class="prompt-empty-state">
+                  {{ t('aiConfig.promptManager.markerHint') }}
+                </div>
+              </FormItem>
             </div>
           </div>
         </template>
       </DraggableList>
 
       <EmptyState
-        v-if="displayPrompts.length === 0"
+        v-if="presetPrompts.length === 0"
         icon="fa-layer-group"
         :description="t('aiConfig.promptManager.noPrompts')"
       />
     </div>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.prompt-manager-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prompt-manager-actions-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.full-width {
+  width: 100%;
+}
+</style>

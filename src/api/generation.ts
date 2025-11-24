@@ -120,7 +120,6 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
     // Explicitly skip internal/non-payload settings
     if (
       samplerKey === 'prompts' ||
-      samplerKey === 'prompt_order' ||
       samplerKey === 'providers' ||
       samplerKey === 'max_context_unlocked' ||
       samplerKey === 'reasoning_effort' ||

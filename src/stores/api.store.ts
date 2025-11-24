@@ -13,8 +13,8 @@ import {
 import { PROVIDER_CAPABILITIES } from '../api/provider-definitions';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { toast } from '../composables/useToast';
-import { defaultPromptOrder, defaultPrompts } from '../constants';
-import type { ApiModel, ConnectionProfile, PromptOrderConfig, SamplerSettings } from '../types';
+import { defaultPrompts } from '../constants';
+import type { ApiModel, ConnectionProfile, SamplerSettings } from '../types';
 import { api_providers, POPUP_RESULT, POPUP_TYPE } from '../types';
 import type { InstructTemplate } from '../types/instruct';
 import { downloadFile, readFileAsText, uuidv4 } from '../utils/commons';
@@ -405,33 +405,6 @@ export const useApiStore = defineStore('api', () => {
   }
 
   // --- Prompt Management ---
-  function updatePromptOrder(newOrder: PromptOrderConfig['order']) {
-    if (settingsStore.settings.api.samplers.prompt_order) {
-      settingsStore.settings.api.samplers.prompt_order.order = newOrder;
-    }
-  }
-
-  function removePromptFromOrder(identifier: string) {
-    const promptOrder = settingsStore.settings.api.samplers.prompt_order;
-    if (promptOrder) {
-      promptOrder.order = promptOrder.order.filter((p) => p.identifier !== identifier);
-    }
-  }
-
-  function addPromptToOrder(identifier: string) {
-    const promptOrder = settingsStore.settings.api.samplers.prompt_order;
-    if (promptOrder) {
-      if (promptOrder.order.some((p) => p.identifier === identifier)) return;
-      promptOrder.order.push({ identifier, enabled: true });
-    }
-  }
-
-  function togglePromptEnabled(identifier: string, enabled: boolean) {
-    const orderItem = settingsStore.settings.api.samplers.prompt_order?.order.find((p) => p.identifier === identifier);
-    if (orderItem) {
-      orderItem.enabled = enabled;
-    }
-  }
 
   function updatePromptContent(identifier: string, content: string) {
     const prompt = settingsStore.settings.api.samplers.prompts?.find((p) => p.identifier === identifier);
@@ -442,7 +415,6 @@ export const useApiStore = defineStore('api', () => {
 
   function resetPrompts() {
     settingsStore.settings.api.samplers.prompts = structuredClone(defaultPrompts);
-    settingsStore.settings.api.samplers.prompt_order = structuredClone(defaultPromptOrder);
   }
 
   async function loadInstructTemplates() {
@@ -520,10 +492,6 @@ export const useApiStore = defineStore('api', () => {
     deleteExperimentalPreset,
     importPreset,
     exportPreset,
-    updatePromptOrder,
-    removePromptFromOrder,
-    addPromptToOrder,
-    togglePromptEnabled,
     updatePromptContent,
     resetPrompts,
     // Connection Profiles

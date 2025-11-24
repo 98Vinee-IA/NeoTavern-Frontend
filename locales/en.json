@@ -302,8 +302,10 @@
       "newPrompt": "New Prompt",
       "role": "Role",
       "content": "Content",
-      "markerHint": "This is a marker prompt. It serves as a placeholder for injected content and cannot be edited directly.",
-      "cannotDeleteMarker": "Cannot delete a system marker."
+      "selectFromLibrary": "Select from Prompt Library",
+      "addFromLibrary": "Add from Library",
+      "globalPrompts": "Global Prompts",
+      "markerHint": "This is a marker prompt. It serves as a placeholder for injected content and cannot be edited directly."
     },
     "contextSize": {
       "label": "Context Size (tokens)",

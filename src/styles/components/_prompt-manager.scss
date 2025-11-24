@@ -1,15 +1,12 @@
 .prompt-manager {
   display: flex;
   flex-direction: column;
-  gap: 8x;
+  gap: 8px;
   padding: 4px;
   height: 100%;
   overflow: hidden;
 
   &-header {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--theme-border-color);
     flex-shrink: 0;

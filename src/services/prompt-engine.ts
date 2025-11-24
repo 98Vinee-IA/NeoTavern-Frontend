@@ -122,21 +122,17 @@ export class PromptBuilder {
 
     // 2. Build non-history prompts
     const fixedPrompts: ApiChatMessage[] = [];
-    const promptOrderConfig = this.samplerSettings.prompt_order;
-    if (!promptOrderConfig) {
-      console.error('Default prompt order not found in settings.');
+    const enabledPrompts = this.samplerSettings.prompts.filter((p) => p.enabled);
+    if (enabledPrompts.length === 0) {
+      console.warn('No enabled prompts found in sampler settings.');
       return [];
     }
-    const enabledPrompts = promptOrderConfig.order.filter((p) => p.enabled);
     const historyPlaceholder = { role: 'system', content: '[[CHAT_HISTORY_PLACEHOLDER]]' } as const;
 
     const handlingMode = this.chatMetadata.group?.config?.handlingMode ?? GroupGenerationHandlingMode.SWAP;
     const isGroupContext = this.characters.length > 1 || handlingMode !== GroupGenerationHandlingMode.SWAP;
 
-    for (const promptConfig of enabledPrompts) {
-      const promptDefinition = this.samplerSettings.prompts?.find((p) => p.identifier === promptConfig.identifier);
-      if (!promptDefinition) continue;
-
+    for (const promptDefinition of enabledPrompts) {
       if (promptDefinition.marker) {
         switch (promptDefinition.identifier) {
           case 'chatHistory':
