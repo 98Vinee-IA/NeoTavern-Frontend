@@ -375,6 +375,44 @@
         "label": "Use System Prompt",
         "description": "If enabled, the system prompt will be formatted in a way that is more compatible with Google models."
       }
+    },
+    "koboldcpp": {
+      "header": "KoboldCpp Settings",
+      "tfs": "TFS (Tail Free Sampling)",
+      "typical": "Typical P",
+      "repPenRange": "Repetition Penalty Range",
+      "dynatempRange": "Dynamic Temperature Range",
+      "smoothingFactor": "Smoothing Factor",
+      "dynatempExponent": "Dynamic Temperature Exponent",
+      "mirostat": {
+        "label": "Mirostat Mode",
+        "disabled": "Disabled",
+        "v1": "Mirostat v1",
+        "v2": "Mirostat v2"
+      },
+      "mirostatTau": "Mirostat Tau",
+      "mirostatEta": "Mirostat Eta",
+      "xtcThreshold": "XTC Threshold",
+      "xtcProbability": "XTC Probability",
+      "nsigma": "Top N-Sigma",
+      "dryMultiplier": "DRY Multiplier",
+      "dryBase": "DRY Base",
+      "dryAllowedLength": "DRY Allowed Length",
+      "dryPenaltyLastN": "DRY Penalty Last N",
+      "drySequenceBreakers": "DRY Sequence Breakers (One per line)",
+      "grammar": "GBNF Grammar",
+      "grammarRetainState": "Retain Grammar State",
+      "bannedTokens": "Banned Tokens (One per line)",
+      "samplerOrder": "Sampler Order",
+      "groups": {
+        "basic": "Basic Samplers",
+        "dynatemp": "Dynamic Temperature",
+        "mirostat": "Mirostat",
+        "xtc": "XTC",
+        "dry": "DRY (Don't Repeat Yourself)",
+        "tfs": "Tail Free Sampling & Typical",
+        "grammar": "Grammar & Banned Tokens"
+      }
     }
   },
   "userSettings": {
@@ -728,6 +766,7 @@
     "azureApiVersion": "API Version",
     "azureModel": "Model Name",
     "deepseekModel": "DeepSeek Model",
+    "koboldUrl": "KoboldCpp URL",
     "connect": "Connect",
     "connecting": "Connecting",
     "providers": {
@@ -751,7 +790,8 @@
       "perplexity": "Perplexity",
       "pollinations": "Pollinations",
       "xai": "xAI (Grok)",
-      "zai": "Z.AI (GLM)"
+      "zai": "Z.AI (GLM)",
+      "koboldcpp": "KoboldCpp"
     },
     "modelGroups": {
       "gpt4o": "GPT-4o",

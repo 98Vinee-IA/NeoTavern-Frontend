@@ -219,7 +219,8 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         effectiveModel = settings.api.selectedProviderModels[effectiveProvider] || apiStore.activeModel || '';
       }
 
-      if (!effectiveModel) throw new Error(t('chat.generate.noModelError'));
+      // TODO: Make generic
+      if (!effectiveModel && effectiveProvider !== 'koboldcpp') throw new Error(t('chat.generate.noModelError'));
 
       // Determine Sampler Settings
       let effectiveSamplerSettings = settings.api.samplers;

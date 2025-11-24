@@ -169,6 +169,7 @@ export const aiConfigDefinition: AiConfigSection[] = [
             'fireworks',
             'cometapi',
             'azure_openai',
+            'koboldcpp',
           ],
         },
       },
@@ -198,6 +199,7 @@ export const aiConfigDefinition: AiConfigSection[] = [
             'fireworks',
             'cometapi',
             'azure_openai',
+            'koboldcpp',
           ],
         },
       },
@@ -218,6 +220,7 @@ export const aiConfigDefinition: AiConfigSection[] = [
             'cohere',
             'perplexity',
             'electronhub',
+            'koboldcpp',
           ],
         },
       },
@@ -232,8 +235,8 @@ export const aiConfigDefinition: AiConfigSection[] = [
     ],
   },
   {
-    id: 'openrouter-sliders',
-    conditions: { provider: 'openrouter' },
+    id: 'sampling-sliders-2',
+    conditions: { provider: ['openrouter', 'koboldcpp'] },
     items: [
       {
         id: 'api.samplers.repetition_penalty',
@@ -258,6 +261,251 @@ export const aiConfigDefinition: AiConfigSection[] = [
         min: 0,
         max: 1,
         step: 0.001,
+      },
+    ],
+  },
+  {
+    id: 'koboldcpp-settings',
+    conditions: { provider: 'koboldcpp' },
+    items: [
+      { widget: 'header', label: 'aiConfig.koboldcpp.header' },
+
+      // Rep Pen Range
+      {
+        widget: 'group',
+        id: 'koboldcpp_basic',
+        label: 'aiConfig.koboldcpp.groups.basic',
+        enableable: true,
+        items: [
+          {
+            id: 'api.samplers.providers.koboldcpp.rep_pen_range',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.repPenRange',
+            min: 0,
+            max: 8192,
+            step: 1,
+          },
+        ],
+      },
+
+      // Dynatemp
+      {
+        widget: 'group',
+        id: 'koboldcpp_dynatemp',
+        label: 'aiConfig.koboldcpp.groups.dynatemp',
+        enableable: true,
+        items: [
+          {
+            id: 'api.samplers.providers.koboldcpp.dynatemp_range',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.dynatempRange',
+            min: 0,
+            max: 5,
+            step: 0.01,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.smoothing_factor',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.smoothingFactor',
+            min: 0,
+            max: 10,
+            step: 0.01,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.dynatemp_exponent',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.dynatempExponent',
+            min: 0,
+            max: 10,
+            step: 0.01,
+          },
+        ],
+      },
+
+      // Mirostat
+      {
+        widget: 'group',
+        id: 'koboldcpp_mirostat',
+        label: 'aiConfig.koboldcpp.groups.mirostat',
+        enableable: true,
+        items: [
+          {
+            id: 'api.samplers.providers.koboldcpp.mirostat',
+            widget: 'select',
+            label: 'aiConfig.koboldcpp.mirostat.label',
+            options: [
+              { value: 0, label: 'aiConfig.koboldcpp.mirostat.disabled' },
+              { value: 1, label: 'aiConfig.koboldcpp.mirostat.v1' },
+              { value: 2, label: 'aiConfig.koboldcpp.mirostat.v2' },
+            ],
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.mirostat_tau',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.mirostatTau',
+            min: 0,
+            max: 10,
+            step: 0.01,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.mirostat_eta',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.mirostatEta',
+            min: 0,
+            max: 10,
+            step: 0.01,
+          },
+        ],
+      },
+
+      // XTC
+      {
+        widget: 'group',
+        id: 'koboldcpp_xtc',
+        label: 'aiConfig.koboldcpp.groups.xtc',
+        enableable: true,
+        items: [
+          {
+            id: 'api.samplers.providers.koboldcpp.xtc_threshold',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.xtcThreshold',
+            min: 0,
+            max: 1,
+            step: 0.01,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.xtc_probability',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.xtcProbability',
+            min: 0,
+            max: 1,
+            step: 0.01,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.nsigma',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.nsigma',
+            min: 0,
+            max: 10,
+            step: 0.01,
+          },
+        ],
+      },
+
+      // DRY
+      {
+        widget: 'group',
+        id: 'koboldcpp_dry',
+        label: 'aiConfig.koboldcpp.groups.dry',
+        enableable: true,
+        items: [
+          {
+            id: 'api.samplers.providers.koboldcpp.dry_multiplier',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.dryMultiplier',
+            min: 0,
+            max: 10,
+            step: 0.1,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.dry_base',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.dryBase',
+            min: 0,
+            max: 10,
+            step: 0.1,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.dry_allowed_length',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.dryAllowedLength',
+            min: 0,
+            max: 100,
+            step: 1,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.dry_penalty_last_n',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.dryPenaltyLastN',
+            min: 0,
+            max: 4096,
+            step: 1,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.dry_sequence_breakers',
+            widget: 'textarea',
+            label: 'aiConfig.koboldcpp.drySequenceBreakers',
+            valueType: 'array',
+            arraySeparator: '\n',
+          },
+        ],
+      },
+
+      // TFS
+      {
+        widget: 'group',
+        id: 'koboldcpp_tfs',
+        label: 'aiConfig.koboldcpp.groups.tfs',
+        enableable: true,
+        items: [
+          {
+            id: 'api.samplers.providers.koboldcpp.tfs',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.tfs',
+            min: 0,
+            max: 1,
+            step: 0.01,
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.typical',
+            widget: 'slider',
+            label: 'aiConfig.koboldcpp.typical',
+            min: 0,
+            max: 1,
+            step: 0.01,
+          },
+        ],
+      },
+
+      // Other
+      {
+        widget: 'group',
+        id: 'koboldcpp_grammar',
+        label: 'aiConfig.koboldcpp.groups.grammar',
+        enableable: true,
+        items: [
+          {
+            id: 'api.samplers.providers.koboldcpp.grammar',
+            widget: 'textarea',
+            label: 'aiConfig.koboldcpp.grammar',
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.grammar_retain_state',
+            widget: 'checkbox',
+            label: 'aiConfig.koboldcpp.grammarRetainState',
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.banned_tokens',
+            widget: 'textarea',
+            label: 'aiConfig.koboldcpp.bannedTokens',
+            valueType: 'array',
+            arraySeparator: '\n',
+          },
+          {
+            id: 'api.samplers.providers.koboldcpp.sampler_order',
+            widget: 'draggable-list',
+            label: 'aiConfig.koboldcpp.samplerOrder',
+            options: [
+              { value: 0, label: 'aiConfig.topK.label' },
+              { value: 1, label: 'aiConfig.topA.label' },
+              { value: 2, label: 'Top P & Min P' }, // TODO i18n
+              { value: 3, label: 'aiConfig.koboldcpp.groups.tfs' },
+              { value: 4, label: 'aiConfig.koboldcpp.typical' },
+              { value: 5, label: 'aiConfig.temperature.label' },
+              { value: 6, label: 'aiConfig.repPenalty.label' },
+            ],
+          },
+        ],
       },
     ],
   },

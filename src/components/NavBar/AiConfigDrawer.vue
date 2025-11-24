@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { aiConfigDefinition } from '../../ai-config-definition';
-import { Button, Checkbox, FormItem, Input, RangeControl, Select, Tabs, Textarea } from '../../components/UI';
+import { Button, Tabs } from '../../components/UI';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useApiStore } from '../../stores/api.store';
-import { usePopupStore } from '../../stores/popup.store';
 import { useSettingsStore } from '../../stores/settings.store';
-import type { AiConfigCondition, AiConfigSection } from '../../types';
-import { POPUP_TYPE } from '../../types';
+import type { AiConfigCondition } from '../../types';
+import AiConfigItemRenderer from '../AiConfig/AiConfigItemRenderer.vue';
 import PromptManager from '../AiConfig/PromptManager.vue';
 
 const { t } = useStrictI18n();
 const apiStore = useApiStore();
-const popupStore = usePopupStore();
 const settingsStore = useSettingsStore();
 
 const activeTab = ref<'sampler' | 'prompts'>('sampler');
@@ -20,10 +18,10 @@ const isPanelPinned = ref(false);
 
 function checkConditions(conditions?: AiConfigCondition): boolean {
   if (!conditions) return true;
-
   if (conditions.provider) {
     const providers = Array.isArray(conditions.provider) ? conditions.provider : [conditions.provider];
-    if (!settingsStore.settings.api.provider || !providers.includes(settingsStore.settings.api.provider)) return false;
+    const current = settingsStore.settings.api.provider;
+    if (!current || !providers.includes(current)) return false;
   }
   return true;
 }
@@ -31,22 +29,6 @@ function checkConditions(conditions?: AiConfigCondition): boolean {
 const visibleSections = computed(() => {
   return aiConfigDefinition.filter((section) => checkConditions(section.conditions));
 });
-
-function getVisibleItems(section: AiConfigSection) {
-  return section.items.filter((item) => checkConditions(item.conditions));
-}
-
-async function handleNewPreset() {
-  const { result, value } = await popupStore.show<string>({
-    title: t('aiConfig.presets.newName'),
-    type: POPUP_TYPE.INPUT,
-    inputValue: settingsStore.settings.api.selectedSampler || 'New Preset',
-  });
-
-  if (result === 1 && value) {
-    apiStore.saveCurrentPresetAs(value);
-  }
-}
 
 onMounted(() => {
   apiStore.loadPresetsForApi();
@@ -87,151 +69,8 @@ onMounted(() => {
         <div class="ai-config-drawer-manual-input-note">{{ t('aiConfig.manualInputNote') }}</div>
 
         <template v-for="section in visibleSections" :key="section.id">
-          <!-- Preset Manager -->
-          <div v-for="item in getVisibleItems(section)" :key="item.id || item.widget" class="ai-config-drawer-item">
-            <div v-if="item.widget === 'preset-manager' && item.id" class="preset-manager">
-              <div class="standout-header">
-                <strong>{{ item.label ? t(item.label) : '' }}</strong>
-                <div class="preset-manager-actions">
-                  <Button
-                    variant="ghost"
-                    icon="fa-file-import"
-                    :title="t('aiConfig.presets.import')"
-                    @click="apiStore.importPreset()"
-                  />
-                  <!-- @vue-ignore -->
-                  <Button
-                    variant="ghost"
-                    icon="fa-file-export"
-                    :title="t('aiConfig.presets.export')"
-                    @click="apiStore.exportPreset(settingsStore.getSetting(item.id))"
-                  />
-                  <!-- @vue-ignore -->
-                  <Button
-                    icon="fa-trash-can"
-                    variant="danger"
-                    :title="t('aiConfig.presets.delete')"
-                    @click="apiStore.deleteExperimentalPreset(settingsStore.getSetting(item.id))"
-                  />
-                </div>
-              </div>
-              <div class="preset-manager-controls">
-                <div style="flex-grow: 1">
-                  <!-- @vue-ignore -->
-                  <Select
-                    :model-value="settingsStore.getSetting(item.id)"
-                    :options="apiStore.presets.map((p) => ({ label: p.name, value: p.name }))"
-                    @update:model-value="(val) => settingsStore.setSetting(item.id!, val)"
-                  />
-                </div>
-                <!-- @vue-ignore -->
-                <Button
-                  variant="ghost"
-                  icon="fa-save"
-                  :title="t('aiConfig.presets.update')"
-                  @click="apiStore.updateCurrentPreset(settingsStore.getSetting(item.id))"
-                />
-                <!-- @vue-ignore -->
-                <Button
-                  variant="ghost"
-                  icon="fa-pencil"
-                  :title="t('aiConfig.presets.rename')"
-                  @click="apiStore.renamePreset(settingsStore.getSetting(item.id))"
-                />
-                <Button
-                  variant="ghost"
-                  icon="fa-file-circle-plus"
-                  :title="t('aiConfig.presets.saveAs')"
-                  @click="handleNewPreset()"
-                />
-              </div>
-            </div>
-
-            <!-- Slider -->
-            <div v-if="item.widget === 'slider' && item.id">
-              <!-- @vue-ignore -->
-              <RangeControl
-                :model-value="settingsStore.getSetting(item.id)"
-                :label="item.label ? t(item.label) : ''"
-                :min="item.min"
-                :max="item.maxUnlockedId && settingsStore.getSetting(item.maxUnlockedId) ? 131072 : item.max"
-                :step="item.step"
-                @update:model-value="(val) => settingsStore.setSetting(item.id!, Number(val))"
-              >
-                <template v-if="item.maxUnlockedId && item.unlockLabel" #addon>
-                  <div class="mt-1">
-                    <Checkbox
-                      :model-value="!!settingsStore.getSetting(item.maxUnlockedId)"
-                      :label="t(item.unlockLabel)"
-                      :title="item.unlockTooltip ? t(item.unlockTooltip) : ''"
-                      @update:model-value="(val) => settingsStore.setSetting(item.maxUnlockedId!, val)"
-                    />
-                  </div>
-                </template>
-              </RangeControl>
-            </div>
-
-            <!-- Number Input -->
-            <FormItem v-if="item.widget === 'number-input' && item.id" :label="item.label ? t(item.label) : ''">
-              <!-- @vue-ignore -->
-              <Input
-                type="number"
-                :model-value="settingsStore.getSetting(item.id)"
-                :min="item.min"
-                :max="item.max"
-                :step="item.step"
-                @update:model-value="(val) => settingsStore.setSetting(item.id!, Number(val))"
-              />
-            </FormItem>
-
-            <!-- Textarea -->
-            <FormItem
-              v-if="item.widget === 'textarea' && item.id"
-              :label="item.label ? t(item.label) : ''"
-              :description="item.description ? t(item.description) : undefined"
-            >
-              <!-- @vue-ignore -->
-              <Textarea
-                :model-value="settingsStore.getSetting(item.id)"
-                @update:model-value="(val) => settingsStore.setSetting(item.id!, val)"
-              />
-            </FormItem>
-
-            <!-- Checkbox -->
-            <div v-if="item.widget === 'checkbox' && item.id">
-              <Checkbox
-                :label="item.label ? t(item.label) : ''"
-                :model-value="!!settingsStore.getSetting(item.id)"
-                :description="item.description ? t(item.description) : undefined"
-                @update:model-value="(val) => settingsStore.setSetting(item.id!, val)"
-              />
-            </div>
-
-            <!-- Select Input -->
-            <FormItem
-              v-if="item.widget === 'select' && item.id && item.options"
-              :label="item.label ? t(item.label) : ''"
-            >
-              <!-- @vue-ignore -->
-              <Select
-                :model-value="settingsStore.getSetting(item.id)"
-                :options="item.options.map((o) => ({ label: t(o.label), value: o.value }))"
-                :title="item.infoTooltip ? t(item.infoTooltip) : undefined"
-                @update:model-value="(val) => settingsStore.setSetting(item.id!, val)"
-              />
-            </FormItem>
-
-            <!-- Info Display -->
-            <div
-              v-if="item.widget === 'info-display' && item.description"
-              class="form-item-description"
-              style="margin-bottom: 10px"
-            >
-              {{ t(item.description) }}
-            </div>
-
-            <!-- Horizontal Rule -->
-            <hr v-if="item.widget === 'hr'" />
+          <div v-for="item in section.items" :key="item.id || item.widget" class="ai-config-drawer-item">
+            <AiConfigItemRenderer :item="item" />
           </div>
         </template>
       </div>
@@ -242,3 +81,12 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.ai-config-drawer-item {
+  margin-bottom: 16px;
+  &:empty {
+    display: none;
+  }
+}
+</style>

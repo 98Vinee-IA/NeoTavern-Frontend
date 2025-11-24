@@ -35,6 +35,46 @@ export interface PromptOrderConfig {
   }[];
 }
 
+export interface KoboldCppSettings {
+  // Samplers
+  rep_pen_range?: number;
+  sampler_order?: number[];
+
+  // Dynatemp
+  dynatemp_range?: number;
+  dynatemp_exponent?: number;
+  smoothing_factor?: number;
+
+  // Mirostat
+  mirostat?: number;
+  mirostat_tau?: number;
+  mirostat_eta?: number;
+
+  // Grammar / Banned
+  grammar?: string;
+  grammar_retain_state?: boolean;
+  banned_tokens?: string[];
+  use_default_badwordsids?: boolean;
+
+  // DRY
+  dry_multiplier?: number;
+  dry_base?: number;
+  dry_allowed_length?: number;
+  dry_penalty_last_n?: number;
+  dry_sequence_breakers?: string[];
+
+  // XTC
+  xtc_threshold?: number;
+  xtc_probability?: number;
+
+  // N-Sigma
+  nsigma?: number;
+
+  // TFS
+  tfs?: number;
+  typical?: number;
+}
+
 export interface ProviderSettings {
   claude: {
     use_sysprompt?: boolean;
@@ -44,6 +84,8 @@ export interface ProviderSettings {
   google: {
     use_makersuite_sysprompt?: boolean;
   };
+  koboldcpp: KoboldCppSettings;
+  disabled_fields?: Partial<Record<ApiProvider, string[]>>;
 }
 
 export interface SamplerSettings {
@@ -67,6 +109,7 @@ export interface SamplerSettings {
   providers: ProviderSettings;
   show_thoughts: boolean;
   reasoning_effort: ReasoningEffort;
+  disabled_fields?: string[];
 }
 
 export interface LegacyOaiSettings {
@@ -245,7 +288,7 @@ export interface Settings {
       custom: {
         url: string;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        include_body?: Record<string, any>;
+        include_body?: string; // YAML
         exclude_body?: string[];
         include_headers?: Record<string, string>;
       };
@@ -261,6 +304,9 @@ export interface Settings {
       };
       zai: {
         endpoint?: string;
+      };
+      koboldcpp: {
+        url: string;
       };
     };
   };

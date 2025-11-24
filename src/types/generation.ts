@@ -42,6 +42,31 @@ export type ChatCompletionPayload = Partial<{
   max_completion_tokens?: number;
   reasoning_effort?: ReasoningEffort | string;
 
+  // KoboldCpp Specific
+  rep_pen?: number;
+  rep_pen_range?: number;
+  sampler_order?: number[];
+  tfs?: number;
+  typical?: number;
+  use_default_badwordsids?: boolean;
+  dynatemp_range?: number;
+  smoothing_factor?: number;
+  dynatemp_exponent?: number;
+  mirostat?: number;
+  mirostat_tau?: number;
+  mirostat_eta?: number;
+  grammar?: string;
+  grammar_retain_state?: boolean;
+  banned_tokens?: string[];
+  dry_multiplier?: number;
+  dry_base?: number;
+  dry_allowed_length?: number;
+  dry_penalty_last_n?: number;
+  dry_sequence_breakers?: string[];
+  xtc_threshold?: number;
+  xtc_probability?: number;
+  nsigma?: number;
+
   // Claude-specific
   claude_use_sysprompt: boolean;
   assistant_prefill: string;

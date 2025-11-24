@@ -379,6 +379,44 @@ export interface MessageSchema {
         description: string;
       };
     };
+    koboldcpp: {
+      header: string;
+      tfs: string;
+      typical: string;
+      repPenRange: string;
+      dynatempRange: string;
+      smoothingFactor: string;
+      dynatempExponent: string;
+      mirostat: {
+        label: string;
+        disabled: string;
+        v1: string;
+        v2: string;
+      };
+      mirostatTau: string;
+      mirostatEta: string;
+      xtcThreshold: string;
+      xtcProbability: string;
+      nsigma: string;
+      dryMultiplier: string;
+      dryBase: string;
+      dryAllowedLength: string;
+      dryPenaltyLastN: string;
+      drySequenceBreakers: string;
+      grammar: string;
+      grammarRetainState: string;
+      bannedTokens: string;
+      samplerOrder: string;
+      groups: {
+        basic: string;
+        dynatemp: string;
+        mirostat: string;
+        xtc: string;
+        dry: string;
+        tfs: string;
+        grammar: string;
+      };
+    };
   };
   userSettings: {
     title: string;
@@ -731,6 +769,7 @@ export interface MessageSchema {
     azureApiVersion: string;
     azureModel: string;
     deepseekModel: string;
+    koboldUrl: string;
     connect: string;
     connecting: string;
     providers: {
@@ -755,6 +794,7 @@ export interface MessageSchema {
       pollinations: string;
       xai: string;
       zai: string;
+      koboldcpp: string;
     };
     modelGroups: {
       gpt4o: string;

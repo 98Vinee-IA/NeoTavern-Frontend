@@ -39,6 +39,7 @@ export function migrateExperimentalPreset(legacyPreset: LegacyOaiPresetSettings)
       google: {
         use_makersuite_sysprompt: legacyPreset.use_makersuite_sysprompt,
       },
+      koboldcpp: structuredClone(defaultSamplerSettings.providers.koboldcpp),
     },
     show_thoughts: legacyPreset.show_thoughts ?? defaultSamplerSettings.show_thoughts,
     reasoning_effort: legacyPreset.reasoning_effort ?? defaultSamplerSettings.reasoning_effort ?? 'auto',

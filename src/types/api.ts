@@ -24,6 +24,7 @@ export const api_providers = {
   COMETAPI: 'cometapi',
   AZURE_OPENAI: 'azure_openai',
   ZAI: 'zai',
+  KOBOLDCPP: 'koboldcpp',
 } as const;
 
 export type ApiProvider = (typeof api_providers)[keyof typeof api_providers];
@@ -49,9 +50,24 @@ export interface AiConfigCondition {
   provider?: ApiProvider | ApiProvider[];
 }
 
-// TODO: Some values might change based on model/provider, e.g., max tokens
-export interface AiConfigItem {
-  id?: SettingsPath;
+/**
+ * Base properties shared by all configuration items
+ */
+interface AiConfigBase {
+  apiId?: string; // For preset manager to know which API it controls
+  label?: I18nKey;
+  description?: I18nKey;
+  infoTooltip?: I18nKey;
+  infoLink?: string;
+  conditions?: AiConfigCondition;
+  cssClass?: string;
+}
+
+/**
+ * Widgets that bind directly to a specific setting path.
+ * The `id` MUST be a valid `SettingsPath`.
+ */
+export interface AiConfigValueItem extends AiConfigBase {
   widget:
     | 'preset-manager'
     | 'slider'
@@ -62,41 +78,59 @@ export interface AiConfigItem {
     | 'text-input'
     | 'key-manager'
     | 'model-select'
-    | 'custom-component'
-    | 'info-display'
-    | 'prompt-manager-button'
-    | 'hr'
-    | 'header';
-  apiId?: string; // For preset manager to know which API it controls
-  label?: I18nKey; // i18n key for the label
-  description?: I18nKey; // i18n key for text below the control
-  infoTooltip?: I18nKey; // i18n key for the (i) icon
-  infoLink?: string; // URL for docs link
-  conditions?: AiConfigCondition;
+    | 'draggable-list';
+  id?: SettingsPath;
 
-  // For slider/number
+  // Specific props for value widgets
   min?: number;
   max?: number;
   step?: number;
   maxUnlockedId?: SettingsPath;
   unlockLabel?: I18nKey;
   unlockTooltip?: I18nKey;
+  options?: { value: string | number; label: I18nKey | string }[];
+  placeholder?: string;
 
-  // for select
-  options?: { value: string | number; label: I18nKey | string }[]; // Label can be i18n key or string
-  placeholder?: string; // For text/number inputs
-
-  // for custom components
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component?: any; // TODO: Implement
-
-  // For layout
-  cssClass?: string; // TODO: Implement
-
-  // For info-display
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  valueGetter?: (apiStore: any) => string; // TODO: Implement
+  /**
+   * explicit type definition for how the data is stored in the store.
+   * If 'array', the widget will handle joining/splitting the value.
+   */
+  valueType?: 'array' | 'string' | 'number' | 'boolean';
+  /**
+   * If valueType is 'array', this separator is used to join/split the string for the UI.
+   * Defaults to ',' if not specified.
+   * Common values: '\n' for textareas, ',' for text inputs.
+   */
+  arraySeparator?: string;
 }
+
+/**
+ * Widgets that are purely structural or informational.
+ * The `id` can be any string (used for keys, DOM IDs, or toggling groups).
+ */
+export interface AiConfigStructuralItem extends AiConfigBase {
+  widget: 'group' | 'custom-component' | 'info-display' | 'prompt-manager-button' | 'hr' | 'header';
+  id?: string;
+
+  // Group specific
+  items?: AiConfigItem[];
+  enableable?: boolean;
+
+  // Custom component specific
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component?: any;
+
+  // Info display specific
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  valueGetter?: (apiStore: any) => string;
+}
+
+/**
+ * Discriminant union of all config item types.
+ * This ensures that if widget is 'slider', id MUST be SettingsPath,
+ * but if widget is 'group', id can be a plain string.
+ */
+export type AiConfigItem = AiConfigValueItem | AiConfigStructuralItem;
 
 export interface AiConfigSection {
   id: string;

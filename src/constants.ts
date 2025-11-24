@@ -172,6 +172,29 @@ export const defaultSamplerSettings: SamplerSettings = {
   providers: {
     claude: {},
     google: {},
+    koboldcpp: {
+      use_default_badwordsids: false,
+      grammar_retain_state: false,
+      mirostat: 0,
+      mirostat_tau: 5,
+      mirostat_eta: 0.1,
+      tfs: 1,
+      typical: 1,
+      dry_allowed_length: 2,
+      dry_multiplier: 0,
+      dry_base: 1.75,
+      dry_sequence_breakers: ['\\n', ':', '"', '*'],
+      dynatemp_exponent: 1,
+      dynatemp_range: 2,
+      nsigma: 0,
+      rep_pen_range: 0,
+      smoothing_factor: 0,
+      xtc_probability: 0,
+      xtc_threshold: 0.1,
+      sampler_order: [6, 0, 1, 3, 4, 2, 5],
+      banned_tokens: [],
+      grammar: '',
+    },
   },
   reasoning_effort: ReasoningEffort.AUTO,
 };
@@ -199,6 +222,7 @@ export const defaultProviderModels: Record<ApiProvider, string> = {
   pollinations: 'openai',
   xai: 'grok-3-beta',
   zai: 'glm-4.6',
+  koboldcpp: '',
 };
 
 export const defaultProviderSpecific: Settings['api']['providerSpecific'] = {
@@ -223,6 +247,9 @@ export const defaultProviderSpecific: Settings['api']['providerSpecific'] = {
   },
   zai: {
     endpoint: 'common',
+  },
+  koboldcpp: {
+    url: 'http://localhost:5001/v1',
   },
 };
 

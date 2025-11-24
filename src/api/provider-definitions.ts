@@ -1,3 +1,4 @@
+import YAML from 'yaml';
 import type { ChatCompletionPayload } from '../types';
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
@@ -104,6 +105,7 @@ export const PROVIDER_CAPABILITIES: Record<string, ProviderCapability> = {
   [api_providers.COMETAPI]: { supportsChat: true, supportsText: false },
   [api_providers.AZURE_OPENAI]: { supportsChat: true, supportsText: false },
   [api_providers.ZAI]: { supportsChat: true, supportsText: false },
+  [api_providers.KOBOLDCPP]: { supportsChat: true, supportsText: false },
 };
 
 // --- Helper Transforms ---
@@ -115,6 +117,9 @@ const zaiStopTransform = (v: string[]) => v?.slice(0, 1);
 // --- Parameter Definitions ---
 
 export const PARAMETER_DEFINITIONS: Partial<Record<keyof SamplerSettings, ParamConfiguration>> = {
+  show_thoughts: {
+    defaults: null,
+  },
   max_tokens: {
     providers: {
       [api_providers.POLLINATIONS]: null,
@@ -175,6 +180,7 @@ export const PARAMETER_DEFINITIONS: Partial<Record<keyof SamplerSettings, ParamC
       [api_providers.COHERE]: {},
       [api_providers.PERPLEXITY]: {},
       [api_providers.ELECTRONHUB]: {},
+      [api_providers.KOBOLDCPP]: {},
     },
   },
 
@@ -183,6 +189,7 @@ export const PARAMETER_DEFINITIONS: Partial<Record<keyof SamplerSettings, ParamC
     defaults: null,
     providers: {
       [api_providers.OPENROUTER]: {},
+      [api_providers.KOBOLDCPP]: {},
     },
   },
 
@@ -191,6 +198,7 @@ export const PARAMETER_DEFINITIONS: Partial<Record<keyof SamplerSettings, ParamC
     defaults: null,
     providers: {
       [api_providers.OPENROUTER]: {},
+      [api_providers.KOBOLDCPP]: {},
     },
   },
 
@@ -199,6 +207,7 @@ export const PARAMETER_DEFINITIONS: Partial<Record<keyof SamplerSettings, ParamC
     defaults: null,
     providers: {
       [api_providers.OPENROUTER]: {},
+      [api_providers.KOBOLDCPP]: { remoteKey: 'rep_pen' },
     },
   },
 
@@ -296,6 +305,116 @@ export const PROVIDER_INJECTIONS: Partial<Record<string, InjectionFunction>> = {
     delete payload.logit_bias;
     delete payload.top_logprobs;
     delete payload.n;
+  },
+
+  [api_providers.KOBOLDCPP]: (payload, { providerSpecific, samplerSettings }) => {
+    payload.chat_completion_source = api_providers.CUSTOM;
+    payload.custom_url = providerSpecific.koboldcpp?.url;
+
+    const disabledGroups = samplerSettings.providers.disabled_fields?.koboldcpp || [];
+
+    // Inject KoboldCpp specific settings
+    const kSettings = samplerSettings.providers.koboldcpp;
+    if (kSettings) {
+      // Basic
+      if (!disabledGroups.includes('koboldcpp_basic')) {
+        if (kSettings.rep_pen_range !== undefined) payload.rep_pen_range = kSettings.rep_pen_range;
+        if (kSettings.sampler_order && kSettings.sampler_order.length > 0)
+          payload.sampler_order = kSettings.sampler_order;
+      }
+
+      // Dynatemp
+      if (!disabledGroups.includes('koboldcpp_dynatemp')) {
+        if (kSettings.dynatemp_range !== undefined) payload.dynatemp_range = kSettings.dynatemp_range;
+        if (kSettings.dynatemp_exponent !== undefined) payload.dynatemp_exponent = kSettings.dynatemp_exponent;
+        if (kSettings.smoothing_factor !== undefined) payload.smoothing_factor = kSettings.smoothing_factor;
+      }
+
+      // Mirostat
+      if (!disabledGroups.includes('koboldcpp_mirostat')) {
+        if (kSettings.mirostat !== undefined) payload.mirostat = kSettings.mirostat;
+        if (kSettings.mirostat_tau !== undefined) payload.mirostat_tau = kSettings.mirostat_tau;
+        if (kSettings.mirostat_eta !== undefined) payload.mirostat_eta = kSettings.mirostat_eta;
+      }
+
+      // Grammar & Bans
+      if (!disabledGroups.includes('koboldcpp_grammar')) {
+        if (kSettings.grammar) payload.grammar = kSettings.grammar;
+        if (kSettings.grammar_retain_state !== undefined) payload.grammar_retain_state = kSettings.grammar_retain_state;
+        if (kSettings.use_default_badwordsids !== undefined)
+          payload.use_default_badwordsids = kSettings.use_default_badwordsids;
+        // Arrays
+        if (kSettings.banned_tokens) {
+          const val = kSettings.banned_tokens;
+          if (typeof val === 'string') {
+            payload.banned_tokens = (val as string)
+              .split('\n')
+              .map((s) => s.trim())
+              .filter(Boolean);
+          } else if (Array.isArray(val)) {
+            payload.banned_tokens = val;
+          }
+        }
+      }
+
+      // TFS
+      if (!disabledGroups.includes('koboldcpp_tfs')) {
+        if (kSettings.tfs !== undefined) payload.tfs = kSettings.tfs;
+        if (kSettings.typical !== undefined) payload.typical = kSettings.typical;
+      }
+
+      // DRY
+      if (!disabledGroups.includes('koboldcpp_dry')) {
+        if (kSettings.dry_multiplier !== undefined) payload.dry_multiplier = kSettings.dry_multiplier;
+        if (kSettings.dry_base !== undefined) payload.dry_base = kSettings.dry_base;
+        if (kSettings.dry_allowed_length !== undefined) payload.dry_allowed_length = kSettings.dry_allowed_length;
+        if (kSettings.dry_penalty_last_n !== undefined) payload.dry_penalty_last_n = kSettings.dry_penalty_last_n;
+
+        if (kSettings.dry_sequence_breakers) {
+          const val = kSettings.dry_sequence_breakers;
+          if (typeof val === 'string') {
+            payload.dry_sequence_breakers = (val as string)
+              .split('\n')
+              .map((s) => s.trim())
+              .filter(Boolean);
+          } else if (Array.isArray(val)) {
+            payload.dry_sequence_breakers = val;
+          }
+        }
+      }
+
+      // XTC
+      if (!disabledGroups.includes('koboldcpp_xtc')) {
+        if (kSettings.xtc_threshold !== undefined) payload.xtc_threshold = kSettings.xtc_threshold;
+        if (kSettings.xtc_probability !== undefined) payload.xtc_probability = kSettings.xtc_probability;
+        if (kSettings.nsigma !== undefined) payload.nsigma = kSettings.nsigma;
+      }
+    }
+
+    const body: Record<string, unknown> = {};
+
+    const ignoredPayloadKeys = [
+      'chat_completion_source',
+      'custom_url',
+      'custom_include_body',
+      'custom_exclude_body',
+      'custom_include_headers',
+      'model',
+      'include_reasoning',
+    ];
+    const allowedRootKeys = ['stream'];
+    for (const [key, value] of Object.entries(payload)) {
+      if (!ignoredPayloadKeys.includes(key)) {
+        body[key] = value;
+        if (!allowedRootKeys.includes(key)) {
+          delete payload[key];
+        }
+      }
+    }
+
+    delete payload.model;
+    delete payload.include_reasoning;
+    payload.custom_include_body = YAML.stringify(body);
   },
 };
 

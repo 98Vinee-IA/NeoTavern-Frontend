@@ -7,11 +7,12 @@ import { TokenizerType } from '../../constants';
 import { useApiStore } from '../../stores/api.store';
 import { usePopupStore } from '../../stores/popup.store';
 import { useSettingsStore } from '../../stores/settings.store';
-import { api_providers, type AiConfigCondition, type AiConfigItem, type ConnectionProfile } from '../../types';
+import type { AiConfigCondition, ConnectionProfile } from '../../types';
+import { api_providers } from '../../types';
 import { POPUP_RESULT, POPUP_TYPE } from '../../types/popup';
+import AiConfigItemRenderer from '../AiConfig/AiConfigItemRenderer.vue';
 import { ConnectionProfileSelector } from '../Common';
-import { Button, Checkbox, FormItem, Input, Select } from '../UI';
-import type { SelectItem } from '../UI/Select.vue';
+import { Button, FormItem, Select } from '../UI';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
 import InstructTemplatePopup from './InstructTemplatePopup.vue';
 
@@ -25,25 +26,16 @@ const isProfilePopupVisible = ref(false);
 const isInstructPopupVisible = ref(false);
 const editingTemplateId = ref<string | undefined>(undefined);
 
-const staticOpenAIModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'];
-const dynamicOpenAIModels = computed(() => {
-  return apiStore.modelList.filter((model) => !staticOpenAIModels.includes(model.id));
-});
-
-const hasOpenRouterGroupedModels = computed(() => {
-  return apiStore.groupedOpenRouterModels && Object.keys(apiStore.groupedOpenRouterModels).length > 0;
-});
-
 function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
   apiStore.createConnectionProfile(profile);
 }
 
 function checkConditions(conditions?: AiConfigCondition): boolean {
   if (!conditions) return true;
-
   if (conditions.provider) {
     const providers = Array.isArray(conditions.provider) ? conditions.provider : [conditions.provider];
-    if (!settingsStore.settings.api.provider || !providers.includes(settingsStore.settings.api.provider)) return false;
+    const current = settingsStore.settings.api.provider;
+    if (!current || !providers.includes(current)) return false;
   }
   return true;
 }
@@ -52,40 +44,7 @@ const visibleSections = computed(() => {
   return apiConnectionDefinition.filter((section) => checkConditions(section.conditions));
 });
 
-function getVisibleItems(section: (typeof apiConnectionDefinition)[0]) {
-  return section.items.filter((item) => checkConditions(item.conditions));
-}
-
-// Special computed for array-based settings (e.g. OpenRouter providers)
-const openrouterProvidersString = computed({
-  get: () => settingsStore.settings.api.providerSpecific.openrouter.providers.join(','),
-  set: (value) => {
-    const newProviders = value
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    settingsStore.settings.api.providerSpecific.openrouter.providers = newProviders;
-  },
-});
-
-function getModelValue(item: AiConfigItem) {
-  if (item.id === 'api.providerSpecific.openrouter.providers') {
-    return openrouterProvidersString.value;
-  }
-  return item.id ? settingsStore.getSetting(item.id) : undefined;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function setModelValue(item: AiConfigItem, value: any) {
-  if (item.id === 'api.providerSpecific.openrouter.providers') {
-    openrouterProvidersString.value = String(value);
-    return;
-  }
-  if (item.id) {
-    settingsStore.setSetting(item.id, value);
-  }
-}
-
+// Tokenizer Options
 const tokenizerOptions = computed(() => [
   { label: t('apiConnections.tokenizers.auto'), value: TokenizerType.AUTO },
   { label: t('apiConnections.tokenizers.none'), value: TokenizerType.NONE },
@@ -106,17 +65,7 @@ const tokenizerOptions = computed(() => [
   { label: t('apiConnections.tokenizers.yi'), value: TokenizerType.YI },
 ]);
 
-// Helper to convert definitions options to component compatible options
-function resolveOptions(item: AiConfigItem) {
-  return (
-    item.options?.map((opt) => ({
-      // @ts-expect-error dynamic label
-      label: opt.label.startsWith('apiConnections') ? t(opt.label) : opt.label,
-      value: opt.value,
-    })) || []
-  );
-}
-
+// Provider Options
 const providerOptions = computed(() => [
   {
     label: '',
@@ -147,52 +96,16 @@ const providerOptions = computed(() => [
       { label: t('apiConnections.providers.pollinations'), value: api_providers.POLLINATIONS },
       { label: t('apiConnections.providers.xai'), value: api_providers.XAI },
       { label: t('apiConnections.providers.zai'), value: api_providers.ZAI },
+      { label: t('apiConnections.providers.koboldcpp'), value: api_providers.KOBOLDCPP },
     ],
   },
 ]);
-
-const openAIModelOptions = computed(() => [
-  {
-    label: t('apiConnections.modelGroups.gpt4o'),
-    options: [
-      { label: 'gpt-4o', value: 'gpt-4o' },
-      { label: 'gpt-4o-mini', value: 'gpt-4o-mini' },
-    ],
-  },
-  {
-    label: t('apiConnections.modelGroups.gpt4turbo'),
-    options: [{ label: 'gpt-4-turbo', value: 'gpt-4-turbo' }],
-  },
-  ...(dynamicOpenAIModels.value.length > 0
-    ? [
-        {
-          label: t('apiConnections.modelGroups.other'),
-          options: dynamicOpenAIModels.value.map((m) => ({ label: m.id, value: m.id })),
-        },
-      ]
-    : []),
-]);
-
-const openRouterModelOptions = computed(() => {
-  const opts: SelectItem<string>[] = [{ label: t('apiConnections.openrouterWebsite'), value: 'OR_Website' }];
-
-  if (hasOpenRouterGroupedModels.value && apiStore.groupedOpenRouterModels) {
-    for (const [vendor, models] of Object.entries(apiStore.groupedOpenRouterModels)) {
-      opts.push({
-        label: vendor,
-        options: models.map((m) => ({ label: m.name || m.id, value: m.id })),
-      });
-    }
-  }
-
-  return opts;
-});
 
 // Instruct Logic
 const currentProviderCaps = computed(() => PROVIDER_CAPABILITIES[settingsStore.settings.api.provider]);
 const showFormatter = computed(() => {
   const caps = currentProviderCaps.value;
-  return caps && caps.supportsText;
+  return caps && caps.supportsText && caps.supportsChat;
 });
 
 const formatterOptions = computed(() => [
@@ -285,76 +198,14 @@ onMounted(() => {
       <!-- Data-Driven Provider Forms -->
       <template v-for="section in visibleSections" :key="section.id">
         <div class="api-connections-drawer-section">
-          <template v-for="item in getVisibleItems(section)" :key="item.id || item.label">
-            <!-- Key Manager -->
-            <FormItem v-if="item.widget === 'key-manager'" :label="item.label ? t(item.label) : ''">
-              <div class="api-connections-drawer-input-group">
-                <Button icon="fa-key" :title="t('apiConnections.manageKeys')" />
-              </div>
-              <!-- Warning only for direct keys -->
-              <div v-if="['openai', 'claude', 'openrouter'].includes(section.id)" class="neutral_warning">
-                {{ t('apiConnections.keyPrivacy') }}
-              </div>
-            </FormItem>
-
-            <!-- Model Select -->
-            <FormItem v-else-if="item.widget === 'model-select'" :label="item.label ? t(item.label) : ''">
-              <!-- OpenAI Specific Grouped Select -->
-              <Select
-                v-if="settingsStore.settings.api.provider === api_providers.OPENAI"
-                :model-value="getModelValue(item) as string"
-                :options="openAIModelOptions"
-                searchable
-                @update:model-value="setModelValue(item, $event)"
-              />
-
-              <!-- OpenRouter Specific Grouped Select -->
-              <template v-else-if="settingsStore.settings.api.provider === api_providers.OPENROUTER">
-                <Select
-                  v-show="hasOpenRouterGroupedModels"
-                  :model-value="getModelValue(item) as string"
-                  :options="openRouterModelOptions"
-                  searchable
-                  @update:model-value="setModelValue(item, $event)"
-                />
-                <Input
-                  v-show="!hasOpenRouterGroupedModels"
-                  :model-value="getModelValue(item) as string"
-                  :placeholder="item.placeholder"
-                  @update:model-value="setModelValue(item, String($event))"
-                />
-              </template>
-            </FormItem>
-
-            <!-- Standard Select -->
-            <FormItem v-else-if="item.widget === 'select'" :label="item.label ? t(item.label) : ''">
-              <Select
-                :model-value="getModelValue(item) as string"
-                :options="resolveOptions(item)"
-                @update:model-value="setModelValue(item, $event)"
-              />
-            </FormItem>
-
-            <!-- Text Input -->
-            <FormItem v-else-if="item.widget === 'text-input'" :label="item.label ? t(item.label) : ''">
-              <Input
-                :model-value="getModelValue(item) as string"
-                :placeholder="item.placeholder"
-                @update:model-value="setModelValue(item, String($event))"
-              />
-            </FormItem>
-
-            <!-- Checkbox -->
-            <div v-else-if="item.widget === 'checkbox'">
-              <Checkbox
-                :model-value="Boolean(getModelValue(item))"
-                :label="item.label ? t(item.label) : ''"
-                @update:model-value="setModelValue(item, $event)"
-              />
+          <template v-for="item in section.items" :key="item.id || item.label">
+            <AiConfigItemRenderer :item="item" />
+            <div
+              v-if="['openai', 'claude', 'openrouter'].includes(section.id) && item.widget === 'key-manager'"
+              class="neutral_warning"
+            >
+              {{ t('apiConnections.keyPrivacy') }}
             </div>
-
-            <!-- Header -->
-            <h4 v-else-if="item.widget === 'header'">{{ item.label ? t(item.label) : '' }}</h4>
           </template>
         </div>
       </template>

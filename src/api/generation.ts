@@ -1,8 +1,9 @@
+import { aiConfigDefinition } from '../ai-config-definition';
 import { ReasoningEffort } from '../constants';
 import type { ApiProvider, ChatCompletionPayload, GenerationResponse, StreamedChunk } from '../types';
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
-import type { SamplerSettings } from '../types/settings';
+import type { SamplerSettings, SettingsPath } from '../types/settings';
 import { getRequestHeaders } from '../utils/client';
 import { convertMessagesToInstructString } from '../utils/instruct';
 import {
@@ -25,6 +26,49 @@ const REASONING_EFFORT_PROVIDERS: ApiProvider[] = [
   api_providers.ELECTRONHUB,
 ];
 
+const PARAM_TO_GROUP_MAP: Record<string, string> = {};
+let isMapInitialized = false;
+
+function initParamGroupMap() {
+  if (isMapInitialized) return;
+  for (const section of aiConfigDefinition) {
+    for (const item of section.items) {
+      if (item.widget === 'group' && item.items && item.id) {
+        for (const subItem of item.items) {
+          if (subItem.id) {
+            PARAM_TO_GROUP_MAP[subItem.id] = item.id;
+          }
+        }
+      }
+    }
+  }
+  isMapInitialized = true;
+}
+
+function isParameterDisabled(
+  key: SettingsPath | string,
+  provider: ApiProvider,
+  samplerSettings: SamplerSettings,
+): boolean {
+  initParamGroupMap();
+
+  // 1. Check Global Disabled Fields
+  if (samplerSettings.disabled_fields?.includes(key)) return true;
+
+  // 2. Check Provider Specific Disabled Fields
+  const providerDisabled = samplerSettings.providers.disabled_fields?.[provider];
+  if (providerDisabled) {
+    // Check direct ID match
+    if (providerDisabled.includes(key)) return true;
+
+    // Check Group ID match (if this param belongs to a group)
+    const groupId = PARAM_TO_GROUP_MAP[key];
+    if (groupId && providerDisabled.includes(groupId)) return true;
+  }
+
+  return false;
+}
+
 export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOptions): ChatCompletionPayload {
   const { samplerSettings, messages, model, provider, formatter, instructTemplate, playerName, activeCharacter } =
     options;
@@ -44,8 +88,10 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
       playerName || 'User',
       activeCharacter.name,
     );
-    // @ts-ignore
-    payload.messages = prompt;
+    if (provider === api_providers.OPENROUTER) {
+      // @ts-expect-error for openrouter
+      payload.messages = prompt;
+    }
 
     // Inject stopping strings from template
     const stop = [...(samplerSettings.stop || [])];
@@ -78,8 +124,15 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
       samplerKey === 'providers' ||
       samplerKey === 'max_context_unlocked' ||
       samplerKey === 'reasoning_effort' ||
-      samplerKey === 'stop' // Handled above
+      samplerKey === 'stop' || // Handled above
+      samplerKey === 'disabled_fields'
     ) {
+      continue;
+    }
+
+    // For top-level sampler keys, ID is typically "api.samplers.{key}"
+    const settingsId = `api.samplers.${samplerKey}`;
+    if (isParameterDisabled(settingsId, provider, samplerSettings)) {
       continue;
     }
 
@@ -229,6 +282,7 @@ function extractMessage(data: any, provider: ApiProvider): string {
       return data?.content?.find((p: any) => p.type === 'text')?.text ?? '';
     case api_providers.OPENAI:
     case api_providers.OPENROUTER:
+    case api_providers.KOBOLDCPP:
     // Fallback for most OpenAI-compatible APIs
     default:
       return (
@@ -343,6 +397,7 @@ function getStreamingReply(data: any, provider: ApiProvider): { delta: string; r
           '',
       };
     // Fallback for OpenAI and compatible APIs
+    case api_providers.KOBOLDCPP:
     case api_providers.OPENAI:
     default:
       return {

@@ -100,8 +100,12 @@ export const useApiStore = defineStore('api', () => {
       }
 
       const caps = PROVIDER_CAPABILITIES[settingsStore.settings.api.provider];
-      if (caps && !caps.supportsText && settingsStore.settings.api.formatter === 'text') {
-        settingsStore.settings.api.formatter = 'chat';
+      if (caps) {
+        if (!caps.supportsText && settingsStore.settings.api.formatter === 'text') {
+          settingsStore.settings.api.formatter = 'chat';
+        } else if (!caps.supportsChat && settingsStore.settings.api.formatter === 'chat') {
+          settingsStore.settings.api.formatter = 'text';
+        }
       }
 
       // After applying, reconnect to validate the new settings.
@@ -117,8 +121,12 @@ export const useApiStore = defineStore('api', () => {
       // Only connect if the actual values have changed
       if (newProvider !== oldProvider) {
         const caps = PROVIDER_CAPABILITIES[newProvider];
-        if (caps && !caps.supportsText && settingsStore.settings.api.formatter === 'text') {
-          settingsStore.settings.api.formatter = 'chat';
+        if (caps) {
+          if (!caps.supportsText && settingsStore.settings.api.formatter === 'text') {
+            settingsStore.settings.api.formatter = 'chat';
+          } else if (!caps.supportsChat && settingsStore.settings.api.formatter === 'chat') {
+            settingsStore.settings.api.formatter = 'text';
+          }
         }
 
         connect();

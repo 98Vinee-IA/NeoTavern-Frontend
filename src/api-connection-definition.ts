@@ -57,10 +57,11 @@ export const apiConnectionDefinition: AiConfigSection[] = [
         label: 'apiConnections.openrouterAllowFallbacks',
       },
       {
-        // TODO: This needs special handling for array to string conversion
         id: 'api.providerSpecific.openrouter.providers',
-        widget: 'text-input', // Handled via computed wrapper in component or specialized widget
+        widget: 'text-input',
         label: 'apiConnections.openrouterFallbackProviders',
+        valueType: 'array',
+        arraySeparator: ',',
       },
       {
         id: 'api.providerSpecific.openrouter.middleout',
@@ -387,6 +388,19 @@ export const apiConnectionDefinition: AiConfigSection[] = [
         widget: 'text-input',
         label: 'apiConnections.zaiModel',
         placeholder: 'glm-4.6',
+      },
+    ],
+  },
+  // KoboldCPP
+  {
+    id: 'koboldcpp',
+    conditions: { provider: api_providers.KOBOLDCPP },
+    items: [
+      {
+        id: 'api.providerSpecific.koboldcpp.url',
+        widget: 'text-input',
+        label: 'apiConnections.koboldUrl',
+        placeholder: 'http://localhost:5001/v1/chat/completions',
       },
     ],
   },

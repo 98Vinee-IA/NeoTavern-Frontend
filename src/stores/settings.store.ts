@@ -157,6 +157,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
         pollinations: oai.pollinations_model || defaultProviderModels.pollinations,
         xai: oai.xai_model || defaultProviderModels.xai,
         zai: oai.zai_model || defaultProviderModels.zai,
+        koboldcpp: defaultProviderModels.koboldcpp,
       },
       providerSpecific: {
         openrouter: {
@@ -180,6 +181,9 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
         },
         zai: {
           endpoint: oai.zai_endpoint ?? defaultProviderSpecific.zai.endpoint,
+        },
+        koboldcpp: {
+          url: defaultProviderSpecific.koboldcpp.url,
         },
       },
       samplers: {
@@ -209,6 +213,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
           google: {
             use_makersuite_sysprompt: oai.use_makersuite_sysprompt,
           },
+          koboldcpp: structuredClone(defaultSamplerSettings.providers.koboldcpp),
         },
         reasoning_effort: oai.reasoning_effort ?? defaultSamplerSettings.reasoning_effort,
       },
