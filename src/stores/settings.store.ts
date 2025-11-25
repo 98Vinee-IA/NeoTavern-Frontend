@@ -116,11 +116,6 @@ function migrateExperimentalPreset(legacyPreset: LegacyOaiPresetSettings): Sampl
         definitionMap.delete(item.identifier);
       }
     }
-
-    // 2. Add remaining prompts
-    for (const def of definitionMap.values()) {
-      migratedPrompts.push({ ...def, content: def.content || '', enabled: false, marker: def.marker ?? false });
-    }
   } else {
     // Fallback to default if no valid legacy data
     migratedPrompts.push(...structuredClone(defaultSamplerSettings.prompts));
