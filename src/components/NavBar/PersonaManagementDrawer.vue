@@ -14,7 +14,7 @@ import { useWorldInfoStore } from '../../stores/world-info.store';
 import { POPUP_RESULT, POPUP_TYPE, type Character } from '../../types';
 import { getThumbnailUrl } from '../../utils/character';
 import { getBase64Async } from '../../utils/commons';
-import { EmptyState, MainContentFullscreenToggle, Pagination, SidebarHeader, SplitPane } from '../common';
+import { EmptyState, Pagination, PanelLayout, SidebarHeader } from '../common';
 import { Button, Checkbox, FileInput, FormItem, ListItem, Search, Select, Textarea } from '../UI';
 
 const { t } = useStrictI18n();
@@ -34,9 +34,6 @@ const worldInfoStore = useWorldInfoStore();
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const descriptionTokenCount = ref(0);
-const displayMode = computed(() => props.mode ?? 'full');
-const isSideOnly = computed(() => displayMode.value === 'side-only');
-const isMainOnly = computed(() => displayMode.value === 'main-only');
 
 const sortOptions = [
   { label: 'A-Z', value: 'asc' },
@@ -207,7 +204,7 @@ onMounted(() => {
 <template>
   <div class="persona-drawer">
     <SidebarHeader
-      v-if="!isMainOnly"
+      v-if="props.mode !== 'main-only'"
       class="persona-drawer-header"
       :title="props.title ?? t('personaManagement.title')"
     >
@@ -218,216 +215,14 @@ onMounted(() => {
       </template>
     </SidebarHeader>
 
-    <div v-show="isSideOnly" style="height: 100%">
-      <div class="standalone-pane persona-drawer-split">
-        <div class="persona-drawer-sidebar">
-          <div class="sidebar-controls persona-drawer-controls">
-            <div class="sidebar-controls-row persona-drawer-actions-row">
-              <Button icon="fa-ranking-star">{{ t('personaManagement.usageStats') }}</Button>
-              <Button icon="fa-file-export">{{ t('personaManagement.backup') }}</Button>
-              <FileInput
-                accept=".json"
-                icon="fa-file-import"
-                type="button"
-                :label="t('personaManagement.restore')"
-                @change="handleFileImport"
-              />
-            </div>
-            <div class="sidebar-controls-row persona-drawer-search-row">
-              <Search v-model="personaUiStore.searchTerm" :placeholder="t('common.search')">
-                <template #actions>
-                  <Button icon="fa-person-circle-question" @click="personaStore.createPersona">
-                    {{ t('personaManagement.create') }}
-                  </Button>
-                  <Select v-model="personaUiStore.sortOrder" :options="sortOptions" />
-                  <Button
-                    variant="ghost"
-                    icon="fa-table-cells-large"
-                    @click="personaUiStore.isGridView = !personaUiStore.isGridView"
-                  />
-                </template>
-              </Search>
-            </div>
-          </div>
-
-          <ListItem :active="personaUiStore.viewMode === 'settings'" @click="selectGlobalSettings">
-            <template #start><i class="fa-solid fa-cogs" style="opacity: 0.7"></i></template>
-            <template #default>{{ t('personaManagement.globalSettings.title') }}</template>
-          </ListItem>
-
-          <hr class="panel-divider" />
-
-          <Pagination
-            v-if="personaUiStore.filteredPersonas.length > 0"
-            v-model:current-page="currentPage"
-            v-model:items-per-page="itemsPerPage"
-            :total-items="personaUiStore.filteredPersonas.length"
-            :items-per-page-options="[5, 10, 25, 50, 100]"
-          />
-
-          <div class="persona-list" :class="{ 'grid-view': personaUiStore.isGridView }">
-            <div v-for="persona in paginatedPersonas" :key="`${persona.avatarId}-${personaStore.lastAvatarUpdate}`">
-              <ListItem
-                :active="personaUiStore.viewMode === 'editor' && persona.avatarId === personaStore.activePersonaId"
-                @click="selectPersona(persona.avatarId)"
-              >
-                <template #start>
-                  <img
-                    :src="getThumbnailUrl('persona', persona.avatarId)"
-                    alt="Persona Avatar"
-                    class="persona-item-avatar"
-                  />
-                </template>
-                <template #default>
-                  <div class="font-bold persona-name-row">
-                    <span class="persona-name">{{ persona.name }}</span>
-                    <i
-                      v-if="personaStore.isDefault(persona.avatarId)"
-                      class="fa-solid fa-star default-icon"
-                      :title="t('personaManagement.default.tooltip')"
-                    ></i>
-                  </div>
-                  <div class="persona-desc">
-                    {{ persona.description || t('personaManagement.noDescription') }}
-                  </div>
-                </template>
-              </ListItem>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-show="!isSideOnly && isMainOnly" style="height: 100%">
-      <div class="standalone-pane persona-drawer-split">
-        <div class="main-page-header">
-          <div class="main-page-header-left">
-            <MainContentFullscreenToggle />
-          </div>
-          <div class="main-page-header-main">
-            <h3>{{ personaHeaderTitle }}</h3>
-          </div>
-          <div class="main-page-header-actions"></div>
-        </div>
-
-        <div class="main-page-content">
-          <div class="persona-drawer-main">
-            <div v-if="personaUiStore.viewMode === 'settings'" class="persona-editor">
-              <div class="persona-editor-global-settings">
-                <Checkbox
-                  v-model="settingsStore.settings.persona.showNotifications"
-                  :label="t('personaManagement.globalSettings.showNotifications')"
-                />
-              </div>
-            </div>
-
-            <div v-else-if="personaStore.activePersona" class="persona-editor">
-              <div class="persona-editor-controls">
-                <h5 class="persona-editor-name">{{ personaStore.activePersona?.name ?? '' }}</h5>
-                <div class="buttons_block">
-                  <Button
-                    variant="ghost"
-                    icon="fa-pencil"
-                    :title="t('personaManagement.actions.rename')"
-                    @click="handleRename"
-                  />
-                  <Button
-                    variant="ghost"
-                    icon="fa-sync"
-                    :title="t('personaManagement.actions.syncName')"
-                    :disabled="!chatStore.activeChat"
-                    @click="handleSyncName"
-                  />
-
-                  <FileInput
-                    accept="image/*"
-                    icon="fa-image"
-                    :label="t('personaManagement.actions.changeImage')"
-                    @change="handleAvatarChange"
-                  />
-
-                  <Button
-                    variant="ghost"
-                    icon="fa-clone"
-                    :title="t('personaManagement.actions.duplicate')"
-                    @click="handleDuplicate"
-                  />
-                  <Button
-                    variant="danger"
-                    icon="fa-skull"
-                    :title="t('personaManagement.actions.delete')"
-                    @click="handleDelete"
-                  />
-                </div>
-              </div>
-
-              <FormItem :label="t('personaManagement.description.label')">
-                <Textarea
-                  :model-value="personaStore.activePersona?.description ?? ''"
-                  :rows="6"
-                  :placeholder="t('personaManagement.description.placeholder')"
-                  @update:model-value="personaStore.updateActivePersonaField('description', $event)"
-                />
-                <div class="token-counter" style="text-align: right; font-size: 0.8em; opacity: 0.7; margin-top: 2px">
-                  {{ t('common.tokens') }}: {{ descriptionTokenCount }}
-                </div>
-              </FormItem>
-
-              <FormItem :label="t('personaManagement.lorebooks.label')">
-                <!-- @vue-ignore -->
-                <Select
-                  :model-value="personaStore.activePersona?.lorebooks ?? []"
-                  :options="lorebookOptions"
-                  multiple
-                  searchable
-                  @update:model-value="personaStore.updateActivePersonaField('lorebooks', $event)"
-                />
-              </FormItem>
-
-              <h5 class="persona-section-title">{{ t('personaManagement.connections.title') }}</h5>
-              <div class="persona-editor-connections">
-                <Button icon="fa-star" :active="isDefaultPersona" @click="toggleDefault">
-                  {{ t('personaManagement.connections.default') }}
-                </Button>
-                <Button
-                  icon="fa-user-lock"
-                  :active="isCharacterLocked"
-                  :disabled="characterStore.activeCharacters.length !== 1"
-                  @click="toggleCharacterLock"
-                >
-                  {{ t('personaManagement.connections.character') }}
-                </Button>
-                <Button icon="fa-lock" :active="isChatLocked" :disabled="!chatStore.activeChat" @click="toggleChatLock">
-                  {{ t('personaManagement.connections.chat') }}
-                </Button>
-              </div>
-
-              <div v-if="connectedCharacters.length > 0" class="connected-characters-list">
-                <h5>{{ t('personaManagement.connections.linkedCharacters') }}</h5>
-                <div class="chips-container">
-                  <div v-for="char in connectedCharacters" :key="char.avatar" class="character-chip">
-                    <img :src="getThumbnailUrl('avatar', char.avatar)" class="chip-avatar" />
-                    <span class="chip-name">{{ char?.name ?? '' }}</span>
-                    <i class="fa-solid fa-xmark chip-remove" @click="removeConnection(char.avatar)"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <EmptyState v-else title="No Persona Selected" icon="fa-user-slash" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <SplitPane
-      v-show="!isSideOnly && !isMainOnly"
+    <PanelLayout
+      :mode="props.mode"
+      :title="personaHeaderTitle"
       v-model:collapsed="personaUiStore.isBrowserExpanded"
       storage-key="personaBrowserWidth"
       :initial-width="350"
       class="persona-drawer-split"
     >
-      <!-- Left Column: List -->
       <template #side>
         <div class="persona-drawer-sidebar">
           <div class="sidebar-controls persona-drawer-controls">
@@ -506,7 +301,6 @@ onMounted(() => {
         </div>
       </template>
 
-      <!-- Right Column: Editor or Settings -->
       <template #main>
         <div class="persona-drawer-main">
           <!-- Global Settings View -->
@@ -618,13 +412,19 @@ onMounted(() => {
           <EmptyState v-else title="No Persona Selected" icon="fa-user-slash" />
         </div>
       </template>
-    </SplitPane>
+    </PanelLayout>
   </div>
 </template>
 
 <style scoped>
 .font-bold {
   font-weight: bold;
+}
+
+.persona-drawer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .persona-name-row {
@@ -721,16 +521,6 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
-}
-
-.standalone-pane {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background-color: var(--theme-background-tint);
-  min-height: 0;
-  min-width: 0;
 }
 
 .persona-drawer-main {

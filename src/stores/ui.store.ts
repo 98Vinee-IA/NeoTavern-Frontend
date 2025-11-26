@@ -12,7 +12,7 @@ export const useUiStore = defineStore('ui', () => {
   const isDeleteMode = ref(false);
   const isSendPress = ref(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cropData = ref<any>(null);  // TODO: Proper type
+  const cropData = ref<any>(null); // TODO: Proper type
   const activePlayerName = ref<string | null>(null);
   const activePlayerAvatar = ref<string | null>(null);
   const zoomedAvatars = ref<ZoomedAvatar[]>([]);

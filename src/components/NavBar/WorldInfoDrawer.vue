@@ -6,7 +6,7 @@ import { useWorldInfoUiStore } from '../../stores/world-info-ui.store';
 import { useWorldInfoStore } from '../../stores/world-info.store';
 import type { WorldInfoEntry as WorldInfoEntryType } from '../../types';
 import { POPUP_RESULT, POPUP_TYPE } from '../../types';
-import { MainContentFullscreenToggle, SidebarHeader, SplitPane } from '../common';
+import { PanelLayout } from '../common';
 import { Button, FileInput, Icon, ListItem, Search, Select, Textarea } from '../UI';
 import WorldInfoEntryEditor from './WorldInfoEntryEditor.vue';
 import WorldInfoGlobalSettings from './WorldInfoGlobalSettings.vue';
@@ -22,9 +22,6 @@ const worldInfoUiStore = useWorldInfoUiStore();
 const popupStore = usePopupStore();
 
 const isBrowserCollapsed = ref(false);
-const displayMode = computed(() => props.mode ?? 'full');
-const isSideOnly = computed(() => displayMode.value === 'side-only');
-const isMainOnly = computed(() => displayMode.value === 'main-only');
 
 onMounted(() => {
   if (worldInfoStore.bookInfos.length === 0) {
@@ -189,177 +186,9 @@ const sortOptions = computed(() => [
 </script>
 
 <template>
-  <div v-if="isSideOnly" style="height: 100%">
-    <div class="standalone-pane character-panel world-info-drawer">
-      <SidebarHeader :title="props.title ?? t('navbar.worldInfo')" class="world-info-drawer-header" />
-      <div class="sidebar-controls world-info-controls">
-        <div class="sidebar-controls-row world-info-controls-row">
-          <Button variant="ghost" icon="fa-plus" :title="t('worldInfo.newWorld')" @click="handleCreateBook" />
-          <FileInput accept=".json" icon="fa-file-import" :label="t('worldInfo.import')" @change="handleFileImport" />
-          <Button variant="ghost" icon="fa-sync" :title="t('worldInfo.refresh')" @click="worldInfoStore.initialize" />
-        </div>
-        <div class="sidebar-controls-row world-info-controls-row">
-          <Search v-model="worldInfoUiStore.browserSearchTerm" :placeholder="t('worldInfo.searchPlaceholder')">
-            <template #actions>
-              <Select
-                v-model="worldInfoUiStore.sortOrder"
-                :title="t('worldInfo.sorting.title')"
-                :options="sortOptions"
-              />
-            </template>
-          </Search>
-        </div>
-      </div>
-
-      <div class="character-panel-character-list">
-        <ListItem
-          :active="worldInfoUiStore.selectedItemId === 'global-settings'"
-          @click="worldInfoUiStore.selectItem('global-settings')"
-        >
-          <template #start><i class="fa-solid fa-cogs" style="opacity: 0.7"></i></template>
-          <template #default>{{ t('worldInfo.globalSettings') }}</template>
-        </ListItem>
-
-        <hr class="panel-divider" />
-
-        <div v-for="bookInfo in filteredBookNames" :key="bookInfo.file_id" class="lorebook-group">
-          <ListItem class="is-book" @click="worldInfoUiStore.toggleBookExpansion(bookInfo.file_id)">
-            <template #start>
-              <i
-                class="fa-solid fa-chevron-right browser-item-chevron"
-                :class="{ 'is-open': worldInfoUiStore.expandedBooks.has(bookInfo.file_id) }"
-                style="font-size: 0.8em; width: 15px; text-align: center"
-              ></i>
-            </template>
-            <template #default>
-              <span class="font-bold">{{ bookInfo.name }}</span>
-            </template>
-            <template #end>
-              <div class="browser-item-actions" @click.stop>
-                <Button
-                  variant="ghost"
-                  icon="fa-plus"
-                  :title="t('worldInfo.newEntryInBook', { bookName: bookInfo.name })"
-                  @click.stop="handleCreateEntry(bookInfo.file_id)"
-                />
-                <Button
-                  variant="ghost"
-                  icon="fa-file-export"
-                  :title="t('worldInfo.export')"
-                  @click.stop="worldInfoStore.exportBook(bookInfo.file_id)"
-                />
-                <Button
-                  variant="ghost"
-                  icon="fa-clone"
-                  :title="t('worldInfo.duplicate')"
-                  @click.stop="handleDuplicateBook(bookInfo.file_id)"
-                />
-                <Button
-                  variant="ghost"
-                  icon="fa-pencil"
-                  :title="t('worldInfo.rename')"
-                  @click.stop="handleRenameBook(bookInfo.file_id)"
-                />
-                <Button
-                  variant="danger"
-                  icon="fa-trash-can"
-                  :title="t('worldInfo.deleteBook', { bookName: bookInfo.name })"
-                  @click.stop="handleDeleteBook(bookInfo.file_id, bookInfo.name)"
-                />
-              </div>
-            </template>
-          </ListItem>
-
-          <Transition name="grid-slide">
-            <div v-if="worldInfoUiStore.expandedBooks.has(bookInfo.file_id)" class="lorebook-group-entries">
-              <div>
-                <div v-if="worldInfoStore.loadingBooks.has(bookInfo.file_id)" class="lorebook-group-loading">
-                  <i class="fa-solid fa-spinner fa-spin"></i>
-                </div>
-                <div v-else>
-                  <div v-for="entry in worldInfoUiStore.filteredAndSortedEntries(bookInfo.file_id)" :key="entry.uid">
-                    <ListItem
-                      :active="worldInfoUiStore.selectedItemId === `${bookInfo.file_id}/${entry.uid}`"
-                      @click="worldInfoUiStore.selectItem(`${bookInfo.file_id}/${entry.uid}`)"
-                    >
-                      <template #default>
-                        <span style="font-size: 0.95em">{{ entry.comment || '[Untitled Entry]' }}</span>
-                      </template>
-                    </ListItem>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Transition>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div v-else-if="isMainOnly" style="height: 100%">
-    <div class="standalone-pane world-info-drawer">
-      <div class="main-page-header">
-        <div class="main-page-header-left">
-          <MainContentFullscreenToggle />
-        </div>
-        <div class="main-page-header-main">
-          <h3>{{ props.title ?? t('navbar.worldInfo') }}</h3>
-        </div>
-        <div class="main-page-header-actions"></div>
-      </div>
-
-      <div class="main-page-content">
-        <div class="character-panel-editor">
-          <WorldInfoGlobalSettings v-show="worldInfoUiStore.selectedItemId === 'global-settings'" />
-          <WorldInfoEntryEditor
-            v-if="worldInfoUiStore.selectedEntry"
-            :model-value="worldInfoUiStore.selectedEntry"
-            :show-header="false"
-            @update:model-value="updateEntry"
-          >
-            <template #inline-header>
-              <div class="main-page-header world-info-form-header">
-                <div class="main-page-header-main">
-                  <div class="toggle-icon-wrapper" :title="t('worldInfo.entry.toggle')" @click="toggleEntryDisabled">
-                    <Icon :icon="worldInfoUiStore.selectedEntry?.disable ? 'fa-toggle-off' : 'fa-toggle-on'" />
-                  </div>
-
-                  <div style="flex-grow: 1">
-                    <Textarea
-                      :model-value="worldInfoUiStore.selectedEntry?.comment || ''"
-                      :rows="1"
-                      :placeholder="t('worldInfo.entry.titlePlaceholder')"
-                      :resizable="false"
-                      @update:model-value="updateEntryComment"
-                    />
-                  </div>
-                </div>
-
-                <div class="main-page-header-actions">
-                  <Button variant="ghost" icon="fa-right-left" :title="t('worldInfo.entry.move')" />
-                  <Button
-                    variant="ghost"
-                    icon="fa-paste"
-                    :title="t('worldInfo.entry.duplicate')"
-                    @click="duplicateSelectedEntry"
-                  />
-                  <Button
-                    icon="fa-trash-can"
-                    variant="danger"
-                    :title="t('worldInfo.entry.delete')"
-                    @click="deleteSelectedEntry"
-                  />
-                </div>
-              </div>
-            </template>
-          </WorldInfoEntryEditor>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <SplitPane
-    v-else
+  <PanelLayout
+    :mode="props.mode"
+    :title="props.title ?? t('navbar.worldInfo')"
     v-model:collapsed="isBrowserCollapsed"
     storage-key="worldinfoBrowserWidth"
     :initial-width="350"
@@ -475,26 +304,53 @@ const sortOptions = computed(() => [
         <WorldInfoEntryEditor
           v-if="worldInfoUiStore.selectedEntry"
           :model-value="worldInfoUiStore.selectedEntry"
+          :show-header="props.mode === 'main-only' ? false : undefined"
           @update:model-value="updateEntry"
-        />
+        >
+          <template v-if="props.mode === 'main-only'" #inline-header>
+            <div class="main-page-header world-info-form-header">
+              <div class="main-page-header-main">
+                <div class="toggle-icon-wrapper" :title="t('worldInfo.entry.toggle')" @click="toggleEntryDisabled">
+                  <Icon :icon="worldInfoUiStore.selectedEntry?.disable ? 'fa-toggle-off' : 'fa-toggle-on'" />
+                </div>
+
+                <div style="flex-grow: 1">
+                  <Textarea
+                    :model-value="worldInfoUiStore.selectedEntry?.comment || ''"
+                    :rows="1"
+                    :placeholder="t('worldInfo.entry.titlePlaceholder')"
+                    :resizable="false"
+                    @update:model-value="updateEntryComment"
+                  />
+                </div>
+              </div>
+
+              <div class="main-page-header-actions">
+                <Button variant="ghost" icon="fa-right-left" :title="t('worldInfo.entry.move')" />
+                <Button
+                  variant="ghost"
+                  icon="fa-paste"
+                  :title="t('worldInfo.entry.duplicate')"
+                  @click="duplicateSelectedEntry"
+                />
+                <Button
+                  icon="fa-trash-can"
+                  variant="danger"
+                  :title="t('worldInfo.entry.delete')"
+                  @click="deleteSelectedEntry"
+                />
+              </div>
+            </div>
+          </template>
+        </WorldInfoEntryEditor>
       </div>
     </template>
-  </SplitPane>
+  </PanelLayout>
 </template>
 
 <style scoped>
 .font-bold {
   font-weight: bold;
-}
-
-.standalone-pane {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background-color: var(--theme-background-tint);
-  min-height: 0;
-  min-width: 0;
 }
 
 .toggle-icon-wrapper {
