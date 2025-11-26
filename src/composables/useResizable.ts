@@ -22,6 +22,8 @@ export function useResizable(
   const settingsStore = useSettingsStore();
 
   let isResizing = false;
+  let startX = 0;
+  let startWidth = 0;
 
   const updateCssVariable = (width: number) => {
     if (cssVariable) {
@@ -31,7 +33,12 @@ export function useResizable(
 
   const onMouseDown = (e: MouseEvent) => {
     e.preventDefault();
+    if (!element.value) return;
+
     isResizing = true;
+    startX = e.clientX;
+    startWidth = element.value.getBoundingClientRect().width;
+
     document.body.classList.add(RESIZING_CLASS);
     document.body.style.cursor = 'ew-resize';
     document.body.style.userSelect = 'none';
@@ -43,16 +50,13 @@ export function useResizable(
   const onMouseMove = (e: MouseEvent) => {
     if (!isResizing || !element.value) return;
 
-    const parentRect = element.value.parentElement?.getBoundingClientRect();
-    const parentLeft = parentRect?.left ?? 0;
-    const parentRight = parentRect?.right ?? window.innerWidth;
-
-    let newWidth = 0;
+    const delta = e.clientX - startX;
+    let newWidth = startWidth;
 
     if (side === 'left') {
-      newWidth = e.clientX - parentLeft;
+      newWidth += delta;
     } else {
-      newWidth = parentRight - e.clientX;
+      newWidth -= delta;
     }
 
     if (newWidth < minWidth) {

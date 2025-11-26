@@ -215,7 +215,7 @@ onMounted(() => {
   <Sidebar side="left" :is-open="uiStore.isLeftSidebarOpen" storage-key="leftSidebarWidth">
     <template v-for="[id, def] in uiStore.leftSidebarRegistry" :key="id">
       <div v-show="uiStore.leftSidebarView === id" :id="`sidebar-left-${id}`" style="height: 100%">
-        <component :is="def.component" v-bind="def.componentProps" />
+        <component :is="def.component" v-bind="{ title: def.title, ...def.componentProps }" />
       </div>
     </template>
   </Sidebar>
@@ -235,7 +235,7 @@ onMounted(() => {
   <Sidebar side="right" :is-open="uiStore.isRightSidebarOpen" storage-key="rightSidebarWidth">
     <template v-for="[id, def] in activeRightSidebars" :key="id">
       <div v-show="uiStore.rightSidebarView === id" style="height: 100%">
-        <component :is="def.component" v-bind="def.componentProps" />
+        <component :is="def.component" v-bind="{ title: def.title, ...def.componentProps }" />
       </div>
     </template>
   </Sidebar>
