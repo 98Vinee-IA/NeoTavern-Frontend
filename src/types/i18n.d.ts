@@ -273,13 +273,8 @@ export interface MessageSchema {
   aiConfig: {
     tabConnections: string;
     tabSampler: string;
-    modeLabel: string;
-    modeChat: string;
-    modeText: string;
-    chatCompletionTitle: string;
-    chatCompletionSubtitle: string;
-    textCompletionTitle: string;
-    textCompletionSubtitle: string;
+    tabPrompts: string;
+    promptsTitle: string;
     manualInputNote: string;
     docsLinkTooltip: string;
     formattingUnavailable: string;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { aiConfigDefinition } from '../../ai-config-definition';
 import { Button, Tabs } from '../../components/UI';
 import { useStrictI18n } from '../../composables/useStrictI18n';
@@ -7,7 +7,6 @@ import { useApiStore } from '../../stores/api.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import type { AiConfigCondition } from '../../types';
 import AiConfigItemRenderer from '../AiConfig/AiConfigItemRenderer.vue';
-import ApiFormattingPanel from '../AiConfig/ApiFormattingPanel.vue';
 import PromptManager from '../AiConfig/PromptManager.vue';
 import { SidebarHeader } from '../common';
 import ApiConnectionsDrawer from './ApiConnectionsDrawer.vue';
@@ -16,18 +15,8 @@ const { t } = useStrictI18n();
 const apiStore = useApiStore();
 const settingsStore = useSettingsStore();
 
-const activeTab = ref<'connections' | 'sampler' | 'completions'>('connections');
-const completionMode = ref<'chat' | 'text'>('chat');
+const activeTab = ref<'connections' | 'sampler' | 'prompts'>('connections');
 const isPanelPinned = ref(false);
-const completionModeTabValue = computed<'chat' | 'text' | ''>({
-  get: () => (activeTab.value === 'completions' ? completionMode.value : ''),
-  set: (mode) => {
-    if (mode === 'chat' || mode === 'text') {
-      completionMode.value = mode;
-      activeTab.value = 'completions';
-    }
-  },
-});
 
 function checkConditions(conditions?: AiConfigCondition): boolean {
   if (!conditions) return true;
@@ -43,8 +32,18 @@ const visibleSections = computed(() => {
   return aiConfigDefinition.filter((section) => checkConditions(section.conditions));
 });
 
-watch(completionMode, () => {
-  activeTab.value = 'completions';
+const sectionsBeforePostProcessing = computed(() => {
+  const sections = visibleSections.value;
+  const ppIndex = sections.findIndex((s) => s.id === 'post_processing');
+  if (ppIndex === -1) return sections;
+  return sections.slice(0, ppIndex);
+});
+
+const sectionsFromPostProcessing = computed(() => {
+  const sections = visibleSections.value;
+  const ppIndex = sections.findIndex((s) => s.id === 'post_processing');
+  if (ppIndex === -1) return [];
+  return sections.slice(ppIndex);
 });
 
 onMounted(() => {
@@ -80,19 +79,9 @@ onMounted(() => {
           :options="[
             { label: t('aiConfig.tabConnections'), value: 'connections' },
             { label: t('aiConfig.tabSampler'), value: 'sampler' },
+            { label: t('aiConfig.tabPrompts'), value: 'prompts' },
           ]"
         />
-
-        <div class="completion-mode">
-          <span class="completion-mode-label">{{ t('aiConfig.modeLabel') }}</span>
-          <Tabs
-            v-model="completionModeTabValue"
-            :options="[
-              { label: t('aiConfig.modeChat'), value: 'chat' },
-              { label: t('aiConfig.modeText'), value: 'text' },
-            ]"
-          />
-        </div>
       </div>
     </div>
 
@@ -104,24 +93,23 @@ onMounted(() => {
       <div v-show="activeTab === 'sampler'" class="tab-content">
         <div class="ai-config-drawer-manual-input-note">{{ t('aiConfig.manualInputNote') }}</div>
 
-        <template v-for="section in visibleSections" :key="section.id">
+        <template v-for="section in sectionsBeforePostProcessing" :key="section.id">
+          <div v-for="item in section.items" :key="item.id || item.widget" class="ai-config-drawer-item">
+            <AiConfigItemRenderer :item="item" />
+          </div>
+        </template>
+
+        <template v-for="section in sectionsFromPostProcessing" :key="section.id">
           <div v-for="item in section.items" :key="item.id || item.widget" class="ai-config-drawer-item">
             <AiConfigItemRenderer :item="item" />
           </div>
         </template>
       </div>
 
-      <div v-show="activeTab === 'completions'" class="tab-content">
-        <div v-if="completionMode === 'chat'" class="completion-section">
-          <h2 class="completion-title">{{ t('aiConfig.chatCompletionTitle') }}</h2>
-          <p class="completion-subtitle">{{ t('aiConfig.chatCompletionSubtitle') }}</p>
+      <div v-show="activeTab === 'prompts'" class="tab-content">
+        <div class="completion-section">
+          <h2 class="completion-title">{{ t('aiConfig.promptsTitle') }}</h2>
           <PromptManager />
-        </div>
-
-        <div v-else class="completion-section">
-          <h2 class="completion-title">{{ t('aiConfig.textCompletionTitle') }}</h2>
-          <p class="completion-subtitle">{{ t('aiConfig.textCompletionSubtitle') }}</p>
-          <ApiFormattingPanel />
         </div>
       </div>
     </div>
@@ -139,29 +127,6 @@ onMounted(() => {
 .ai-config-drawer-controls-row :deep(.tabs) {
   margin-bottom: 0;
   padding-bottom: 0;
-}
-
-.completion-mode {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  padding: 4px 12px;
-  border-radius: var(--base-border-radius);
-  background: var(--grey-30a);
-}
-
-.completion-mode :deep(.tabs) {
-  gap: 8px;
-  margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
-  font-size: smaller;
-}
-
-.completion-mode-label {
-  font-weight: 600;
-  font-size: smaller;
 }
 
 .completion-section {

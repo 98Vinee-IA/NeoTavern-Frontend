@@ -8,6 +8,7 @@ import { useSettingsStore } from '../../stores/settings.store';
 import type { AiConfigCondition, ConnectionProfile } from '../../types';
 import { api_providers } from '../../types';
 import AiConfigItemRenderer from '../AiConfig/AiConfigItemRenderer.vue';
+import ApiFormattingPanel from '../AiConfig/ApiFormattingPanel.vue';
 import { ConnectionProfileSelector } from '../common';
 import { Button, FormItem, Select } from '../UI';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
@@ -183,6 +184,10 @@ onMounted(() => {
           </template>
         </div>
       </template>
+
+      <div class="api-connections-drawer-section">
+        <ApiFormattingPanel />
+      </div>
 
       <!-- Tokenizer Selection -->
       <FormItem :label="t('apiConnections.tokenizer')">
