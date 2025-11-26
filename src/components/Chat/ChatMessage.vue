@@ -135,7 +135,7 @@ function saveEdit() {
       const nextMessage = chatStore.activeChat!.messages[props.index + 1];
       const isNextMessageBot = !nextMessage.is_user && !nextMessage.is_system;
       if (isNextMessageBot) {
-        chatStore.generateResponse(GenerationMode.ADD_SWIPE)
+        chatStore.generateResponse(GenerationMode.ADD_SWIPE);
       }
     }
   }

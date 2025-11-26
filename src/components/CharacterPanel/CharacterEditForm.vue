@@ -245,13 +245,14 @@ async function openLastChat() {
   const chatExist = chatStore.chatInfos.find((chat) => chat.file_id === localCharacter.value?.chat);
   if (localCharacter.value.chat && chatExist) {
     try {
-      await chatStore.setActiveChatFile(localCharacter.value.chat);
+      chatStore.setActiveChatFile(localCharacter.value.chat);
     } catch {
       toast.error(t('chat.loadError'));
     }
   } else {
-    await createNewChat();
+    createNewChat();
   }
+  uiStore.activateNavBarItem('chat');
 }
 
 async function createNewChat() {
