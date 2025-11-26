@@ -471,6 +471,10 @@ export interface MessageSchema {
     chat: string;
     new: string;
     text: string;
+    import: string;
+    export: string;
+    edit: string;
+    create: string;
   };
   popup: {
     cropAvatar: {

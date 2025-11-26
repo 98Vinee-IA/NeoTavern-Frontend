@@ -10,6 +10,7 @@ import { api_providers } from '../../types';
 import AiConfigItemRenderer from '../AiConfig/AiConfigItemRenderer.vue';
 import ApiFormattingPanel from '../AiConfig/ApiFormattingPanel.vue';
 import { ConnectionProfileSelector } from '../common';
+import PresetControl from '../common/PresetControl.vue';
 import { Button, FormItem, Select } from '../UI';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
 
@@ -127,39 +128,27 @@ onMounted(() => {
     <div class="api-connections-drawer-wrapper">
       <div class="api-connections-drawer-section">
         <h3>{{ t('apiConnections.profile') }}</h3>
-        <div class="preset-manager-controls">
-          <ConnectionProfileSelector v-model="apiStore.selectedConnectionProfileName" />
-          <Button
-            variant="ghost"
-            icon="fa-file-circle-plus"
-            :title="t('apiConnections.profileManagement.create')"
-            @click="isProfilePopupVisible = true"
-          />
-          <Button
-            variant="ghost"
-            icon="fa-pencil"
-            :title="t('apiConnections.profileManagement.rename')"
-            @click="apiStore.renameConnectionProfile"
-          />
-          <Button
-            variant="ghost"
-            icon="fa-trash-can"
-            :title="t('apiConnections.profileManagement.delete')"
-            @click="apiStore.deleteConnectionProfile"
-          />
-          <Button
-            variant="ghost"
-            icon="fa-file-import"
-            :title="t('apiConnections.profileManagement.import')"
-            @click="apiStore.importConnectionProfiles"
-          />
-          <Button
-            variant="ghost"
-            icon="fa-file-export"
-            :title="t('apiConnections.profileManagement.export')"
-            @click="apiStore.exportConnectionProfile"
-          />
-        </div>
+        <PresetControl
+          allow-create
+          allow-edit
+          allow-delete
+          allow-import
+          allow-export
+          :create-title="'apiConnections.profileManagement.create'"
+          :edit-title="'apiConnections.profileManagement.rename'"
+          :delete-title="'apiConnections.profileManagement.delete'"
+          :import-title="'apiConnections.profileManagement.import'"
+          :export-title="'apiConnections.profileManagement.export'"
+          @create="isProfilePopupVisible = true"
+          @edit="apiStore.renameConnectionProfile"
+          @delete="apiStore.deleteConnectionProfile"
+          @import="apiStore.importConnectionProfiles"
+          @export="apiStore.exportConnectionProfile"
+        >
+          <template #selector>
+            <ConnectionProfileSelector v-model="apiStore.selectedConnectionProfileName" />
+          </template>
+        </PresetControl>
       </div>
 
       <hr />

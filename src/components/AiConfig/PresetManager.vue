@@ -6,7 +6,8 @@ import { usePopupStore } from '../../stores/popup.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import type { AiConfigValueItem } from '../../types';
 import { POPUP_TYPE } from '../../types';
-import { Button, Select } from '../UI';
+import PresetControl from '../common/PresetControl.vue';
+import { Button } from '../UI';
 
 const props = defineProps<{
   item: AiConfigValueItem;
@@ -62,29 +63,19 @@ async function handleNewPreset() {
         />
       </div>
     </div>
-    <div class="preset-manager-controls">
-      <div style="flex-grow: 1">
-        <Select v-model="selectedPreset" :options="presetOptions" />
-      </div>
-      <Button
-        variant="ghost"
-        icon="fa-save"
-        :title="t('aiConfig.presets.update')"
-        @click="apiStore.updateCurrentPreset(selectedPreset)"
-      />
-      <Button
-        variant="ghost"
-        icon="fa-pencil"
-        :title="t('aiConfig.presets.rename')"
-        @click="apiStore.renamePreset(selectedPreset)"
-      />
-      <Button
-        variant="ghost"
-        icon="fa-file-circle-plus"
-        :title="t('aiConfig.presets.saveAs')"
-        @click="handleNewPreset()"
-      />
-    </div>
+    <PresetControl
+      v-model="selectedPreset"
+      :options="presetOptions"
+      :save-title="'aiConfig.presets.update'"
+      :edit-title="'aiConfig.presets.rename'"
+      :create-title="'aiConfig.presets.saveAs'"
+      allow-save
+      allow-edit
+      allow-create
+      @save="apiStore.updateCurrentPreset(selectedPreset)"
+      @edit="apiStore.renamePreset(selectedPreset)"
+      @create="handleNewPreset()"
+    />
   </div>
 </template>
 
@@ -104,12 +95,6 @@ async function handleNewPreset() {
   &-actions {
     display: flex;
     gap: 4px;
-  }
-
-  &-controls {
-    display: flex;
-    gap: 4px;
-    align-items: center;
   }
 }
 </style>

@@ -6,8 +6,9 @@ import { useApiStore } from '../../stores/api.store';
 import { usePopupStore } from '../../stores/popup.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { POPUP_RESULT, POPUP_TYPE } from '../../types/popup';
+import PresetControl from '../common/PresetControl.vue';
 import InstructTemplatePopup from '../NavBar/InstructTemplatePopup.vue';
-import { Button, FormItem, Select } from '../UI';
+import { FormItem, Select } from '../UI';
 
 const { t } = useStrictI18n();
 const apiStore = useApiStore();
@@ -92,35 +93,25 @@ async function deleteTemplate() {
 
     <div v-show="settingsStore.settings.api.formatter === 'text'" class="api-connections-drawer-section">
       <h3>{{ t('apiConnections.instruct.title') }}</h3>
-      <div class="preset-manager-controls">
-        <!-- @vue-ignore -->
-        <Select v-model="settingsStore.settings.api.instructTemplateName" :options="instructTemplateOptions" />
-        <Button
-          variant="ghost"
-          icon="fa-file-circle-plus"
-          :title="t('apiConnections.instruct.create')"
-          @click="createTemplate"
-        />
-        <Button variant="ghost" icon="fa-pencil" :title="t('apiConnections.instruct.edit')" @click="editTemplate" />
-        <Button
-          variant="ghost"
-          icon="fa-trash-can"
-          :title="t('apiConnections.instruct.delete')"
-          @click="deleteTemplate"
-        />
-        <Button
-          variant="ghost"
-          icon="fa-file-import"
-          :title="t('apiConnections.instruct.import')"
-          @click="apiStore.importInstructTemplate"
-        />
-        <Button
-          variant="ghost"
-          icon="fa-file-export"
-          :title="t('apiConnections.instruct.export')"
-          @click="apiStore.exportInstructTemplate(settingsStore.settings.api.instructTemplateName || '')"
-        />
-      </div>
+      <PresetControl
+        v-model="settingsStore.settings.api.instructTemplateName"
+        :options="instructTemplateOptions"
+        :create-title="'apiConnections.instruct.create'"
+        :edit-title="'apiConnections.instruct.edit'"
+        :delete-title="'apiConnections.instruct.delete'"
+        :import-title="'apiConnections.instruct.import'"
+        :export-title="'apiConnections.instruct.export'"
+        allow-create
+        allow-edit
+        allow-delete
+        allow-import
+        allow-export
+        @create="createTemplate"
+        @edit="editTemplate"
+        @delete="deleteTemplate"
+        @import="apiStore.importInstructTemplate"
+        @export="apiStore.exportInstructTemplate(settingsStore.settings.api.instructTemplateName || '')"
+      />
     </div>
 
     <InstructTemplatePopup

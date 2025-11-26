@@ -161,11 +161,10 @@ export const useApiStore = defineStore('api', () => {
 
     try {
       // TODO: Implement secret management. For now, we pass the key directly.
-      // TODO: Implement reverse proxy confirmation popup.
       const response = await fetchChatCompletionStatus({
         chat_completion_source: apiSettings.provider,
-        reverse_proxy: apiSettings.reverseProxy,
-        proxy_password: apiSettings.proxyPassword,
+        reverse_proxy: apiSettings.proxy?.url,
+        proxy_password: apiSettings.proxy?.password,
       });
 
       if (response.error) {

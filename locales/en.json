@@ -467,7 +467,11 @@
     "selectAll": "Select All",
     "chat": "Chat",
     "new": "New",
-    "text": "Text"
+    "text": "Text",
+    "import": "Import",
+    "export": "Export",
+    "edit": "Edit",
+    "create": "Create"
   },
   "popup": {
     "cropAvatar": {

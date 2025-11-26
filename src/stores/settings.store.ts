@@ -52,8 +52,6 @@ function createDefaultSettings(): Settings {
   defaultSettings.api = {
     provider: 'openai',
     formatter: 'chat',
-    reverseProxy: '',
-    proxyPassword: '',
     selectedSampler: 'Default',
     samplers: defaultSamplerSettings,
     connectionProfiles: [],
@@ -234,8 +232,11 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
     api: {
       provider: oai.chat_completion_source,
       formatter: 'chat',
-      reverseProxy: oai.reverse_proxy,
-      proxyPassword: oai.proxy_password,
+      proxy: {
+        name: '',
+        url: oai.reverse_proxy || '',
+        password: oai.proxy_password || '',
+      },
       selectedSampler: oai.preset_settings_openai,
       selectedProviderModels: {
         openai: oai.openai_model || defaultProviderModels.openai,
@@ -347,6 +348,7 @@ function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsRes
       maxRecursionSteps:
         legacy.world_info_settings.world_info_max_recursion_steps ?? defaultWorldInfoSettings.maxRecursionSteps,
     },
+    proxies: legacy.proxies || [],
     disabledExtensions: [],
     extensionSettings: {}, // Since old extensions not going to work, start fresh
   };

@@ -45,6 +45,12 @@ export interface Prompt {
   enabled: boolean;
 }
 
+export type Proxy = {
+  name: string;
+  url: string;
+  password: string;
+};
+
 export interface KoboldCppSettings {
   // Samplers
   rep_pen_range?: number;
@@ -277,8 +283,7 @@ export interface Settings {
   prompts: Prompt[];
   api: {
     provider: ApiProvider;
-    reverseProxy: string;
-    proxyPassword: string;
+    proxy?: Proxy;
     selectedSampler?: string;
     samplers: SamplerSettings;
     connectionProfiles: ConnectionProfile[];
@@ -322,6 +327,7 @@ export interface Settings {
     };
   };
   worldInfo: WorldInfoSettings;
+  proxies: Proxy[];
   account: {
     characterBrowserExpanded: boolean;
     characterBrowserWidth: number;
@@ -390,6 +396,7 @@ export interface LegacySettings {
   username?: string;
   user_avatar?: string;
   main_api?: string;
+  proxies?: Proxy[];
   extension_settings?: {
     connectionManager?: {
       profiles?: Record<string, { id: string; mode: 'cc' | 'tc'; api: ApiProvider; model: string }>;
