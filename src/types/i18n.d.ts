@@ -532,6 +532,13 @@ export interface MessageSchema {
       deleteSwipe: string;
       deleteMessage: string;
       lastSwipeError: string;
+      plusOne: string;
+      confirmBulkTitle: string;
+      confirmBulkContent: string;
+    };
+    selection: {
+      modeFree: string;
+      modeRange: string;
     };
     copy: {
       error: string;
@@ -541,6 +548,7 @@ export interface MessageSchema {
       regenerate: string;
       continue: string;
       generate: string;
+      selectMessages: string;
     };
     typingIndicator: string;
     abort: string;

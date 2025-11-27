@@ -26,7 +26,7 @@ export interface ExtensionEventMap {
   'chat:before-message-create': [message: ChatMessage, controller: AbortController];
   'message:created': [message: ChatMessage];
   'message:updated': [index: number, message: ChatMessage];
-  'message:deleted': [index: number];
+  'message:deleted': [indices: number[]];
 
   // Character Events
   'character:created': [character: Character];

@@ -525,10 +525,17 @@
     "delete": {
       "confirmTitle": "Confirm Deletion",
       "confirmMessage": "Are you sure you want to delete this message?",
-      "confirmSwipeMessage": "This is the last message. Do you want to delete just this swipe, or the entire message?",
+      "confirmSwipeMessage": "Are you sure you want to delete this swipe?",
       "deleteSwipe": "Delete Swipe",
       "deleteMessage": "Delete Message",
-      "lastSwipeError": "Can't delete the last swipe."
+      "lastSwipeError": "Cannot delete the last swipe",
+      "plusOne": "+1 related",
+      "confirmBulkTitle": "Delete Messages",
+      "confirmBulkContent": "Are you sure you want to delete {count} messages?"
+    },
+    "selection": {
+      "modeFree": "Selection Mode: Free (Click to toggle)",
+      "modeRange": "Selection Mode: To Bottom (Click to select from message to end)"
     },
     "copy": {
       "error": "Failed to copy message."
@@ -537,7 +544,8 @@
       "manageChats": "Manage chat files",
       "regenerate": "Regenerate",
       "continue": "Continue",
-      "generate": "Generate"
+      "generate": "Generate",
+      "selectMessages": "Select Messages"
     },
     "typingIndicator": "",
     "abort": "Abort generation",

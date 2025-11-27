@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { listChats, listRecentChats } from '../../api/chat';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
@@ -51,6 +51,24 @@ function continueGeneration() {
   chatStore.generateResponse(GenerationMode.CONTINUE);
   isOptionsMenuVisible.value = false;
 }
+
+function toggleSelectionMode() {
+  chatStore.toggleSelectionMode();
+  isOptionsMenuVisible.value = false;
+}
+
+function toggleSelectionType() {
+  const newType = chatStore.selectionModeType === 'free' ? 'range' : 'free';
+  chatStore.setSelectionType(newType);
+}
+
+const selectionModeIcon = computed(() =>
+  chatStore.selectionModeType === 'free' ? 'fa-hand-pointer' : 'fa-arrow-down-long',
+);
+
+const selectionModeTitle = computed(() =>
+  chatStore.selectionModeType === 'free' ? t('chat.selection.modeFree') : t('chat.selection.modeRange'),
+);
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter' && !event.shiftKey && settingsStore.shouldSendOnEnter) {
@@ -185,7 +203,8 @@ watch(
       </div>
     </div>
     <div class="chat-interface-form-container">
-      <div id="chat-form" class="chat-form">
+      <!-- Standard Chat Form -->
+      <div v-if="!chatStore.isSelectionMode" id="chat-form" class="chat-form">
         <div class="chat-form-inner">
           <div class="chat-form-actions-left">
             <Button
@@ -240,8 +259,56 @@ watch(
             <i class="fa-solid fa-arrow-right"></i>
             <span>{{ t('chat.optionsMenu.continue') }}</span>
           </a>
+          <hr />
+          <a class="options-menu-item" @click="toggleSelectionMode">
+            <i class="fa-solid fa-check-double"></i>
+            <span>{{ t('chat.optionsMenu.selectMessages') }}</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Selection Mode Toolbar -->
+      <div v-else class="selection-toolbar">
+        <div class="selection-info">
+          <span
+            >{{ chatStore.selectedMessageIndices.size }} {{ t('common.selected') }} ({{ t('chat.delete.plusOne') }})
+          </span>
+        </div>
+        <div class="selection-actions">
+          <!-- Selection Mode Toggle -->
+          <Button
+            :icon="selectionModeIcon"
+            variant="ghost"
+            :title="selectionModeTitle"
+            active
+            @click="toggleSelectionType"
+          />
+
+          <div class="separator-vertical"></div>
+
+          <Button variant="ghost" :title="t('common.selectAll')" @click="chatStore.selectAllMessages">
+            {{ t('common.selectAll') }}
+          </Button>
+          <Button variant="ghost" :title="t('common.none')" @click="chatStore.deselectAllMessages">
+            {{ t('common.none') }}
+          </Button>
+          <Button variant="danger" icon="fa-trash" @click="chatStore.deleteSelectedMessages">
+            {{ t('common.delete') }}
+          </Button>
+          <Button variant="ghost" icon="fa-xmark" @click="toggleSelectionMode">
+            {{ t('common.cancel') }}
+          </Button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.separator-vertical {
+  width: 1px;
+  background-color: var(--theme-border-color);
+  height: 24px;
+  margin: 0 4px;
+}
+</style>

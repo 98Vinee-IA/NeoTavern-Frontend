@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
 import { saveChat as apiSaveChat, fetchChat, saveChat } from '../api/chat';
 import { useChatGeneration } from '../composables/useChatGeneration';
+import { useStrictI18n } from '../composables/useStrictI18n';
 import {
   DEFAULT_SAVE_EDIT_TIMEOUT,
   EventPriority,
@@ -11,6 +12,8 @@ import {
   GroupReplyStrategy,
 } from '../constants';
 import {
+  POPUP_RESULT,
+  POPUP_TYPE,
   type Character,
   type ChatHeader,
   type ChatInfo,
@@ -24,6 +27,7 @@ import { uuidv4 } from '../utils/commons';
 import { eventEmitter } from '../utils/extensions';
 import { useCharacterStore } from './character.store';
 import { usePersonaStore } from './persona.store';
+import { usePopupStore } from './popup.store';
 import { usePromptStore } from './prompt.store';
 import { useSettingsStore } from './settings.store';
 import { useUiStore } from './ui.store';
@@ -38,6 +42,8 @@ export type ChatMessageEditState = {
   originalContent: string;
 };
 
+export type SelectionModeType = 'free' | 'range';
+
 export const useChatStore = defineStore('chat', () => {
   const activeChat = ref<ChatStoreState | null>(null);
   const activeChatFile = ref<string | null>(null);
@@ -47,11 +53,18 @@ export const useChatStore = defineStore('chat', () => {
   const recentChats = ref<ChatInfo[]>([]);
   const autoModeTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
+  // Selection Mode State
+  const isSelectionMode = ref(false);
+  const selectionModeType = ref<SelectionModeType>('free');
+  const selectedMessageIndices = ref<Set<number>>(new Set());
+
   const uiStore = useUiStore();
   const personaStore = usePersonaStore();
   const characterStore = useCharacterStore();
   const promptStore = usePromptStore();
   const settingsStore = useSettingsStore();
+  const popupStore = usePopupStore();
+  const { t } = useStrictI18n();
 
   const chatsMetadataByCharacterAvatars = computed(() => {
     const mapping: Record<string, ChatInfo[]> = {};
@@ -274,6 +287,11 @@ export const useChatStore = defineStore('chat', () => {
     promptStore.extensionPrompts = {};
     promptStore.itemizedPrompts = [];
 
+    // Reset selection mode on clear
+    isSelectionMode.value = false;
+    selectionModeType.value = 'free';
+    selectedMessageIndices.value.clear();
+
     if (activeChatFile.value) {
       promptStore.clearUserTyping(activeChatFile.value);
     }
@@ -302,6 +320,11 @@ export const useChatStore = defineStore('chat', () => {
     activeChat.value = null;
     activeChatFile.value = null;
     saveChatDebounced.cancel();
+
+    // Reset selection mode on chat switch
+    isSelectionMode.value = false;
+    selectionModeType.value = 'free';
+    selectedMessageIndices.value.clear();
 
     isChatLoading.value = true;
 
@@ -603,7 +626,98 @@ export const useChatStore = defineStore('chat', () => {
       cancelEditing();
     }
     await nextTick();
-    await eventEmitter.emit('message:deleted', index);
+    await eventEmitter.emit('message:deleted', [index]);
+  }
+
+  function toggleSelectionMode() {
+    isSelectionMode.value = !isSelectionMode.value;
+    // Reset selection state when entering/exiting
+    selectedMessageIndices.value.clear();
+    selectionModeType.value = 'free'; // Default to free mode
+  }
+
+  function setSelectionType(type: SelectionModeType) {
+    selectionModeType.value = type;
+    selectedMessageIndices.value.clear();
+  }
+
+  function toggleMessageSelection(index: number) {
+    if (!isSelectionMode.value) return;
+
+    if (selectionModeType.value === 'range') {
+      // Range Mode: Select from index to end of chat
+      selectedMessageIndices.value.clear();
+      if (activeChat.value) {
+        const len = activeChat.value.messages.length;
+        for (let i = index; i < len; i++) {
+          selectedMessageIndices.value.add(i);
+        }
+      }
+    } else {
+      // Free Mode: Toggle individual message
+      if (selectedMessageIndices.value.has(index)) {
+        selectedMessageIndices.value.delete(index);
+      } else {
+        selectedMessageIndices.value.add(index);
+      }
+    }
+  }
+
+  function selectAllMessages() {
+    if (!activeChat.value) return;
+    selectedMessageIndices.value.clear();
+    activeChat.value.messages.forEach((_, idx) => selectedMessageIndices.value.add(idx));
+  }
+
+  function deselectAllMessages() {
+    selectedMessageIndices.value.clear();
+  }
+
+  async function deleteSelectedMessages() {
+    if (!activeChat.value || selectedMessageIndices.value.size === 0) return;
+
+    // Collect targets based on current selection
+    // Note: If we are in 'Free' mode, we might want to also delete the next message
+    // (typical user expectation for deleting a user query + bot response).
+    // If in 'Range' mode, the user sees exactly what is selected.
+
+    const targets = new Set<number>();
+    const maxIndex = activeChat.value.messages.length - 1;
+
+    for (const idx of selectedMessageIndices.value) {
+      targets.add(idx);
+      // Logic from requirements: "Messages that user's selected and next one is deleted."
+      // We apply this generally, as it covers the most common use case.
+      // In Range mode (to bottom), this is redundant but harmless.
+      if (idx + 1 <= maxIndex) {
+        targets.add(idx + 1);
+      }
+    }
+
+    const indicesToDelete = Array.from(targets).sort((a, b) => b - a); // Descending order to prevent index shift issues during splice
+
+    const { result } = await popupStore.show({
+      title: t('chat.delete.confirmBulkTitle'),
+      content: t('chat.delete.confirmBulkContent', { count: indicesToDelete.length }),
+      type: POPUP_TYPE.CONFIRM,
+    });
+
+    if (result === POPUP_RESULT.AFFIRMATIVE) {
+      // Remove them
+      for (const idx of indicesToDelete) {
+        if (idx >= 0 && idx < activeChat.value.messages.length) {
+          activeChat.value.messages.splice(idx, 1);
+        }
+      }
+
+      // Cleanup
+      selectedMessageIndices.value.clear();
+      isSelectionMode.value = false;
+      cancelEditing();
+
+      await nextTick();
+      await eventEmitter.emit('message:deleted', indicesToDelete);
+    }
   }
 
   async function deleteSwipe(messageIndex: number, swipeIndex: number) {
@@ -660,6 +774,17 @@ export const useChatStore = defineStore('chat', () => {
     isGroupChat,
     groupConfig,
     chatsMetadataByCharacterAvatars,
+    // Selection Mode
+    isSelectionMode,
+    selectionModeType,
+    selectedMessageIndices,
+    toggleSelectionMode,
+    setSelectionType,
+    toggleMessageSelection,
+    selectAllMessages,
+    deselectAllMessages,
+    deleteSelectedMessages,
+    // Actions
     clearChat,
     sendMessage,
     generateResponse,

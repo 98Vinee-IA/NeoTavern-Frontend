@@ -1,5 +1,57 @@
 .message {
   display: flex;
+  position: relative;
+  transition: background-color var(--animation-duration);
+  border-radius: var(--base-border-radius);
+
+  // --- Selection Mode Styles ---
+  &.is-selection-mode {
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      background-color: var(--white-30a);
+    }
+
+    &.is-selected {
+      background-color: var(--color-accent-cobalt-30a);
+      border: 1px solid var(--theme-emphasis-color);
+    }
+
+    .message-selection-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none; // Allow clicks to bubble up to the container
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 10px;
+
+      .selection-checkbox {
+        width: 24px;
+        height: 24px;
+        background-color: var(--theme-background-tint);
+        border: 2px solid var(--theme-border-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+
+        &.checked {
+          background-color: var(--theme-emphasis-color);
+          border-color: var(--theme-emphasis-color);
+          color: var(--black-100);
+        }
+      }
+    }
+  }
+
+  // --- Standard Layout ---
 
   &-avatar-wrapper {
     flex-shrink: 0;
@@ -66,6 +118,13 @@
   &-edit-actions {
     display: flex;
     align-items: center;
+    // Fade in buttons on hover for cleaner UI
+    opacity: 0;
+    transition: opacity var(--animation-duration);
+
+    @media (hover: none) {
+      opacity: 1;
+    }
 
     .menu-button {
       font-size: 1em;
@@ -80,6 +139,13 @@
       &.confirm-btn:hover {
         background-color: var(--color-accent-green-70a);
       }
+    }
+  }
+
+  // Hover state to show buttons
+  &:hover {
+    .message-buttons {
+      opacity: 1;
     }
   }
 
@@ -243,4 +309,20 @@
       opacity: 0.8;
     }
   }
+}
+
+// Transitions
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+  max-height: 500px;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }

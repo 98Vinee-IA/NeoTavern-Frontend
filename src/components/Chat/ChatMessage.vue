@@ -47,6 +47,15 @@ const isEditing = computed(() => chatStore.activeMessageEditState?.index === pro
 const hasReasoning = computed(() => props.message.extra?.reasoning && props.message.extra.reasoning.trim().length > 0);
 const hasItemizedPrompt = computed(() => !!promptStore.getItemizedPrompt(props.index));
 
+const isSelectionMode = computed(() => chatStore.isSelectionMode);
+const isSelected = computed(() => chatStore.selectedMessageIndices.has(props.index));
+
+function handleSelectionClick() {
+  if (isSelectionMode.value) {
+    chatStore.toggleMessageSelection(props.index);
+  }
+}
+
 onMounted(() => {
   isReasoningCollapsed.value = settingsStore.settings.ui?.chat?.reasoningCollapsed ?? false;
 });
@@ -80,6 +89,7 @@ const charNameForAvatar = computed(() => {
 });
 
 function handleAvatarClick() {
+  if (isSelectionMode.value) return; // Disable zoom in selection mode
   uiStore.toggleZoomedAvatar({
     src: avatarUrls.value.full,
     charName: charNameForAvatar.value || 'Avatar',
@@ -251,9 +261,26 @@ async function showPromptItemization() {
 </script>
 
 <template>
-  <div class="message" :class="{ 'is-user': message.is_user, 'is-bot': !message.is_user }" :data-message-index="index">
+  <div
+    class="message"
+    :class="{
+      'is-user': message.is_user,
+      'is-bot': !message.is_user,
+      'is-selected': isSelected,
+      'is-selection-mode': isSelectionMode,
+    }"
+    :data-message-index="index"
+    @click="handleSelectionClick"
+  >
+    <!-- Selection Overlay -->
+    <div v-if="isSelectionMode" class="message-selection-overlay">
+      <div class="selection-checkbox" :class="{ checked: isSelected }">
+        <i v-if="isSelected" class="fa-solid fa-check"></i>
+      </div>
+    </div>
+
     <div class="message-avatar-wrapper">
-      <div class="message-avatar" style="cursor: pointer" @click="handleAvatarClick">
+      <div class="message-avatar" style="cursor: pointer" @click.stop="handleAvatarClick">
         <SmartAvatar :urls="[avatarUrls.thumbnail]" :alt="`${displayName} Avatar`" />
       </div>
       <div class="message-id">#{{ index }}</div>
@@ -271,7 +298,7 @@ async function showPromptItemization() {
         </div>
 
         <!-- Buttons for Normal Mode -->
-        <div v-show="!isEditing" class="message-buttons">
+        <div v-show="!isEditing && !isSelectionMode" class="message-buttons">
           <Button
             v-if="hasItemizedPrompt"
             variant="ghost"
@@ -316,7 +343,7 @@ async function showPromptItemization() {
       </div>
 
       <div v-if="!isEditing && hasReasoning" class="message-reasoning">
-        <div class="message-reasoning-header" @click="isReasoningCollapsed = !isReasoningCollapsed">
+        <div class="message-reasoning-header" @click.stop="isReasoningCollapsed = !isReasoningCollapsed">
           <span>{{ t('chat.reasoning.title') }}</span>
           <i class="fa-solid" :class="isReasoningCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
         </div>
@@ -338,7 +365,7 @@ async function showPromptItemization() {
         <Textarea v-model="editedContent" :rows="5" :resizable="true" @keydown="handleEditKeydown" />
       </div>
 
-      <div v-if="canSwipe" class="message-footer">
+      <div v-show="canSwipe && !isSelectionMode" class="message-footer">
         <div class="message-swipe-controls">
           <i
             class="swipe-arrow fa-solid fa-chevron-left"
