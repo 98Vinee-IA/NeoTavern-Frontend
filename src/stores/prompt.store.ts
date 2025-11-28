@@ -71,7 +71,10 @@ export const usePromptStore = defineStore('prompt', () => {
   }
 
   function addItemizedPrompt(prompt: ItemizedPrompt) {
-    const existingIndex = itemizedPrompts.value.findIndex((p) => p.messageIndex === prompt.messageIndex);
+    const swipeId = prompt.swipeId ?? 0;
+    const existingIndex = itemizedPrompts.value.findIndex(
+      (p) => p.messageIndex === prompt.messageIndex && (p.swipeId ?? 0) === swipeId,
+    );
     if (existingIndex > -1) {
       itemizedPrompts.value[existingIndex] = prompt;
     } else {
@@ -79,8 +82,31 @@ export const usePromptStore = defineStore('prompt', () => {
     }
   }
 
-  function getItemizedPrompt(messageIndex: number): ItemizedPrompt | undefined {
-    return itemizedPrompts.value.find((p) => p.messageIndex === messageIndex);
+  function getItemizedPrompt(messageIndex: number, swipeId: number = 0): ItemizedPrompt | undefined {
+    return itemizedPrompts.value.find((p) => p.messageIndex === messageIndex && (p.swipeId ?? 0) === swipeId);
+  }
+
+  function clearItemizedPrompt(messageIndex: number, swipeId: number = 0) {
+    const index = itemizedPrompts.value.findIndex(
+      (p) => p.messageIndex === messageIndex && (p.swipeId ?? 0) === swipeId,
+    );
+    if (index > -1) {
+      itemizedPrompts.value.splice(index, 1);
+    }
+    // Shift swipeIds of subsequent prompts
+    for (let i = 0; i < itemizedPrompts.value.length; i++) {
+      const prompt = itemizedPrompts.value[i];
+      if (prompt.messageIndex === messageIndex && (prompt.swipeId ?? 0) > swipeId) {
+        prompt.swipeId = (prompt.swipeId ?? 0) - 1;
+      }
+    }
+    // Shift messageIndices of subsequent prompts
+    for (let i = 0; i < itemizedPrompts.value.length; i++) {
+      const prompt = itemizedPrompts.value[i];
+      if (prompt.messageIndex > messageIndex) {
+        prompt.messageIndex -= 1;
+      }
+    }
   }
 
   return {
@@ -90,6 +116,7 @@ export const usePromptStore = defineStore('prompt', () => {
     loadItemizedPrompts,
     addItemizedPrompt,
     getItemizedPrompt,
+    clearItemizedPrompt,
     saveUserTyping,
     loadUserTyping,
     clearUserTyping,

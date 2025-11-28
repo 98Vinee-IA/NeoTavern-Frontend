@@ -169,6 +169,7 @@ export interface PromptTokenBreakdown {
 export interface ItemizedPrompt {
   generationId: string;
   messageIndex: number; // Map to chat message index (the bot response)
+  swipeId?: number;
   model: string;
   api: string;
   tokenizer: string;

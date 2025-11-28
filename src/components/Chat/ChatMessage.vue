@@ -47,7 +47,7 @@ const isReasoningCollapsed = ref(false);
 
 const isEditing = computed(() => chatStore.activeMessageEditState?.index === props.index);
 const hasReasoning = computed(() => props.message.extra?.reasoning && props.message.extra.reasoning.trim().length > 0);
-const hasItemizedPrompt = computed(() => !!promptStore.getItemizedPrompt(props.index));
+const hasItemizedPrompt = computed(() => !!promptStore.getItemizedPrompt(props.index, props.message.swipe_id ?? 0));
 
 const isSelectionMode = computed(() => chatSelectionStore.isSelectionMode);
 const isSelected = computed(() => chatSelectionStore.selectedMessageIndices.has(props.index));
@@ -249,7 +249,7 @@ function moveDown() {
 }
 
 async function showPromptItemization() {
-  const data = promptStore.getItemizedPrompt(props.index);
+  const data = promptStore.getItemizedPrompt(props.index, props.message.swipe_id ?? 0);
   if (!data) return;
 
   await popupStore.show({

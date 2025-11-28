@@ -520,6 +520,7 @@ export const useChatStore = defineStore('chat', () => {
   async function deleteMessage(index: number) {
     if (!activeChat.value || index < 0 || index >= activeChat.value.messages.length) return;
     activeChat.value.messages.splice(index, 1);
+    promptStore.clearItemizedPrompt(index);
     if (chatUiStore.activeMessageEditState?.index === index) {
       cancelEditing();
     }
@@ -574,6 +575,7 @@ export const useChatStore = defineStore('chat', () => {
     if (Array.isArray(message.swipe_info)) {
       message.swipe_info.splice(swipeIndex, 1);
     }
+    promptStore.clearItemizedPrompt(messageIndex, swipeIndex);
 
     const newSwipeId = Math.min(swipeIndex, message.swipes.length - 1);
     await syncSwipeToMes(messageIndex, newSwipeId);

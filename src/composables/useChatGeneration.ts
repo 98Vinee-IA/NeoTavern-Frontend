@@ -442,9 +442,21 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       else breakdown.chatHistory += count;
     }
 
+    let swipeId = 0;
+    if (mode === GenerationMode.ADD_SWIPE) {
+      const lastMsg = activeChatMessages[activeChatMessages.length - 1];
+      swipeId = Array.isArray(lastMsg?.swipes) ? lastMsg.swipes.length : 1;
+    } else if (mode === GenerationMode.CONTINUE) {
+      const lastMsg = activeChatMessages[activeChatMessages.length - 1];
+      swipeId = lastMsg?.swipe_id ?? 0;
+    }
+
     const itemizedPrompt: ItemizedPrompt = {
       generationId,
-      messageIndex: mode === GenerationMode.CONTINUE ? activeChatMessages.length - 1 : activeChatMessages.length,
+      messageIndex: [GenerationMode.CONTINUE, GenerationMode.ADD_SWIPE].includes(mode)
+        ? activeChatMessages.length - 1
+        : activeChatMessages.length,
+      swipeId,
       model: context.settings.model,
       api: context.settings.provider,
       tokenizer: settings.api.tokenizer,
