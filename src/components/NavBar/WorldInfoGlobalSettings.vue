@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { debounce } from 'lodash-es';
+import { computed, ref, watch } from 'vue';
+import { ApiTokenizer } from '../../api/tokenizer';
 import { useStrictI18n } from '../../composables/useStrictI18n';
-import { defaultWorldInfoSettings } from '../../constants';
+import { DebounceTimeout, defaultWorldInfoSettings } from '../../constants';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useWorldInfoStore } from '../../stores/world-info.store';
 import { Button, Checkbox, FormItem, RangeControl, Select } from '../UI';
@@ -11,6 +13,9 @@ const props = withDefaults(defineProps<{ showHeader?: boolean }>(), { showHeader
 const { t } = useStrictI18n();
 const worldInfoStore = useWorldInfoStore();
 const settingsStore = useSettingsStore();
+
+const activeTokenCount = ref(0);
+const isLoadingTokens = ref(false);
 
 function resetToDefaults() {
   settingsStore.settings.worldInfo = {
@@ -25,6 +30,33 @@ const bookOptions = computed(() => {
     value: bookInfo.file_id,
   }));
 });
+
+const calculateGlobalTokens = debounce(async () => {
+  isLoadingTokens.value = true;
+  try {
+    const activeBooks = worldInfoStore.globalBookNames;
+    let totalContent = '';
+
+    for (const bookName of activeBooks) {
+      // Fetch or get from cache. 'false' means don't force fetch, return undefined if missing.
+      const book = await worldInfoStore.getBookFromCache(bookName, false);
+      if (book) {
+        // Count enabled entries only as they are the ones used in context
+        const activeEntries = book.entries.filter((e) => !e.disable);
+        totalContent += activeEntries.map((e) => e.content).join('\n') + '\n';
+      }
+    }
+    activeTokenCount.value = await ApiTokenizer.default.getTokenCount(totalContent);
+  } finally {
+    isLoadingTokens.value = false;
+  }
+}, DebounceTimeout.STANDARD);
+
+watch(
+  () => worldInfoStore.globalBookNames,
+  () => calculateGlobalTokens(),
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -39,6 +71,14 @@ const bookOptions = computed(() => {
     </div>
 
     <div class="settings-section">
+      <div class="global-token-stat">
+        <span>{{ t('worldInfo.totalActiveTokens') }}</span>
+        <strong>
+          <i v-if="isLoadingTokens" class="fa-solid fa-spinner fa-spin"></i>
+          <span v-else>{{ activeTokenCount }}</span>
+        </strong>
+      </div>
+
       <FormItem :description="t('worldInfo.activeWorldsHint')">
         <Select
           v-model="worldInfoStore.globalBookNames"

@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'lodash-es';
+import { computed, onMounted, ref, watch } from 'vue';
+import { ApiTokenizer } from '../../api/tokenizer';
 import { useStrictI18n } from '../../composables/useStrictI18n';
+import { DebounceTimeout } from '../../constants';
 import { usePopupStore } from '../../stores/popup.store';
 import { useWorldInfoUiStore } from '../../stores/world-info-ui.store';
 import { useWorldInfoStore } from '../../stores/world-info.store';
@@ -22,6 +25,7 @@ const worldInfoUiStore = useWorldInfoUiStore();
 const popupStore = usePopupStore();
 
 const isBrowserCollapsed = ref(false);
+const bookTokenCounts = ref<Record<string, number>>({});
 
 onMounted(() => {
   if (worldInfoStore.bookInfos.length === 0) {
@@ -29,10 +33,25 @@ onMounted(() => {
   }
 });
 
+/**
+ * Calculates token count for a specific book by ID.
+ * Not debounced itself, caller should manage frequency if needed.
+ */
+const calculateBookTokens = async (fileId: string) => {
+  const book = await worldInfoStore.getBookFromCache(fileId, false);
+  if (book) {
+    const text = book.entries.map((e) => e.content).join('\n');
+    bookTokenCounts.value[fileId] = await ApiTokenizer.default.getTokenCount(text);
+  }
+};
+
+const debouncedCalculateBookTokens = debounce(calculateBookTokens, DebounceTimeout.EXTENDED);
+
 async function updateEntry(newEntry: WorldInfoEntryType) {
   const book = worldInfoUiStore.selectedBookForEntry;
   if (book) {
     await worldInfoStore.updateEntry(book, newEntry);
+    debouncedCalculateBookTokens(worldInfoUiStore.selectedFilename!);
   }
 }
 
@@ -58,6 +77,7 @@ async function duplicateSelectedEntry() {
   const newUid = await worldInfoStore.duplicateEntry(filename, entry);
   if (newUid) {
     worldInfoUiStore.selectItem(`${filename}/${newUid}`);
+    calculateBookTokens(filename);
   }
 }
 
@@ -75,6 +95,7 @@ async function deleteSelectedEntry() {
   if (result === POPUP_RESULT.AFFIRMATIVE) {
     await worldInfoStore.deleteEntry(filename, entry.uid);
     worldInfoUiStore.selectItem('global-settings');
+    calculateBookTokens(filename);
   }
 }
 
@@ -117,6 +138,7 @@ async function handleDeleteBook(fileId: string, bookName: string) {
       worldInfoUiStore.selectItem('global-settings');
     }
     worldInfoUiStore.expandedBooks.delete(fileId);
+    delete bookTokenCounts.value[fileId];
   }
 }
 
@@ -157,6 +179,7 @@ async function handleCreateEntry(fileId: string) {
   const newEntry = await worldInfoStore.createEntry(fileId);
   if (newEntry) {
     worldInfoUiStore.selectItem(`${fileId}/${newEntry.uid}`);
+    calculateBookTokens(fileId);
   }
 }
 
@@ -175,6 +198,17 @@ const filteredBookNames = computed(() => {
     return worldInfoUiStore.filteredAndSortedEntries(bookInfo.file_id).length > 0;
   });
 });
+
+const updateVisibleTokenCounts = debounce(async () => {
+  const books = filteredBookNames.value;
+  for (const info of books) {
+    await calculateBookTokens(info.file_id);
+  }
+}, DebounceTimeout.EXTENDED);
+
+watch(filteredBookNames, updateVisibleTokenCounts, { deep: true, immediate: true });
+
+watch(() => worldInfoStore.loadingBooks.size, updateVisibleTokenCounts);
 
 const sortOptions = computed(() => [
   { value: 'order:asc', label: t('worldInfo.sorting.orderAsc') },
@@ -238,37 +272,42 @@ const sortOptions = computed(() => [
               <span class="font-bold">{{ bookInfo.name }}</span>
             </template>
             <template #end>
-              <div class="browser-item-actions" @click.stop>
-                <Button
-                  variant="ghost"
-                  icon="fa-plus"
-                  :title="t('worldInfo.newEntryInBook', { bookName: bookInfo.name })"
-                  @click.stop="handleCreateEntry(bookInfo.file_id)"
-                />
-                <Button
-                  variant="ghost"
-                  icon="fa-file-export"
-                  :title="t('worldInfo.export')"
-                  @click.stop="worldInfoStore.exportBook(bookInfo.file_id)"
-                />
-                <Button
-                  variant="ghost"
-                  icon="fa-clone"
-                  :title="t('worldInfo.duplicate')"
-                  @click.stop="handleDuplicateBook(bookInfo.file_id)"
-                />
-                <Button
-                  variant="ghost"
-                  icon="fa-pencil"
-                  :title="t('worldInfo.rename')"
-                  @click.stop="handleRenameBook(bookInfo.file_id)"
-                />
-                <Button
-                  variant="danger"
-                  icon="fa-trash-can"
-                  :title="t('worldInfo.deleteBook', { bookName: bookInfo.name })"
-                  @click.stop="handleDeleteBook(bookInfo.file_id, bookInfo.name)"
-                />
+              <div class="browser-item-right-content">
+                <span v-if="bookTokenCounts[bookInfo.file_id] !== undefined" class="book-token-count">
+                  {{ bookTokenCounts[bookInfo.file_id] }} T
+                </span>
+                <div class="browser-item-actions" @click.stop>
+                  <Button
+                    variant="ghost"
+                    icon="fa-plus"
+                    :title="t('worldInfo.newEntryInBook', { bookName: bookInfo.name })"
+                    @click.stop="handleCreateEntry(bookInfo.file_id)"
+                  />
+                  <Button
+                    variant="ghost"
+                    icon="fa-file-export"
+                    :title="t('worldInfo.export')"
+                    @click.stop="worldInfoStore.exportBook(bookInfo.file_id)"
+                  />
+                  <Button
+                    variant="ghost"
+                    icon="fa-clone"
+                    :title="t('worldInfo.duplicate')"
+                    @click.stop="handleDuplicateBook(bookInfo.file_id)"
+                  />
+                  <Button
+                    variant="ghost"
+                    icon="fa-pencil"
+                    :title="t('worldInfo.rename')"
+                    @click.stop="handleRenameBook(bookInfo.file_id)"
+                  />
+                  <Button
+                    variant="danger"
+                    icon="fa-trash-can"
+                    :title="t('worldInfo.deleteBook', { bookName: bookInfo.name })"
+                    @click.stop="handleDeleteBook(bookInfo.file_id, bookInfo.name)"
+                  />
+                </div>
               </div>
             </template>
           </ListItem>

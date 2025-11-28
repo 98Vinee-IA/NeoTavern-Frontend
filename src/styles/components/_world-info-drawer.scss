@@ -14,6 +14,19 @@
     transform: rotate(90deg);
   }
 
+  .browser-item-right-content {
+    display: flex;
+    align-items: center;
+  }
+
+  .book-token-count {
+    font-size: 0.8em;
+    opacity: 0.6;
+    margin-right: 8px;
+    font-family: var(--font-family-mono);
+    white-space: nowrap;
+  }
+
   .browser-item-actions {
     display: flex;
     opacity: 0;

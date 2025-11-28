@@ -157,6 +157,7 @@ export interface MessageSchema {
     refresh: string;
     searchPlaceholder: string;
     importSuccess: string;
+    totalActiveTokens: string;
     sorting: {
       title: string;
       titleAsc: string;

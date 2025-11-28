@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { type PropType, computed } from 'vue';
+import { debounce } from 'lodash-es';
+import { computed, ref, watch, type PropType } from 'vue';
+import { ApiTokenizer } from '../../api/tokenizer';
 import {
   Button,
   Checkbox,
@@ -12,7 +14,7 @@ import {
   Textarea,
 } from '../../components/UI';
 import { useStrictI18n } from '../../composables/useStrictI18n';
-import { WorldInfoPosition } from '../../constants';
+import { DebounceTimeout, WorldInfoPosition } from '../../constants';
 import { usePopupStore } from '../../stores/popup.store';
 import { useWorldInfoUiStore } from '../../stores/world-info-ui.store';
 import { useWorldInfoStore } from '../../stores/world-info.store';
@@ -35,6 +37,8 @@ const { t } = useStrictI18n();
 const worldInfoStore = useWorldInfoStore();
 const worldInfoUiStore = useWorldInfoUiStore();
 const popupStore = usePopupStore();
+
+const tokenCount = ref(0);
 
 const isAtDepth = computed(() => props.modelValue?.position === WorldInfoPosition.AT_DEPTH);
 const isOutlet = computed(() => props.modelValue?.position === WorldInfoPosition.OUTLET);
@@ -62,6 +66,18 @@ const entryState = computed({
     }
   },
 });
+
+const calculateTokenCount = debounce(async (text: string) => {
+  tokenCount.value = await ApiTokenizer.default.getTokenCount(text);
+}, DebounceTimeout.RELAXED);
+
+watch(
+  () => props.modelValue?.content,
+  (val) => {
+    calculateTokenCount(val || '');
+  },
+  { immediate: true },
+);
 
 async function handleDeleteEntry() {
   const { result } = await popupStore.show({
@@ -271,7 +287,10 @@ const logicOptions = [
             @update:model-value="updateValue('content', $event)"
           >
             <template #footer>
-              <small class="uid-label">UID: {{ modelValue?.uid }}</small>
+              <div class="footer-row">
+                <small class="uid-label">UID: {{ modelValue?.uid }}</small>
+                <small class="token-counter">{{ t('common.tokens') }}: {{ tokenCount }}</small>
+              </div>
             </template>
           </Textarea>
         </FormItem>

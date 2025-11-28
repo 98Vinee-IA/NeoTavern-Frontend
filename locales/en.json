@@ -119,7 +119,7 @@
   },
   "worldInfo": {
     "activeWorlds": "Active World(s) for all chats",
-    "activeWorldsHint": "These lorebooks will be active in all chats unless overridden by character/chat-specific settings.",
+    "activeWorldsHint": "These lorebooks will be active in all chats.",
     "globalSettings": "Global Settings",
     "activationSettings": "Activation Settings",
     "scanDepth": "Scan Depth",
@@ -154,6 +154,7 @@
     "refresh": "Refresh",
     "searchPlaceholder": "Search Lorebooks...",
     "importSuccess": "Successfully imported embedded lorebook: {name}",
+    "totalActiveTokens": "Total Active Tokens",
     "sorting": {
       "title": "Sort entries by",
       "titleAsc": "Title A-Z",
