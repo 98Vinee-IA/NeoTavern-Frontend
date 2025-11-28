@@ -5,7 +5,7 @@ export type SelectionModeType = 'free' | 'range';
 
 export const useChatSelectionStore = defineStore('chat-selection', () => {
   const isSelectionMode = ref(false);
-  const selectionModeType = ref<SelectionModeType>('free');
+  const selectionModeType = ref<SelectionModeType>('range');
   const selectedMessageIndices = ref<Set<number>>(new Set());
 
   function toggleSelectionMode() {

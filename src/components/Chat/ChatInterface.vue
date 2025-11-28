@@ -44,7 +44,12 @@ function generate() {
 }
 
 function regenerate() {
-  chatStore.generateResponse(GenerationMode.REGENERATE);
+  const isLastMessageUser = chatStore.activeChat?.messages.slice(-1)[0]?.is_user;
+  if (isLastMessageUser) {
+    chatStore.generateResponse(GenerationMode.NEW);
+  } else {
+    chatStore.generateResponse(GenerationMode.REGENERATE);
+  }
   isOptionsMenuVisible.value = false;
 }
 

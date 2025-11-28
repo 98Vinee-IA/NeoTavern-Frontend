@@ -29,7 +29,7 @@ const settingsStore = useSettingsStore();
 const layoutStore = useLayoutStore();
 const worldInfoStore = useWorldInfoStore();
 
-const activeTab = ref<'chats' | 'members' | 'config'>('chats');
+const activeTab = ref<'config' | 'members' | 'chats'>('config');
 const chatSearchTerm = ref('');
 
 const addMemberSearchTerm = ref('');
@@ -235,6 +235,10 @@ function peekCharacter(avatar: string) {
   characterUiStore.selectCharacterByAvatar(avatar);
   layoutStore.activeDrawer = 'character';
 }
+
+function getCharName(avatar: string) {
+  return characterStore.characters.find((c) => c.avatar === avatar)?.name || avatar;
+}
 </script>
 
 <template>
@@ -244,9 +248,9 @@ function peekCharacter(avatar: string) {
         v-model="activeTab"
         style="border-bottom: none; margin-bottom: 0"
         :options="[
-          { label: t('chatManagement.tabs.chats'), value: 'chats' },
-          { label: t('chatManagement.tabs.group'), value: 'members' },
           { label: t('chatManagement.tabs.config'), value: 'config' },
+          { label: t('chatManagement.tabs.group'), value: 'members' },
+          { label: t('chatManagement.tabs.chats'), value: 'chats' },
         ]"
       />
     </div>
@@ -307,6 +311,23 @@ function peekCharacter(avatar: string) {
 
       <!-- Tab: Members / Group Config -->
       <div v-show="activeTab === 'members' && chatStore.activeChatFile" class="chat-management-tab-content">
+        <!-- Queue Display -->
+        <div v-if="groupChatStore.generationQueue.length > 0" class="queue-section">
+          <div class="queue-header">
+            <span>{{ t('group.queue') }} ({{ groupChatStore.generationQueue.length }})</span>
+            <Button icon="fa-trash" variant="ghost" :title="t('group.clearQueue')" @click="groupChatStore.clearQueue" />
+          </div>
+          <div class="queue-list">
+            <div v-for="(avatar, idx) in groupChatStore.generationQueue" :key="idx" class="queue-item">
+              <div class="queue-avatar-wrapper">
+                <img :src="getThumbnailUrl('avatar', avatar)" :title="getCharName(avatar)" />
+                <div class="queue-order">{{ idx + 1 }}</div>
+              </div>
+              <i v-if="idx < groupChatStore.generationQueue.length - 1" class="fa-solid fa-arrow-right separator"></i>
+            </div>
+          </div>
+        </div>
+
         <!-- Current Members -->
         <CollapsibleSection
           v-model:is-open="settingsStore.settings.account.groupMembersExpanded"
@@ -332,9 +353,18 @@ function peekCharacter(avatar: string) {
                   />
                 </template>
                 <template #default>
-                  <span class="font-bold" :class="{ 'line-through': groupConfig?.members[member.avatar]?.muted }">{{
-                    member.name
-                  }}</span>
+                  <div class="group-member-content-wrapper">
+                    <span
+                      class="group-member-name"
+                      :class="{ 'line-through': groupConfig?.members[member.avatar]?.muted }"
+                      >{{ member.name }}</span
+                    >
+                    <div v-if="groupChatStore.generatingAvatar === member.avatar" class="typing-indicator-small">
+                      <div class="dot" />
+                      <div class="dot" />
+                      <div class="dot" />
+                    </div>
+                  </div>
                 </template>
                 <template #end>
                   <Button
@@ -480,15 +510,3 @@ function peekCharacter(avatar: string) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.font-bold {
-  font-weight: bold;
-}
-.line-through {
-  text-decoration: line-through;
-}
-.muted {
-  opacity: 0.6;
-}
-</style>

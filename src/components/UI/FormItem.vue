@@ -9,7 +9,7 @@ defineProps<{
 
 <template>
   <div class="form-item" :class="{ 'is-horizontal': horizontal, 'has-error': !!error }">
-    <div v-if="label" class="form-item-label">
+    <div v-if="label" class="form-item-label" :title="horizontal ? description : undefined">
       {{ label }}
     </div>
 

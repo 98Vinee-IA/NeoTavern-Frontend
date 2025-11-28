@@ -209,6 +209,7 @@ export function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSett
     chat: {
       sendOnEnter: p.send_on_enter,
       confirmMessageDelete: p.confirm_message_delete,
+      stopOnNameHijack: 'all',
     },
     character: {
       spoilerFreeMode: p.spoiler_free_mode,

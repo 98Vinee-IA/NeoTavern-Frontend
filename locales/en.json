@@ -51,6 +51,8 @@
     "replyStrategy": "Reply Strategy",
     "members": "Members",
     "configuration": "Configuration",
+    "queue": "Generation Queue",
+    "clearQueue": "Clear Queue",
     "strategies": {
       "manual": "Manual",
       "natural": "Natural Order",
@@ -989,6 +991,18 @@
         "forbidExternalMedia": {
           "label": "Forbid External Media",
           "description": "Prevent loading of external media in chat messages for privacy and security."
+        }
+      }
+    },
+    "chat": {
+      "stopOnNameHijack": {
+        "label": "Stop on name hijack",
+        "description": "Stop generation if the AI tries to speak for another character or user. It is a <b>{'{{name}}'}: </b> check.",
+        "options": {
+          "none": "None",
+          "single": "Single Chat Only",
+          "group": "Group Chat Only",
+          "all": "All Chats"
         }
       }
     }

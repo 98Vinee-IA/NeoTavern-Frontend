@@ -62,6 +62,21 @@ export const settingsDefinition: SettingDefinition[] = [
     defaultValue: true,
   },
   {
+    id: 'chat.stopOnNameHijack',
+    label: 'settings.chat.stopOnNameHijack.label',
+    description: 'settings.chat.stopOnNameHijack.description',
+    category: 'Chat/Message Handling',
+    type: 'enum',
+    widget: 'select',
+    defaultValue: 'all',
+    options: [
+      { value: 'none', label: 'settings.chat.stopOnNameHijack.options.none' },
+      { value: 'single', label: 'settings.chat.stopOnNameHijack.options.single' },
+      { value: 'group', label: 'settings.chat.stopOnNameHijack.options.group' },
+      { value: 'all', label: 'settings.chat.stopOnNameHijack.options.all' },
+    ],
+  },
+  {
     id: 'ui.chat.reasoningCollapsed',
     label: 'settings.ui.chat.reasoningCollapsed.label',
     description: 'settings.ui.chat.reasoningCollapsed.description',

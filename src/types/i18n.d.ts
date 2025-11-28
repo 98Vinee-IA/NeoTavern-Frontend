@@ -54,6 +54,8 @@ export interface MessageSchema {
     replyStrategy: string;
     members: string;
     configuration: string;
+    queue: string;
+    clearQueue: string;
     strategies: {
       manual: string;
       natural: string;
@@ -992,6 +994,18 @@ export interface MessageSchema {
         forbidExternalMedia: {
           label: string;
           description: string;
+        };
+      };
+    };
+    chat: {
+      stopOnNameHijack: {
+        label: string;
+        description: string;
+        options: {
+          none: string;
+          single: string;
+          group: string;
+          all: string;
         };
       };
     };

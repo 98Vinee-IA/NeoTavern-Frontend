@@ -71,7 +71,9 @@ export async function listRecentChats(): Promise<ChatInfo[]> {
     throw new Error('Failed to list recent chat histories');
   }
 
-  return await response.json();
+  let data = (await response.json()) as ChatInfo[];
+  data = data.filter((chat) => chat.chat_metadata !== undefined);
+  return data;
 }
 
 export async function deleteChat(chatFile: string): Promise<void> {

@@ -19,6 +19,7 @@ export type SettingsPath = Path<Settings>;
 export type OaiSettingsPath = Path<LegacyOaiSettings>;
 
 export type ApiFormatter = 'chat' | 'text';
+export type StopOnNameHijack = 'none' | 'single' | 'group' | 'all';
 
 export interface LegacyPrompt {
   name: string;
@@ -281,6 +282,7 @@ export interface Settings {
   chat: {
     sendOnEnter: SendOnEnterOptions;
     confirmMessageDelete: boolean;
+    stopOnNameHijack: StopOnNameHijack;
   };
   character: {
     spoilerFreeMode: boolean;

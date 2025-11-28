@@ -310,6 +310,7 @@ async function showPromptItemization() {
             :title="t('chat.buttons.itemization')"
             @click="showPromptItemization"
           />
+          <Button variant="ghost" icon="fa-copy" :title="t('chat.buttons.copyMessage')" @click="copyMessage" />
           <Button variant="ghost" icon="fa-pencil" title="Edit" @click="startEditing" />
           <Button
             icon="fa-trash-can"
@@ -328,7 +329,6 @@ async function showPromptItemization() {
             :title="t('chat.buttons.confirmEdit')"
             @click="saveEdit"
           />
-          <Button variant="ghost" icon="fa-copy" :title="t('chat.buttons.copyMessage')" @click="copyMessage" />
           <Button
             variant="ghost"
             icon="fa-lightbulb"
