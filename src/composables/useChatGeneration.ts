@@ -337,6 +337,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       (stopOnNameHijack === 'group' && isGroupChat) ||
       (stopOnNameHijack === 'single' && !isGroupChat);
 
+    const stopNames = new Set<string>();
     if (shouldCheckHijack) {
       const stops = new Set(context.settings.sampler.stop);
 
@@ -344,11 +345,13 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       characterStore.activeCharacters.forEach((c) => {
         if (c.avatar !== activeCharacter.avatar) {
           stops.add(`\n${c.name}:`);
+          stopNames.add(c.name.trim());
         }
       });
       // Add user
       if (context.playerName) {
         stops.add(`\n${context.playerName}:`);
+        stopNames.add(context.playerName.trim());
       }
 
       context.settings.sampler.stop = Array.from(stops);
@@ -494,7 +497,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           const match = line.match(/^\s*(.{1,50}?):\s/);
           if (match) {
             const name = match[1].trim();
-            if (name !== activeCharacter.name.trim()) {
+            if (stopNames.has(name)) {
               cutoffIndex = i;
               break;
             }
@@ -696,7 +699,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
             const match = currentLine.match(/^\s*(.{1,50}?):\s/);
             if (match) {
               const detectedName = match[1].trim();
-              if (detectedName !== activeCharacter.name.trim()) {
+              if (stopNames.has(detectedName)) {
                 generationController.value?.abort();
 
                 // Trim the unwanted line
