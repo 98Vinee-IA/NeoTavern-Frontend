@@ -45,17 +45,6 @@ describe('MacroService', () => {
     expect(result).toBe('Description: A friendly AI named Alice.');
   });
 
-  test('handles global helpers (math/time)', () => {
-    const timeRes = macroService.process('{{time}}', context);
-    expect(timeRes).not.toBe('{{time}}');
-    expect(timeRes.length).toBeGreaterThan(0);
-
-    const randomRes = macroService.process('{{random 10 20}}', context);
-    const num = parseInt(randomRes);
-    expect(num).toBeGreaterThanOrEqual(10);
-    expect(num).toBeLessThanOrEqual(20);
-  });
-
   test('prevents infinite recursion', () => {
     // {{char}} resolves to "Alice". If we had a property that resolved to itself:
     const recursiveChar = { ...mockCharacter, name: '{{char}}' };

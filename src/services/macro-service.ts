@@ -25,12 +25,6 @@ export class MacroService {
 
   private registerGlobalHelpers() {
     Handlebars.registerHelper('time', () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    Handlebars.registerHelper('date', () => new Date().toLocaleDateString());
-    Handlebars.registerHelper('weekday', () => new Date().toLocaleDateString(undefined, { weekday: 'long' }));
-    Handlebars.registerHelper('random', (min, max) => {
-      if (typeof min !== 'number' || typeof max !== 'number') return 0;
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

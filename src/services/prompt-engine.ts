@@ -117,7 +117,7 @@ export class PromptBuilder {
     });
 
     this.processedWorldInfo = await processor.process();
-    const { worldInfoBefore, worldInfoAfter } = this.processedWorldInfo;
+    const { worldInfoBefore, worldInfoAfter, emBefore, emAfter } = this.processedWorldInfo;
 
     // 2. Build non-history prompts
     const fixedPrompts: ApiChatMessage[] = [];
@@ -170,12 +170,24 @@ export class PromptBuilder {
             break;
           }
           case 'dialogueExamples': {
+            if (emBefore && emBefore.length > 0) {
+              for (const em of emBefore) {
+                fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: em });
+              }
+            }
+
             const content = this.getProcessedContent(
               (c) => c.mes_example,
               isGroupContext ? undefined : this.character.mes_example,
             );
             const formattedContent = content.split('\n').join('\n\n');
             if (content) fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: formattedContent });
+
+            if (emAfter && emAfter.length > 0) {
+              for (const em of emAfter) {
+                fixedPrompts.push({ role: promptDefinition.role ?? 'system', content: em });
+              }
+            }
             break;
           }
           case 'worldInfoBefore':
@@ -225,6 +237,42 @@ export class PromptBuilder {
     const historyMessages: ApiChatMessage[] = [];
     let historyTokenCount = 0;
 
+    const insertMessages = async (msgs: ApiChatMessage[]): Promise<boolean> => {
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const msg = msgs[i];
+        const tokenCount = await this.tokenizer.getTokenCount(msg.content);
+        if (historyTokenCount + tokenCount <= historyBudget) {
+          historyTokenCount += tokenCount;
+          historyMessages.unshift(msg);
+        } else {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    const depthEntriesMap = new Map<number, ApiChatMessage[]>();
+    if (this.processedWorldInfo.depthEntries.length > 0) {
+      for (const entryItem of this.processedWorldInfo.depthEntries) {
+        const msgs: ApiChatMessage[] = entryItem.entries.map((content) => ({
+          role: entryItem.role,
+          content,
+        }));
+        const list = depthEntriesMap.get(entryItem.depth) || [];
+        depthEntriesMap.set(entryItem.depth, [...list, ...msgs]);
+      }
+    }
+
+    // Current depth counter (starts at 0 = end of chat)
+    let currentDepth = 0;
+
+    // Process Depth 0 (At the very end of history)
+    // TODO: Logic for 'continue' generation handling for depth 0 injection
+    if (depthEntriesMap.has(0)) {
+      const msgs = depthEntriesMap.get(0)!;
+      await insertMessages(msgs);
+    }
+
     for (let i = this.chatHistory.length - 1; i >= 0; i--) {
       const msg = this.chatHistory[i];
       if (msg.is_system) continue;
@@ -251,6 +299,15 @@ export class PromptBuilder {
         historyMessages.unshift(apiMsg);
       } else {
         break;
+      }
+
+      currentDepth++;
+
+      // Inject depth entries for next depth
+      if (depthEntriesMap.has(currentDepth)) {
+        const msgs = depthEntriesMap.get(currentDepth)!;
+        const success = await insertMessages(msgs);
+        if (!success) break;
       }
     }
 

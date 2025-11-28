@@ -391,4 +391,109 @@ describe('PromptBuilder', () => {
     expect(descMsg?.content).toContain('I am Char1.');
     expect(descMsg?.content).toContain('I am Char2 too.');
   });
+
+  it('inserts World Info entries at specific depth', async () => {
+    (WorldInfoProcessor as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      process: vi.fn().mockResolvedValue({
+        worldInfoBefore: '',
+        worldInfoAfter: '',
+        anBefore: [],
+        anAfter: [],
+        emBefore: [],
+        emAfter: [],
+        depthEntries: [
+          { depth: 0, role: 'system', entries: ['At Depth 0'] },
+          { depth: 1, role: 'system', entries: ['At Depth 1'] },
+        ],
+        outletEntries: {},
+        triggeredEntries: {},
+      }),
+    }));
+
+    const builder = new PromptBuilder({
+      characters: [mockCharacter],
+      chatHistory: mockChatHistory, // [User: Hello, Char1: Hi]
+      samplerSettings: mockSamplerSettings,
+      persona: mockPersona,
+      tokenizer: mockTokenizer,
+      chatMetadata: mockMetadata,
+      worldInfo: mockWorldInfoSettings,
+      books: [],
+      generationId: 'gen_depth',
+    });
+
+    const messages = await builder.build();
+
+    // Expected order in history block:
+    // [User (Msg1)]
+    // [At Depth 1]
+    // [Assistant (Msg2)]
+    // [At Depth 0]
+    // And finally the system prompts (Desc) which come before history in standard config
+
+    // Filter to just the history + injected WI
+    // The default prompts have Description first.
+    // Index 0: Description
+    // Index 1: User (Hello)
+    // Index 2: At Depth 1
+    // Index 3: Assistant (Hi)
+    // Index 4: At Depth 0
+
+    const contentArray = messages.map((m) => m.content);
+    expect(contentArray).toEqual([
+      'I am Char1.', // Description
+      'Hello', // User (Msg 1)
+      'At Depth 1', // Injected at depth 1
+      'Hi', // Assistant (Msg 2)
+      'At Depth 0', // Injected at depth 0
+    ]);
+  });
+
+  it('inserts World Info entries around dialogue examples (EM)', async () => {
+    (WorldInfoProcessor as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      process: vi.fn().mockResolvedValue({
+        worldInfoBefore: '',
+        worldInfoAfter: '',
+        anBefore: [],
+        anAfter: [],
+        emBefore: ['EM Before'],
+        emAfter: ['EM After'],
+        depthEntries: [],
+        outletEntries: {},
+        triggeredEntries: {},
+      }),
+    }));
+
+    const emSettings: SamplerSettings = {
+      ...mockSamplerSettings,
+      prompts: [
+        {
+          identifier: 'dialogueExamples',
+          name: 'Examples',
+          role: 'system',
+          content: '',
+          marker: true,
+          enabled: true,
+        },
+      ],
+    };
+
+    const builder = new PromptBuilder({
+      characters: [mockCharacter],
+      chatHistory: [],
+      samplerSettings: emSettings,
+      persona: mockPersona,
+      tokenizer: mockTokenizer,
+      chatMetadata: mockMetadata,
+      worldInfo: mockWorldInfoSettings,
+      books: [],
+      generationId: 'gen_em',
+    });
+
+    const messages = await builder.build();
+    const contentArray = messages.map((m) => m.content);
+
+    // Order: EM Before -> Dialogue Examples -> EM After
+    expect(contentArray).toEqual(['EM Before', 'Example 1', 'EM After']);
+  });
 });
