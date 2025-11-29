@@ -465,6 +465,7 @@ export interface MessageSchema {
     ok: string;
     cancel: string;
     save: string;
+    expandedEditor: string;
     yes: string;
     close: string;
     no: string;

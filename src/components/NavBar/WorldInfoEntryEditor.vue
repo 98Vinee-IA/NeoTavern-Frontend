@@ -281,6 +281,7 @@ const logicOptions = [
       <div class="world-entry-editor-section--column">
         <FormItem :label="t('worldInfo.entry.content')">
           <Textarea
+            :allow-maximize="true"
             :model-value="modelValue?.content ?? ''"
             :rows="8"
             :placeholder="t('worldInfo.entry.contentPlaceholder')"
