@@ -242,7 +242,10 @@ export const useApiStore = defineStore('api', () => {
     try {
       const presetData: SamplerSettings = { ...settingsStore.settings.api.samplers };
       await saveExperimentalPreset(name, presetData);
-      await loadPresetsForApi();
+      const existingIndex = presets.value.findIndex((p) => p.name === name);
+      if (existingIndex >= 0) {
+        presets.value[existingIndex] = { name, preset: presetData };
+      }
       settingsStore.settings.api.selectedSampler = name;
     } catch (error: unknown) {
       toast.error(`Failed to save preset "${name}".`);
@@ -277,7 +280,8 @@ export const useApiStore = defineStore('api', () => {
         await apideleteExperimentalPreset(oldName);
         await saveExperimentalPreset(newName, presetToRename.preset);
 
-        await loadPresetsForApi();
+        presets.value = presets.value.filter((p) => p.name !== oldName);
+        presets.value.push({ name: newName, preset: presetToRename.preset });
         settingsStore.settings.api.selectedSampler = newName;
       } catch (error) {
         toast.error('Failed to rename preset.');
@@ -303,7 +307,7 @@ export const useApiStore = defineStore('api', () => {
         if (settingsStore.settings.api.selectedSampler === name) {
           settingsStore.settings.api.selectedSampler = 'Default';
         }
-        await loadPresetsForApi();
+        presets.value = presets.value.filter((p) => p.name !== name);
       } catch (error: unknown) {
         toast.error(`Failed to delete preset "${name}".`);
         console.error('Failed to delete preset:', error);
@@ -337,7 +341,12 @@ export const useApiStore = defineStore('api', () => {
 
         // TODO: Add confirmation for overwriting existing preset, like original ST
         await saveExperimentalPreset(name, presetData);
-        await loadPresetsForApi();
+        const existingIndex = presets.value.findIndex((p) => p.name === name);
+        if (existingIndex >= 0) {
+          presets.value[existingIndex] = { name, preset: presetData };
+        } else {
+          presets.value.push({ name, preset: presetData });
+        }
         settingsStore.settings.api.selectedSampler = name;
       } catch (error) {
         toast.error(t('aiConfig.presets.errors.importInvalid'));

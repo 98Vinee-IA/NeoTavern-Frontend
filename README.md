@@ -10,7 +10,7 @@
 
 - Node.js (v20 or higher recommended)
 - npm
-- A running instance of the SillyTavern backend server. **You need to be on [this](https://github.com/bmen25124/SillyTavern/tree/experimental_ui_server) branch for enabling new sampler presets.**
+- A running instance of the SillyTavern backend server. **You need to install [V2-Server](https://github.com/bmen25124/SillyTavern-V2-Server) plugin.**
 
 ### Development
 

@@ -419,7 +419,6 @@ export interface LegacySettings {
       selected?: string;
     };
   };
-  v2Experimental?: Settings;
 }
 
 export type SettingType = 'boolean' | 'number' | 'string' | 'enum';

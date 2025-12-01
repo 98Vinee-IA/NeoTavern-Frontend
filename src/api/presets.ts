@@ -9,52 +9,47 @@ export interface Preset {
 }
 
 export async function fetchAllExperimentalPresets(): Promise<Preset[]> {
-  const userSettingsResponse = await fetchUserSettings();
+  const response = await fetch('/api/plugins/v2/v2ExperimentalSamplerPreset', {
+    method: 'GET',
+    headers: getRequestHeaders(),
+  });
 
-  const presets: Preset[] = [];
-  const names = userSettingsResponse.v2ExperimentalSamplerPreset_names ?? [];
-  const settingsData = userSettingsResponse.v2ExperimentalSamplerPreset_settings ?? [];
-
-  if (Array.isArray(names) && Array.isArray(settingsData)) {
-    names.forEach((name: string, i: number) => {
-      try {
-        presets.push({
-          name,
-          preset: settingsData[i],
-        });
-      } catch (e: unknown) {
-        console.error(`Failed to parse preset "${name}":`, settingsData[i]);
-        console.error(e);
-      }
-    });
+  if (!response.ok) {
+    throw new Error('Failed to fetch experimental presets');
   }
 
-  return presets;
+  return await response.json();
+}
+
+export async function fetchExperimentalPreset(name: string): Promise<Preset> {
+  const response = await fetch(`/api/plugins/v2/v2ExperimentalSamplerPreset/${encodeURIComponent(name)}`, {
+    method: 'GET',
+    headers: getRequestHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch preset');
+  }
+
+  return await response.json();
 }
 
 export async function saveExperimentalPreset(name: string, preset: SamplerSettings): Promise<void> {
-  const response = await fetch('/api/presets/save', {
+  const response = await fetch('/api/plugins/v2/v2ExperimentalSamplerPreset', {
     method: 'POST',
     headers: getRequestHeaders(),
-    body: JSON.stringify({
-      apiId: 'v2ExperimentalSamplerPreset',
-      name,
-      preset,
-    }),
+    body: JSON.stringify({ name, preset }),
   });
 
   if (!response.ok) {
     throw new Error('Failed to save preset');
   }
-
-  await response.json();
 }
 
 export async function deleteExperimentalPreset(name: string): Promise<void> {
-  const response = await fetch('/api/presets/delete', {
-    method: 'POST',
+  const response = await fetch(`/api/plugins/v2/v2ExperimentalSamplerPreset/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
     headers: getRequestHeaders(),
-    body: JSON.stringify({ apiId: 'v2ExperimentalSamplerPreset', name }),
   });
 
   if (!response.ok) {

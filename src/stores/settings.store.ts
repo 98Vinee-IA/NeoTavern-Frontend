@@ -1,7 +1,8 @@
 import { cloneDeep, get, set } from 'lodash-es';
 import { defineStore } from 'pinia';
 import { computed, nextTick, ref } from 'vue';
-import { saveUserSettings as apiSaveUserSettings, fetchUserSettings } from '../api/settings';
+import { fetchAllExperimentalPresets } from '../api/presets';
+import { fetchUserSettings, fetchV2Settings, saveV2Settings } from '../api/settings';
 import { useAutoSave } from '../composables/useAutoSave';
 import { toast } from '../composables/useToast';
 import { SendOnEnterOptions } from '../constants';
@@ -11,7 +12,8 @@ import {
   migrateLegacyToExperimental,
 } from '../services/settings-migration.service';
 import { settingsDefinition } from '../settings-definition';
-import { type LegacySettings, type SettingDefinition, type Settings, type SettingsPath } from '../types';
+import { type SettingDefinition, type Settings, type SettingsPath } from '../types';
+import type { LegacySettings } from '../types/settings';
 import type { ValueForPath } from '../types/utils';
 import { isMobile } from '../utils/client';
 import { eventEmitter } from '../utils/extensions';
@@ -23,16 +25,13 @@ export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<Settings>(createDefaultSettings());
   const settingsInitializing = ref(true);
   const definitions = ref<SettingDefinition[]>(settingsDefinition);
-  const fullLegacySettings = ref<LegacySettings | null>(null);
 
   let initializationPromise: Promise<void> | null = null;
 
   const { trigger: saveSettingsDebounced } = useAutoSave(async () => {
-    if (settingsInitializing.value || !fullLegacySettings.value) return;
+    if (settingsInitializing.value) return;
 
-    const settingsToSave: LegacySettings = { ...fullLegacySettings.value };
-    settingsToSave.v2Experimental = settings.value;
-    await apiSaveUserSettings(settingsToSave);
+    await saveV2Settings(settings.value);
   });
 
   function getSetting<P extends SettingsPath>(id: P): SettingsValue<P> {
@@ -69,18 +68,19 @@ export const useSettingsStore = defineStore('settings', () => {
     initializationPromise = (async () => {
       try {
         const userSettingsResponse = await fetchUserSettings();
-        const legacySettings = userSettingsResponse.settings;
-        fullLegacySettings.value = legacySettings;
+        const v2samplerPresets = await fetchAllExperimentalPresets();
+        const legacySettings: LegacySettings = userSettingsResponse.settings;
 
         let experimentalSettings: Settings;
 
-        if (legacySettings.v2Experimental) {
-          const result = mergeWithDefaults(legacySettings.v2Experimental, legacySettings);
+        try {
+          const v2Settings = await fetchV2Settings();
+          const result = mergeWithDefaults(v2Settings, legacySettings);
           experimentalSettings = result.settings;
-        } else {
-          experimentalSettings = migrateLegacyToExperimental(userSettingsResponse);
-          const result = mergeWithDefaults(experimentalSettings, legacySettings);
-          experimentalSettings = result.settings;
+        } catch (v2Error) {
+          console.warn('No v2 settings found, performing one-time migration:', v2Error);
+          experimentalSettings = migrateLegacyToExperimental(userSettingsResponse, v2samplerPresets);
+          await saveV2Settings(experimentalSettings);
         }
 
         settings.value = experimentalSettings;

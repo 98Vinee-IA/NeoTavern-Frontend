@@ -1,5 +1,5 @@
 import { defaultsDeep, set } from 'lodash-es';
-import { saveExperimentalPreset } from '../api/presets';
+import { saveExperimentalPreset, type Preset } from '../api/presets';
 import { type ParsedUserSettingsResponse } from '../api/settings';
 import {
   CustomPromptPostProcessing,
@@ -150,7 +150,10 @@ function collectPromptsFromLegacyPresets(presets: LegacyOaiPresetSettings[]): Pr
   return Array.from(promptMap.values());
 }
 
-export function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSettingsResponse): Settings {
+export function migrateLegacyToExperimental(
+  userSettingsResponse: ParsedUserSettingsResponse,
+  v2samplerPresets: Preset[],
+): Settings {
   const legacy = userSettingsResponse.settings;
   const p = legacy.power_user || ({} as LegacySettings['power_user']);
   const oai = legacy.oai_settings || ({} as LegacySettings['oai_settings']);
@@ -173,7 +176,7 @@ export function migrateLegacyToExperimental(userSettingsResponse: ParsedUserSett
 
   // Migrate presets
   if (
-    userSettingsResponse.v2ExperimentalSamplerPreset_settings.length === 0 &&
+    v2samplerPresets.length === 0 &&
     Array.isArray(userSettingsResponse.openai_setting_names) &&
     Array.isArray(userSettingsResponse.openai_settings)
   ) {
