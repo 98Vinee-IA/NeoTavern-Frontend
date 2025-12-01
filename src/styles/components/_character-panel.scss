@@ -38,3 +38,78 @@
     min-height: 0;
   }
 }
+
+// =============================================================================
+// Alternate Greetings Modal
+// =============================================================================
+
+.alternate-greetings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 200px;
+}
+
+.greetings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.greeting-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--black-30a);
+  padding: 8px;
+  border-radius: var(--base-border-radius);
+  border: 1px solid var(--theme-border-color);
+}
+
+:deep(.swap-button) {
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.drag-handle {
+  cursor: grab;
+  padding: 8px 4px;
+  opacity: 0.5;
+  color: var(--theme-text-color);
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.greeting-input-wrapper {
+  flex-grow: 1;
+
+  :deep(.text-pole) {
+    margin: 0;
+  }
+}
+
+.add-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.empty-list {
+  text-align: center;
+  opacity: 0.6;
+  font-style: italic;
+  padding: 16px;
+  border: 1px dashed var(--theme-border-color);
+  border-radius: var(--base-border-radius);
+}

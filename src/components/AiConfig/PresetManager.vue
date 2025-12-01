@@ -78,23 +78,3 @@ async function handleNewPreset() {
     />
   </div>
 </template>
-
-<style scoped lang="scss">
-.standout-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-  font-size: 1.1em;
-  color: var(--theme-text-color);
-}
-
-.preset-manager {
-  margin-bottom: 20px;
-
-  &-actions {
-    display: flex;
-    gap: 4px;
-  }
-}
-</style>

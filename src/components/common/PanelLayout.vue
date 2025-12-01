@@ -66,21 +66,3 @@ const isMainOnly = computed(() => displayMode.value === 'main-only');
     </template>
   </SplitPane>
 </template>
-
-<style scoped>
-.standalone-pane {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background-color: var(--theme-background-tint);
-  min-height: 0;
-  min-width: 0;
-}
-.main-page-content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-</style>

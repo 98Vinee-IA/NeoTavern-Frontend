@@ -319,12 +319,3 @@ watch(
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-.separator-vertical {
-  width: 1px;
-  background-color: var(--theme-border-color);
-  height: 24px;
-  margin: 0 4px;
-}
-</style>

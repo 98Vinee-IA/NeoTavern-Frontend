@@ -21,27 +21,3 @@ defineProps<{
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-.vanilla-sidebar-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  background-color: var(--theme-background-tint);
-}
-
-.vanilla-sidebar-container {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  overflow-y: auto;
-  position: relative;
-}
-
-.vanilla-sidebar-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-</style>

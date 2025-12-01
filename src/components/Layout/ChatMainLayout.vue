@@ -16,10 +16,3 @@ const uiStore = useUiStore();
     <ZoomedAvatar :avatar="avatar" />
   </template>
 </template>
-
-<style scoped lang="scss">
-.content-wrapper {
-  height: calc(100% - var(--header-height));
-  position: relative;
-}
-</style>

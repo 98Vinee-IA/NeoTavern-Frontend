@@ -56,3 +56,10 @@
     background-color: var(--black-50a);
   }
 }
+
+.extensions-panel-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

@@ -22,21 +22,3 @@ const inputValue = ref(props.value);
     ></textarea>
   </div>
 </template>
-
-<style lang="scss">
-.expanded-textarea-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.expanded-label {
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.expanded-textarea {
-  min-height: 500px;
-  resize: none !important;
-}
-</style>

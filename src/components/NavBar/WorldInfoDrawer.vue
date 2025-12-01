@@ -386,20 +386,3 @@ const sortOptions = computed(() => [
     </template>
   </PanelLayout>
 </template>
-
-<style scoped>
-.font-bold {
-  font-weight: bold;
-}
-
-.toggle-icon-wrapper {
-  cursor: pointer;
-  font-size: 1.4em;
-  color: var(--color-accent-green-70a);
-  transition: opacity var(--animation-duration-2x);
-
-  &:hover {
-    opacity: 0.8;
-  }
-}
-</style>

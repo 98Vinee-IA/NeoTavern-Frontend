@@ -115,32 +115,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-.ai-config-drawer-item {
-  margin-bottom: 16px;
-  &:empty {
-    display: none;
-  }
-}
-
-.ai-config-drawer-controls-row :deep(.tabs) {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.completion-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.completion-title {
-  margin: 0;
-}
-
-.completion-subtitle {
-  margin: 0;
-  color: var(--text-secondary);
-}
-</style>

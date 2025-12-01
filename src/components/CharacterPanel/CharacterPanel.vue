@@ -212,9 +212,3 @@ onMounted(async () => {
     </template>
   </PanelLayout>
 </template>
-
-<style scoped>
-.font-bold {
-  font-weight: bold;
-}
-</style>

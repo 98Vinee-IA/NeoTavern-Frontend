@@ -1,0 +1,18 @@
+.preset-control {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+
+  &-selector {
+    flex-grow: 1;
+
+    :deep(.form-item) {
+      margin-bottom: 0;
+    }
+  }
+
+  &-actions {
+    display: flex;
+    gap: 4px;
+  }
+}

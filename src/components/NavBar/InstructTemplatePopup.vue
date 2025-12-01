@@ -134,25 +134,3 @@ function close() {
     </div>
   </dialog>
 </template>
-
-<style scoped lang="scss">
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.checkbox-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 20px;
-}
-.mt-2 {
-  margin-top: 8px;
-}
-.template-form {
-  max-height: 70vh;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-</style>

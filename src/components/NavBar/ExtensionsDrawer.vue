@@ -112,16 +112,3 @@ function installExtension() {
     </template>
   </PanelLayout>
 </template>
-
-<style scoped>
-.font-bold {
-  font-weight: bold;
-}
-
-.extensions-panel-editor {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-</style>

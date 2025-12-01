@@ -72,3 +72,18 @@
     align-items: flex-start;
   }
 }
+
+// =============================================================================
+// Toggle Icon
+// =============================================================================
+
+.toggle-icon-wrapper {
+  cursor: pointer;
+  font-size: 1.4em;
+  color: var(--color-accent-green-70a);
+  transition: opacity var(--animation-duration-2x);
+
+  &:hover {
+    opacity: 0.8;
+  }
+}

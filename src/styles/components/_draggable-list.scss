@@ -1,0 +1,63 @@
+.draggable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-block: 4px;
+}
+
+.draggable-item-wrapper {
+  position: relative;
+  border-radius: var(--base-border-radius, 2px);
+  // Using translate instead of default layout helps performance
+  will-change: transform, opacity;
+
+  // Default cursor behavior
+  cursor: default;
+
+  // If we are draggable (and no specific handle class is set), show grab cursor
+  &[draggable='true'] {
+    cursor: grab;
+  }
+
+  &.is-dragging-active {
+    opacity: 0.4;
+    background: #f9f9f9;
+    cursor: grabbing;
+  }
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--theme-quote-color, #e18a24);
+    display: none;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 2px;
+  }
+
+  &.drop-target-top::before {
+    display: block;
+    top: -4px;
+  }
+
+  &.drop-target-bottom::after {
+    display: block;
+    bottom: -4px;
+  }
+}
+
+/* 
+   Handle Logic: 
+   If props.handleClass is passed, we expect the parent to style it.
+   However, we ensure that hovering that class triggers the correct cursor.
+*/
+:deep(.draggable-handle) {
+  cursor: grab;
+}
+:deep(.draggable-handle:active) {
+  cursor: grabbing;
+}

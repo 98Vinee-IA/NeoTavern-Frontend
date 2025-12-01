@@ -789,32 +789,3 @@ const embeddedLorebookName = computed({
     />
   </div>
 </template>
-
-<style scoped lang="scss">
-.is-favorite {
-  color: var(--color-golden);
-  filter: drop-shadow(0 0 3px var(--color-golden));
-}
-
-.flex-1 {
-  flex: 1;
-}
-
-.font-bold {
-  font-weight: bold;
-}
-.text-lg {
-  font-size: 1.2em;
-}
-
-.first-message-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 4px;
-}
-
-.count-badge {
-  margin-left: 4px;
-  opacity: 0.7;
-}
-</style>

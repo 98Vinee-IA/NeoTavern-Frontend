@@ -276,4 +276,42 @@ select.text-pole {
       right: var(--sidebar-right-width, var(--sidebar-width));
     }
   }
+
+  // =============================================================================
+  // Utility Classes
+  // =============================================================================
+
+  .font-bold {
+    font-weight: bold;
+  }
+
+  // =============================================================================
+  // Common Layout Components
+  // =============================================================================
+
+  .standalone-pane {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--theme-background-tint);
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .main-page-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // =============================================================================
+  // Layout Components
+  // =============================================================================
+
+  .content-wrapper {
+    height: calc(100% - var(--header-height));
+    position: relative;
+  }
 }

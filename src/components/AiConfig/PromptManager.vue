@@ -228,19 +228,3 @@ function getBadgeClass(role?: string) {
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.prompt-manager-header {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.prompt-manager-actions-row {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-.full-width {
-  width: 100%;
-}
-</style>
