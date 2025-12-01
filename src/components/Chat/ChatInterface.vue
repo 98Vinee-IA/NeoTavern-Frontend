@@ -27,11 +27,16 @@ const userInput = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const isOptionsMenuVisible = ref(false);
 const optionsMenu = ref<HTMLElement | null>(null);
+const chatInput = ref<HTMLTextAreaElement | null>(null);
 
 function submitMessage() {
   if (!userInput.value.trim()) return;
   chatStore.sendMessage(userInput.value);
   userInput.value = '';
+
+  nextTick(() => {
+    chatInput.value?.focus();
+  });
 
   if (chatStore.activeChatFile) {
     promptStore.clearUserTyping(chatStore.activeChatFile);
@@ -118,6 +123,8 @@ async function checkAndImportCharacterBooks() {
 
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  await nextTick();
+  chatInput.value?.focus();
 });
 
 onUnmounted(() => {
@@ -174,6 +181,10 @@ watch(
     if (newFile) {
       const savedInput = await promptStore.loadUserTyping(newFile);
       userInput.value = savedInput;
+
+      nextTick(() => {
+        chatInput.value?.focus();
+      });
     } else {
       userInput.value = '';
     }
@@ -220,6 +231,7 @@ watch(
           </div>
           <textarea
             id="chat-input"
+            ref="chatInput"
             v-model="userInput"
             :placeholder="t('chat.inputPlaceholder')"
             autocomplete="off"
