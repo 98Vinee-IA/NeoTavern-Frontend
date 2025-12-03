@@ -12,8 +12,6 @@ import type { Persona } from './persona';
 import type { SettingsPath } from './settings';
 import type { ProcessedWorldInfo, WorldInfoBook, WorldInfoEntry, WorldInfoOptions } from './world-info';
 
-// TODO: We should have generation-id for each LLL request.
-
 export interface ExtensionEventMap {
   // General Application Events
   'app:loaded': [];
