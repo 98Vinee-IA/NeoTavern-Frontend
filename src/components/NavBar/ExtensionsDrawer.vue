@@ -4,7 +4,7 @@ import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useExtensionStore } from '../../stores/extension.store';
 import { EmptyState } from '../common';
 import PanelLayout from '../common/PanelLayout.vue';
-import { Button, ListItem, Search, Toggle } from '../UI';
+import { Button, FormItem, ListItem, Search, Toggle } from '../UI';
 
 const { t } = useStrictI18n();
 const props = defineProps<{
@@ -46,7 +46,9 @@ function installExtension() {
             :title="t('extensions.install')"
             @click="installExtension"
           />
-          <Toggle v-model="notifyOnUpdates" :title="t('extensions.notifyUpdates')" style="margin-left: auto" />
+          <FormItem>
+            <Toggle v-model="notifyOnUpdates" :title="t('extensions.notifyUpdates')" style="margin-left: auto" />
+          </FormItem>
         </div>
         <div class="sidebar-controls-row extensions-panel-controls-row">
           <Search v-model="extensionStore.searchTerm" :placeholder="t('common.search')" />

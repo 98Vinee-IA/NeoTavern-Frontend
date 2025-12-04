@@ -4,7 +4,6 @@
 defineProps<{
   modelValue: boolean;
   disabled?: boolean;
-  label?: string;
   title?: string;
 }>();
 
@@ -22,6 +21,5 @@ const emit = defineEmits(['update:modelValue']);
       />
       <span class="slider"></span>
     </span>
-    <span v-if="label">{{ label }}</span>
   </label>
 </template>

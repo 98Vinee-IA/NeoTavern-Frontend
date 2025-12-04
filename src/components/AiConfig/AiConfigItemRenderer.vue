@@ -164,10 +164,12 @@ function openSecretManager() {
     <template v-if="item.widget === 'group'">
       <CollapsibleSection :title="item.label ? t(item.label) : ''">
         <template v-if="item.enableable && item.id" #actions>
-          <Toggle
-            :model-value="!isGroupDisabled(item.id)"
-            @update:model-value="(val) => toggleGroupEnabled(item.id!, val)"
-          />
+          <FormItem>
+            <Toggle
+              :model-value="!isGroupDisabled(item.id)"
+              @update:model-value="(val) => toggleGroupEnabled(item.id!, val)"
+            />
+          </FormItem>
         </template>
         <div :class="{ 'is-disabled-group': item.id && isGroupDisabled(item.id) }">
           <AiConfigItemRenderer v-for="(subItem, idx) in item.items" :key="idx" :item="subItem" class="sub-item" />

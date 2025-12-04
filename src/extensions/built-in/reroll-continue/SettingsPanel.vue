@@ -42,15 +42,13 @@ function resetPrompt() {
 
 <template>
   <div class="impersonate-settings">
-    <Toggle
-      v-model="settings.rerollContinueEnabled"
-      :label="t('extensionsBuiltin.rerollContinue.settings.rerollEnabled')"
-    />
+    <FormItem :label="t('extensionsBuiltin.rerollContinue.settings.rerollEnabled')">
+      <Toggle v-model="settings.rerollContinueEnabled" />
+    </FormItem>
 
-    <Toggle
-      v-model="settings.impersonateEnabled"
-      :label="t('extensionsBuiltin.rerollContinue.settings.impersonateEnabled')"
-    />
+    <FormItem :label="t('extensionsBuiltin.rerollContinue.settings.impersonateEnabled')">
+      <Toggle v-model="settings.impersonateEnabled" />
+    </FormItem>
 
     <CollapsibleSection :title="t('extensionsBuiltin.rerollContinue.settings.impersonateTitle')" :is-open="false">
       <FormItem
