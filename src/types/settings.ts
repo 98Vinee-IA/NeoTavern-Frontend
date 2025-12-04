@@ -400,6 +400,7 @@ export interface LegacySettings {
     persona_show_notifications: boolean;
     persona_allow_multi_connections: boolean;
     persona_auto_lock: boolean;
+    reduced_motion: boolean;
   };
   background: {
     name: string;
