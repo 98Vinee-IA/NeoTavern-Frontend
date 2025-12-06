@@ -387,12 +387,9 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     const messages = await promptBuilder.build();
     if (messages.length === 0) throw new Error(t('chat.generate.noPrompts'));
 
-    // Inject Assistant Prefix for Group Chats
-    // "In group generations, we need to prefix the name with {role: assistant, content: `${name}: `}"
-    if (
-      groupChatStore.isGroupChat &&
-      [GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode)
-    ) {
+    // Inject Assistant Prefix
+    // Normally, I would do this for only group chats. However I'm not sure this should used everytime or only group chats.
+    if ([GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode)) {
       messages.push({
         role: 'assistant',
         content: `${activeCharacter.name}: `,
