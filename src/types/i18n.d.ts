@@ -558,6 +558,7 @@ export interface MessageSchema {
       swipeLeft: string;
       swipeRight: string;
       itemization: string;
+      branch: string;
     };
     delete: {
       confirmTitle: string;

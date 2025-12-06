@@ -270,6 +270,10 @@ async function showPromptItemization() {
     okButton: true,
   });
 }
+
+async function branchFromMessage() {
+  await chatStore.branchFromMessage(props.index);
+}
 </script>
 
 <template>
@@ -319,6 +323,7 @@ async function showPromptItemization() {
             :title="t('chat.buttons.itemization')"
             @click="showPromptItemization"
           />
+          <Button variant="ghost" icon="fa-code-branch" :title="t('chat.buttons.branch')" @click="branchFromMessage" />
           <Button variant="ghost" icon="fa-copy" :title="t('chat.buttons.copyMessage')" @click="copyMessage" />
           <Button variant="ghost" icon="fa-pencil" title="Edit" @click="startEditing" />
           <Button

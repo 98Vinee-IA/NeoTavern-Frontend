@@ -587,6 +587,76 @@ export const useChatStore = defineStore('chat', () => {
     await syncSwipeToMes(messageIndex, newSwipeId);
   }
 
+  async function branchFromMessage(messageIndex: number) {
+    if (
+      !activeChat.value ||
+      !activeChatFile.value ||
+      messageIndex < 0 ||
+      messageIndex >= activeChat.value.messages.length
+    ) {
+      throw new Error('Invalid message index or no active chat');
+    }
+
+    try {
+      chatUiStore.isChatLoading = true;
+
+      // Create new chat file name
+      const filename = uuidv4();
+      const fullFilename = `${filename}.jsonl`;
+
+      // Copy metadata from current chat but update integrity
+      const metadata: ChatMetadata = {
+        ...activeChat.value.metadata,
+        integrity: uuidv4(),
+        name: activeChat.value.metadata.name ? `${activeChat.value.metadata.name} (Branch)` : 'Branch',
+      };
+
+      // Copy messages up to and including the selected message
+      const messages = activeChat.value.messages.slice(0, messageIndex + 1);
+
+      // Create the new chat
+      const fullChat: FullChat = [{ chat_metadata: metadata }, ...messages];
+      await chatService.create(filename, fullChat);
+
+      // Update character links if needed
+      if (metadata.members?.length) {
+        for (const charAvatar of metadata.members) {
+          const character = characterStore.characters.find((c) => c.avatar === charAvatar);
+          if (character) {
+            await characterStore.updateAndSaveCharacter(charAvatar, { chat: filename });
+          }
+        }
+      }
+
+      // Add to chat lists
+      const lastMessage = messages[messages.length - 1];
+      const cInfo: ChatInfo = {
+        chat_metadata: metadata,
+        chat_items: messages.length,
+        file_id: filename,
+        file_name: fullFilename,
+        file_size: JSON.stringify(fullChat).length,
+        last_mes: Date.now(),
+        mes: lastMessage?.mes || '',
+      };
+
+      chatInfos.value.push(cInfo);
+      recentChats.value.push(cInfo);
+
+      // Set as active chat
+      activeChat.value = { metadata, messages };
+      activeChatFile.value = filename;
+
+      await nextTick();
+      await eventEmitter.emit('chat:entered', filename);
+    } catch (error) {
+      console.error('Failed to create branch:', error);
+      throw error;
+    } finally {
+      chatUiStore.isChatLoading = false;
+    }
+  }
+
   function moveMessage(index: number, direction: 'up' | 'down') {
     if (!activeChat.value || index < 0 || index >= activeChat.value.messages.length) return;
     const newIndex = direction === 'up' ? index - 1 : index + 1;
@@ -717,5 +787,6 @@ export const useChatStore = defineStore('chat', () => {
     deleteSelectedMessages,
     refreshChats,
     importChats,
+    branchFromMessage,
   };
 });

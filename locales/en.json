@@ -554,7 +554,8 @@
       "moveDown": "Move message down",
       "swipeLeft": "Previous swipe",
       "swipeRight": "Next swipe",
-      "itemization": "Prompt Itemization"
+      "itemization": "Prompt Itemization",
+      "branch": "Branch from this message"
     },
     "delete": {
       "confirmTitle": "Confirm Deletion",
