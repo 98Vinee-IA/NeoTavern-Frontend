@@ -219,6 +219,15 @@ const baseExtensionAPI: ExtensionAPI = {
       if (!store.activeChat) throw new Error('No active chat.');
       return deepClone(store.activeChat.messages);
     },
+    getChatInfo: () => {
+      const store = useChatStore();
+      return deepClone(
+        store.activeChatFile ? store.chatInfos.find((info) => info.file_id === store.activeChatFile) || null : null,
+      );
+    },
+    getAllChatInfos: () => {
+      return deepClone(useChatStore().chatInfos);
+    },
     getLastMessage: () => {
       const messages = useChatStore().activeChat?.messages ?? [];
       return messages.length > 0 ? deepClone(messages[messages.length - 1]) : null;
@@ -495,6 +504,9 @@ const baseExtensionAPI: ExtensionAPI = {
       await Vue.nextTick();
       return id;
     },
+    unregisterNavBarItem: (id) => {
+      useComponentRegistryStore().unregisterNavBarItem(id);
+    },
     openSidebar: (id) => useLayoutStore().toggleRightSidebar(id),
     mountComponent: async (container, componentName, props) => {
       if (!container) return;
@@ -724,6 +736,10 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
       });
       await Vue.nextTick();
       return namespacedId;
+    },
+    unregisterNavBarItem: (id: string) => {
+      const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
+      useComponentRegistryStore().unregisterNavBarItem(namespacedId);
     },
     openSidebar: (id: string) => {
       const layoutStore = useLayoutStore();

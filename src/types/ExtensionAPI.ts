@@ -3,7 +3,7 @@ import type { EventPriority } from '../constants';
 import type { PromptBuilder } from '../services/prompt-engine';
 import type { WorldInfoProcessor } from '../services/world-info';
 import type { Character } from './character';
-import type { ChatMessage, ChatMetadata, FullChat } from './chat';
+import type { ChatInfo, ChatMessage, ChatMetadata, FullChat } from './chat';
 import type { DrawerType } from './common';
 import type { ExtensionEventMap } from './events';
 import type { ApiChatMessage, ChatCompletionPayload, GenerationResponse, StreamedChunk } from './generation';
@@ -287,6 +287,12 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
       options?: { triggerGeneration?: boolean; generationId?: string },
     ) => Promise<void>;
     getHistory: () => readonly ChatMessage[];
+    /**
+     * Retrieves the current active chat filename (without extension).
+     * Returns null if no chat is loaded.
+     */
+    getChatInfo: () => Readonly<ChatInfo> | null;
+    getAllChatInfos: () => Readonly<Array<ChatInfo>>;
     getLastMessage: () => Readonly<ChatMessage> | null;
     insertMessage: (message: Omit<ChatMessage, 'send_date'> & { send_date?: string }, index?: number) => void;
     updateMessage: (index: number, newContent: string, newReasoning?: string) => Promise<void>;
@@ -444,6 +450,12 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
         targetSidebarId?: string;
       },
     ) => Promise<string>;
+
+    /**
+     * Unregisters a custom item from the main navigation bar.
+     * @param id Unique identifier for the item.
+     */
+    unregisterNavBarItem: (id: string) => void;
 
     /**
      * Opens a specific sidebar view.
