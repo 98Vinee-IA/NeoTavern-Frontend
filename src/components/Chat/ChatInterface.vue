@@ -122,7 +122,6 @@ async function checkAndImportCharacterBooks() {
   }
 }
 
-
 // 1. Compute specific things to watch instead of the whole object
 const messagesLength = computed(() => chatStore.activeChat?.messages.length || 0);
 

@@ -98,6 +98,7 @@ export const aiConfigDefinition: AiConfigSection[] = [
             'cometapi',
             'electronhub',
             'azure_openai',
+            'deepseek',
           ],
         },
         options: [

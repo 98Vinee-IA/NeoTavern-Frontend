@@ -212,7 +212,10 @@ function applyReasoningEffort(payload: ChatCompletionPayload, options: BuildChat
   const { samplerSettings, provider, model, modelList } = options;
 
   if (!samplerSettings.reasoning_effort) return;
-  if (!REASONING_EFFORT_PROVIDERS.includes(provider)) return;
+  if (!REASONING_EFFORT_PROVIDERS.includes(provider)) {
+    payload.reasoning_effort = samplerSettings.reasoning_effort;
+    return;
+  }
 
   // Azure Specific Constraint: Reasoning effort not supported on older GPT-3/4 models
   if (provider === api_providers.AZURE_OPENAI && /^gpt-[34]/.test(model)) {

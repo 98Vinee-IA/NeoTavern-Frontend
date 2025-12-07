@@ -387,9 +387,14 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     const messages = await promptBuilder.build();
     if (messages.length === 0) throw new Error(t('chat.generate.noPrompts'));
 
-    // Inject Assistant Prefix
-    // Normally, I would do this for only group chats. However I'm not sure this should used everytime or only group chats.
-    if ([GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode)) {
+    // Inject Assistant Prefix for Group Chats
+    // "In group generations, we need to prefix the name with {role: assistant, content: `${name}: `}"
+    // FIXME: "Generate" button doesn't work if the last message is assistant
+    // FIXME: Reasoning not going to work in group chats because of prefill logic
+    if (
+      groupChatStore.isGroupChat &&
+      [GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode)
+    ) {
       messages.push({
         role: 'assistant',
         content: `${activeCharacter.name}: `,
@@ -632,7 +637,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         generationController.value!.signal,
       )) as unknown as () => AsyncGenerator<StreamedChunk>;
 
-      let streamedReasoning = '';
       let targetMessageIndex = -1;
 
       // Initialize placeholder message
@@ -687,7 +691,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
             generationController.value?.abort();
             break;
           }
-          if (chunk.reasoning) streamedReasoning += chunk.reasoning;
 
           const targetMessage = activeChatMessages[targetMessageIndex];
           if (!targetMessage.swipes) targetMessage.swipes = [''];
@@ -703,7 +706,8 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
               targetMessage.swipes[targetMessage.swipe_id] = targetMessage.mes;
             }
           }
-          if (chunk.reasoning) targetMessage.extra.reasoning = streamedReasoning;
+          if (chunk.reasoning && chunk.reasoning !== targetMessage.extra.reasoning)
+            targetMessage.extra.reasoning = chunk.reasoning;
 
           // Check for name hijacking/hallucinations
           if (shouldCheckHijack) {
