@@ -1,3 +1,5 @@
+@use 'sass:map';
+
 // =============================================================================
 // Layout & Positioning Mixins
 // =============================================================================
@@ -129,7 +131,7 @@
     xxl: 1400px,
   );
 
-  $min-width: map-get($breakpoints, $breakpoint);
+  $min-width: map.get($breakpoints, $breakpoint);
 
   @if $min-width {
     @media (min-width: $min-width) {
