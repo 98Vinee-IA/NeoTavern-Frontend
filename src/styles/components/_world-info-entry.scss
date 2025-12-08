@@ -6,6 +6,7 @@
   transition:
     opacity var(--animation-duration-3x),
     filter var(--animation-duration-3x);
+  padding: 0 var(--spacing-sm) var(--spacing-sm) var(--spacing-sm);
 
   &.is-disabled {
     opacity: 0.5;

@@ -674,7 +674,6 @@
     "more": "More...",
     "searchTags": "Search / Create tags",
     "creatorNotes": "Creator's Notes",
-    "toggleStyles": "Allow / Forbid global styles",
     "toggleSpoiler": "Show / Hide Description and First Message",
     "noCreatorNotes": "No Creator's Notes provided.",
     "detailsHidden": "Character details are hidden.",
@@ -969,10 +968,6 @@
         "label": "Confirm Message Deletion",
         "description": "Show a confirmation dialog before deleting a chat message."
       },
-      "zoomedAvatarMagnification": {
-        "label": "Magnify Zoomed Avatars",
-        "description": "Enable magnification effect when hovering over a zoomed-in avatar."
-      },
       "tagImportSetting": {
         "label": "Tag Import Behavior",
         "description": "How to handle tags when importing characters.",
@@ -982,16 +977,6 @@
           "only_existing": "Import only existing tags",
           "ask": "Ask for each character"
         }
-      }
-    },
-    "background": {
-      "thumbnailColumns": {
-        "label": "Background Thumbnail Columns",
-        "description": "Number of columns for background thumbnails in the selector."
-      },
-      "animation": {
-        "label": "Animated Backgrounds",
-        "description": "Enable animation for supported background formats (e.g., video, animated webp)."
       }
     },
     "ui": {

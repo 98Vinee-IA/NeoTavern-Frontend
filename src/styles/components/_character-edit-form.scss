@@ -4,7 +4,7 @@
   @include flex-container(column);
   height: 100%;
   overflow-y: auto;
-  padding: 0 var(--spacing-xs);
+  padding: 0 var(--spacing-sm) var(--spacing-sm) var(--spacing-sm);
   gap: var(--spacing-md);
 
   form {

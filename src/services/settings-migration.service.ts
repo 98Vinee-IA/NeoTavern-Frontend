@@ -10,6 +10,8 @@ import {
   defaultSamplerSettings,
   defaultWorldInfoSettings,
   OpenrouterMiddleoutType,
+  SendOnEnterOptions,
+  TagImportSetting,
   TokenizerType,
 } from '../constants';
 import { settingsDefinition } from '../settings-definition';
@@ -25,41 +27,68 @@ import {
 import { uuidv4 } from '../utils/commons';
 
 export function createDefaultSettings(): Settings {
-  // @ts-expect-error Missing properties initialization, populated via loop and manual assignments
-  const defaultSettings: Settings = {};
+  const defaultSettings: Settings = {
+    account: defaultAccountSettings,
+    api: {
+      provider: 'openai',
+      formatter: 'chat',
+      proxy: {
+        id: '',
+        url: '',
+        password: '',
+      },
+      selectedSampler: '',
+      selectedProviderModels: structuredClone(defaultProviderModels),
+      providerSpecific: structuredClone(defaultProviderSpecific),
+      samplers: structuredClone(defaultSamplerSettings),
+      connectionProfiles: [],
+      selectedConnectionProfile: undefined,
+      tokenizer: TokenizerType.AUTO,
+      customPromptPostProcessing: CustomPromptPostProcessing.NONE,
+      instructTemplateName: '',
+    },
+    character: {
+      spoilerFreeMode: false,
+      worldImportDialog: true,
+      tagImportSetting: TagImportSetting.ASK,
+    },
+    chat: {
+      sendOnEnter: SendOnEnterOptions.AUTO,
+      stopOnNameHijack: 'all',
+      confirmMessageDelete: true,
+    },
+    disabledExtensions: [],
+    extensionSettings: {},
+    persona: {
+      activePersonaId: null,
+      defaultPersonaId: null,
+      personas: [],
+      showNotifications: true,
+    },
+    prompts: defaultPrompts,
+    proxies: [],
+    ui: {
+      background: {
+        fitting: 'cover',
+        name: '',
+        thumbnailColumns: 2,
+        url: '',
+      },
+      avatars: {
+        neverResize: false,
+      },
+      chat: {
+        reasoningCollapsed: true,
+        forbidExternalMedia: true,
+      },
+      disableAnimations: false,
+    },
+    worldInfo: structuredClone(defaultWorldInfoSettings),
+  };
+
   for (const def of settingsDefinition) {
     set(defaultSettings, def.id, def.defaultValue);
   }
-
-  // Manually set complex default objects that aren't in settingsDefinition
-  defaultSettings.prompts = structuredClone(defaultPrompts);
-  defaultSettings.api = {
-    provider: 'openai',
-    formatter: 'chat',
-    proxy: {
-      id: '',
-      password: '',
-      url: '',
-    },
-    selectedSampler: 'Default',
-    samplers: defaultSamplerSettings,
-    connectionProfiles: [],
-    selectedConnectionProfile: undefined,
-    selectedProviderModels: structuredClone(defaultProviderModels),
-    tokenizer: TokenizerType.AUTO,
-    providerSpecific: structuredClone(defaultProviderSpecific),
-    customPromptPostProcessing: CustomPromptPostProcessing.NONE,
-  };
-  defaultSettings.worldInfo = defaultWorldInfoSettings;
-  defaultSettings.account = defaultAccountSettings;
-  defaultSettings.disabledExtensions = [];
-  defaultSettings.extensionSettings = {};
-  defaultSettings.persona = {
-    showNotifications: true,
-    defaultPersonaId: null,
-    activePersonaId: null,
-    personas: [],
-  };
 
   return defaultSettings;
 }
@@ -198,10 +227,12 @@ export function migrateLegacyToExperimental(
   const migrated: Settings = {
     ui: {
       background: {
-        ...(legacy.background || {}),
+        fitting: 'cover',
+        name: '',
+        thumbnailColumns: 2,
+        url: '',
       },
       avatars: {
-        zoomedMagnification: p.zoomed_avatar_magnification,
         neverResize: p.never_resize_avatars,
       },
       chat: {

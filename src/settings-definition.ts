@@ -83,7 +83,7 @@ export const settingsDefinition: SettingDefinition[] = [
     category: 'Chat/Message Handling',
     type: 'boolean',
     widget: 'checkbox',
-    defaultValue: false,
+    defaultValue: true,
   },
   {
     id: 'ui.chat.forbidExternalMedia',
@@ -97,15 +97,6 @@ export const settingsDefinition: SettingDefinition[] = [
 
   // --- UI & Display ---
   {
-    id: 'ui.avatars.zoomedMagnification',
-    label: 'settings.powerUser.zoomedAvatarMagnification.label',
-    description: 'settings.powerUser.zoomedAvatarMagnification.description',
-    category: 'UI & Display',
-    type: 'boolean',
-    widget: 'checkbox',
-    defaultValue: true,
-  },
-  {
     id: 'ui.avatars.neverResize',
     label: 'settings.powerUser.neverResizeAvatars.label',
     description: 'settings.powerUser.neverResizeAvatars.description',
@@ -116,27 +107,6 @@ export const settingsDefinition: SettingDefinition[] = [
   },
 
   // --- Appearance ---
-  {
-    id: 'ui.background.thumbnailColumns',
-    label: 'settings.background.thumbnailColumns.label',
-    description: 'settings.background.thumbnailColumns.description',
-    category: 'Appearance',
-    type: 'number',
-    widget: 'slider',
-    defaultValue: 5,
-    min: 2,
-    max: 8,
-    step: 1,
-  },
-  {
-    id: 'ui.background.animation',
-    label: 'settings.background.animation.label',
-    description: 'settings.background.animation.description',
-    category: 'Appearance',
-    type: 'boolean',
-    widget: 'checkbox',
-    defaultValue: false,
-  },
   {
     id: 'ui.disableAnimations',
     label: 'settings.ui.disableAnimations.label',

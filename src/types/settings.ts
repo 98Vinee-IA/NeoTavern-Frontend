@@ -268,10 +268,8 @@ export interface Settings {
       url: string;
       fitting: BackgroundFitting;
       thumbnailColumns: number;
-      animation: boolean;
     };
     avatars: {
-      zoomedMagnification: boolean;
       neverResize: boolean;
     };
     chat: {

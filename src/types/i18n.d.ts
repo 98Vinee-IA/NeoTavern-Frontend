@@ -677,7 +677,6 @@ export interface MessageSchema {
     more: string;
     searchTags: string;
     creatorNotes: string;
-    toggleStyles: string;
     toggleSpoiler: string;
     noCreatorNotes: string;
     detailsHidden: string;
@@ -972,10 +971,6 @@ export interface MessageSchema {
         label: string;
         description: string;
       };
-      zoomedAvatarMagnification: {
-        label: string;
-        description: string;
-      };
       tagImportSetting: {
         label: string;
         description: string;
@@ -985,16 +980,6 @@ export interface MessageSchema {
           only_existing: string;
           ask: string;
         };
-      };
-    };
-    background: {
-      thumbnailColumns: {
-        label: string;
-        description: string;
-      };
-      animation: {
-        label: string;
-        description: string;
       };
     };
     ui: {

@@ -4,7 +4,7 @@
   gap: var(--spacing-lg);
   height: 100%;
   overflow-y: auto;
-  padding-right: var(--spacing-sm);
+  padding: 0 var(--spacing-sm) var(--spacing-sm) var(--spacing-sm);
 }
 
 .world-info-global-settings .main-page-header {

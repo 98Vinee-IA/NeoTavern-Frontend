@@ -542,7 +542,6 @@ const embeddedLorebookName = computed({
       <!-- Creator's Notes Inline Drawer -->
       <CollapsibleSection v-model:is-open="isCreatorNotesOpen!" :title="t('characterEditor.creatorNotes')">
         <template #actions>
-          <Button variant="ghost" icon="fa-palette" :title="t('characterEditor.toggleStyles')" @click.stop="() => {}" />
           <Button
             variant="ghost"
             icon="fa-eye"
