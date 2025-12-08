@@ -1,7 +1,9 @@
+import * as bytes from 'bytes';
 import * as Vue from 'vue';
 import { createVNode, render, type App } from 'vue';
 import { EventPriority, GenerationMode, GroupGenerationHandlingMode, default_avatar } from '../constants';
 import type {
+  ChatInfo,
   ChatMessage,
   ExtensionAPI,
   ExtensionEventMap,
@@ -357,18 +359,20 @@ const baseExtensionAPI: ExtensionAPI = {
       const last = messages[messages.length - 1];
 
       // Update store lists manually to avoid full refresh
-      const info = {
+      const info: ChatInfo = {
         chat_metadata: header.chat_metadata,
         chat_items: messages.length,
         file_id: finalFilename,
         file_name: `${finalFilename}.jsonl`,
-        file_size: JSON.stringify(chat).length,
-        last_mes: Date.now(),
+        file_size: bytes.format(JSON.stringify(chat).length)!,
+        last_mes: getMessageTimeStamp(),
         mes: last?.mes || '',
       };
 
       chatStore.chatInfos.push(info);
       chatStore.recentChats.push(info);
+      chatStore.chatInfos.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
+      chatStore.recentChats.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
 
       return finalFilename;
     },

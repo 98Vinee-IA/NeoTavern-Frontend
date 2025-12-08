@@ -81,9 +81,9 @@ export type ChatInfo = {
    * File name with extension
    */
   file_name: string;
-  file_size: number;
+  file_size: string; // bytes.format(...)
   chat_items: number;
   mes: string;
-  last_mes: number; // Unix timestamp
+  last_mes: string; // ISO timestamp
   chat_metadata: ChatMetadata;
 };

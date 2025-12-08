@@ -24,6 +24,7 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@types/bytes": "^3.1.5",
     "@types/glob": "^8.1.0",
     "@types/jsdom": "^27.0.0",
     "@types/lodash-es": "^4.17.12",
@@ -51,6 +52,7 @@
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@intlify/unplugin-vue-i18n": "^11.0.1",
     "bowser": "^2.12.1",
+    "bytes": "^3.1.2",
     "cropperjs": "^2.1.0",
     "dompurify": "^3.3.0",
     "handlebars": "^4.7.8",

@@ -57,35 +57,8 @@ export function humanizedDateTime() {
   return now.toLocaleString(undefined, options);
 }
 
-export function getMessageTimeStamp() {
-  const date = Date.now();
-  const months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  const d = new Date(date);
-  const formattedDate =
-    months[d.getMonth()] +
-    ' ' +
-    d.getDate() +
-    ', ' +
-    d.getFullYear() +
-    ' ' +
-    (d.getHours() % 12 || 12) +
-    ':' +
-    ('0' + d.getMinutes()).slice(-2) +
-    (d.getHours() >= 12 ? 'pm' : 'am');
-  return formattedDate;
+export function getMessageTimeStamp(): string {
+  return new Date().toISOString();
 }
 
 export function formatTimeStamp(dateString?: string | number): string {

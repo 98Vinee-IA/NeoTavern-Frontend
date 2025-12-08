@@ -1,3 +1,4 @@
+import * as bytes from 'bytes';
 import { defineStore } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
 import { type ChatExportRequest } from '../api/chat';
@@ -18,7 +19,7 @@ import {
 } from '../types';
 import { getCharacterDifferences } from '../utils/character';
 import { getFirstMessage } from '../utils/chat';
-import { downloadFile, uuidv4 } from '../utils/commons';
+import { downloadFile, getMessageTimeStamp, uuidv4 } from '../utils/commons';
 import { eventEmitter } from '../utils/extensions';
 import { useCharacterStore } from './character.store';
 import { useChatSelectionStore } from './chat-selection.store';
@@ -363,13 +364,15 @@ export const useChatStore = defineStore('chat', () => {
         chat_items: messages.length,
         file_id: filename,
         file_name: fullFilename,
-        file_size: JSON.stringify(fullChat).length,
-        last_mes: Date.now(),
+        file_size: bytes.format(JSON.stringify(fullChat).length)!,
+        last_mes: getMessageTimeStamp(),
         mes: firstMessage?.mes || '',
       };
 
       chatInfos.value.push(cInfo);
       recentChats.value.push(cInfo);
+      chatInfos.value.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
+      recentChats.value.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
 
       await nextTick();
       await eventEmitter.emit('chat:entered', filename);
@@ -660,26 +663,28 @@ export const useChatStore = defineStore('chat', () => {
         const chatInfo: ChatInfo = {
           file_id: fileId,
           file_name: fileName,
-          file_size: JSON.stringify(fullChat).length,
+          file_size: bytes.format(JSON.stringify(fullChat).length)!,
           chat_items: messages.length,
           mes: lastMessage?.mes.slice(0, 100) ?? '',
-          last_mes: lastMessage ? new Date(lastMessage.send_date).getTime() : Date.now(),
+          last_mes: lastMessage ? lastMessage.send_date : getMessageTimeStamp(),
           chat_metadata: header.chat_metadata,
         };
 
         if (!chatInfos.value.find((c) => c.file_id === fileId)) {
           chatInfos.value.push(chatInfo);
+          chatInfos.value.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
         }
         if (!recentChats.value.find((c) => c.file_id === fileId)) {
           recentChats.value.push(chatInfo);
+          recentChats.value.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
         }
       } catch (e) {
         console.warn(`Failed to fetch imported chat ${fileName}:`, e);
       }
     }
 
-    chatInfos.value.sort((a, b) => b.last_mes - a.last_mes);
-    recentChats.value.sort((a, b) => b.last_mes - a.last_mes);
+    chatInfos.value.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
+    recentChats.value.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
 
     return result;
   }
