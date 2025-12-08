@@ -17,7 +17,11 @@ const apiStore = useApiStore();
 const settingsStore = useSettingsStore();
 
 const dialog = ref<HTMLDialogElement | null>(null);
-const profileName = ref('New Profile');
+const defaultProfileName = () => {
+  const provider = settingsStore.settings.api.provider;
+  const model = apiStore.activeModel;
+  return `${provider} - ${model}`;
+};
 
 const includeProvider = ref(true);
 const includeModel = ref(true);
@@ -28,6 +32,7 @@ const currentProvider = computed(() => settingsStore.settings.api.provider);
 const currentModel = computed(() => apiStore.activeModel);
 const currentSampler = computed(() => settingsStore.settings.api.selectedSampler);
 const currentPostProcessing = computed(() => settingsStore.settings.api.customPromptPostProcessing);
+const profileName = ref(defaultProfileName());
 
 const modelLabel = computed(() => {
   const provider = currentProvider.value;
@@ -70,7 +75,7 @@ watch(
   () => props.visible,
   (isVisible) => {
     if (isVisible) {
-      profileName.value = 'New Profile';
+      profileName.value = defaultProfileName();
       includeProvider.value = true;
       includeModel.value = true;
       includeSampler.value = true;
