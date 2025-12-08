@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, type CSSProperties } from 'vue';
+import { computed, onMounted, ref, type CSSProperties } from 'vue';
 import CharacterPanel from './components/CharacterPanel/CharacterPanel.vue';
 import ChatManagement from './components/Chat/ChatManagement.vue';
 import RecentChats from './components/Chat/RecentChats.vue';
@@ -32,6 +32,8 @@ const extensionStore = useExtensionStore();
 const secretStore = useSecretStore();
 const chatStore = useChatStore();
 const { t } = useStrictI18n();
+
+const isInitializing = ref(true);
 
 const backgroundStyle = computed<CSSProperties>(() => {
   const fitting = backgroundStore.fitting;
@@ -243,11 +245,23 @@ onMounted(async () => {
   await secretStore.fetchSecrets();
   await chatStore.refreshChats();
   await extensionStore.initializeExtensions();
+
+  // Mark initialization as complete
+  isInitializing.value = false;
 });
 </script>
 
 <template>
   <div id="background" :style="backgroundStyle"></div>
+
+  <!-- App Initialization Loading Overlay -->
+  <div v-show="isInitializing" class="app-initializing-overlay">
+    <div class="loading-spinner">
+      <i class="fa-solid fa-circle-notch fa-spin"></i>
+      <span>{{ t('common.loading') }}</span>
+    </div>
+  </div>
+
   <NavBar />
 
   <Sidebar side="left" :is-open="layoutStore.isLeftSidebarOpen" storage-key="leftSidebarWidth">
