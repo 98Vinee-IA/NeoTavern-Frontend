@@ -864,11 +864,6 @@ export interface MessageSchema {
       zai: string;
       koboldcpp: string;
     };
-    modelGroups: {
-      gpt4o: string;
-      gpt4turbo: string;
-      other: string;
-    };
     openrouterModel: string;
     openrouterWebsite: string;
     openrouterOptions: string;

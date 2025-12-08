@@ -86,6 +86,9 @@ export function activate(api: ChatBranchingAPI) {
       }
       settings.set('graph', s.graph);
 
+      // Update navbar item since we now have branches
+      updateNavBarItem();
+
       // 6. Load new chat
       await chat.load(newFilename);
     } catch (error) {
@@ -173,30 +176,90 @@ export function activate(api: ChatBranchingAPI) {
     });
   };
 
+  const removeChatFromGraph = (filename: string) => {
+    const s = settings.get();
+    const node = s.graph[filename];
+    if (!node) return;
+
+    // Remove from parent's children
+    if (node.parentId && s.graph[node.parentId]) {
+      s.graph[node.parentId].children = s.graph[node.parentId].children.filter((id) => id !== filename);
+    }
+
+    // Reassign children's parent to null (making them roots)
+    for (const childId of node.children) {
+      if (s.graph[childId]) {
+        s.graph[childId].parentId = null;
+      }
+    }
+
+    // Delete the node
+    delete s.graph[filename];
+    settings.set('graph', s.graph);
+  };
+
   const unbinds: (() => void)[] = [];
 
-  api.ui.registerNavBarItem('branch-tree-view', {
-    icon: 'fa-sitemap',
-    title: t('extensionsBuiltin.chatBranching.chatTreeTitle'),
-    onClick: () => {
-      showTree();
-    },
-  });
+  const updateNavBarItem = () => {
+    const currentChatInfo = chat.getChatInfo();
+    if (!currentChatInfo) {
+      api.ui.unregisterNavBarItem('branch-tree-view');
+      return;
+    }
+
+    registerCurrentChatAsRootIfMissing(currentChatInfo.file_id);
+    const s = settings.get();
+
+    // Eliminate non-existent chats from the graph
+    const existingChatIds = new Set(chat.getAllChatInfos().map((info) => info.file_id));
+
+    for (const filename in s.graph) {
+      if (!existingChatIds.has(filename)) {
+        removeChatFromGraph(filename);
+      }
+    }
+
+    const currentNode = s.graph[currentChatInfo.file_id];
+
+    // Show navbar item if chat has branches (either has parent or children)
+    if (currentNode && (currentNode.parentId !== null || currentNode.children.length > 0)) {
+      api.ui.registerNavBarItem('branch-tree-view', {
+        icon: 'fa-sitemap',
+        title: t('extensionsBuiltin.chatBranching.chatTreeTitle'),
+        onClick: () => {
+          showTree();
+        },
+      });
+    } else {
+      api.ui.unregisterNavBarItem('branch-tree-view');
+    }
+  };
 
   unbinds.push(
     events.on('chat:entered', () => {
-      setTimeout(processMessages, 100);
+      updateNavBarItem();
+      processMessages();
     }),
   );
 
   unbinds.push(
     events.on('message:created', () => {
-      setTimeout(processMessages, 100);
+      processMessages();
+    }),
+  );
+
+  unbinds.push(
+    events.on('chat:deleted', (filename: string) => {
+      updateNavBarItem();
+      removeChatFromGraph(filename);
     }),
   );
 
   // Initial injection
   processMessages();
+
+  // Initial navbar item setup
+  updateNavBarItem();
 
   return () => {
     unbinds.forEach((u) => u());

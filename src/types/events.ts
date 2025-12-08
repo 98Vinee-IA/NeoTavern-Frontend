@@ -17,6 +17,7 @@ export interface ExtensionEventMap {
   'app:loaded': [];
   'chat:cleared': [];
   'chat:entered': [chatFile: string];
+  'chat:deleted': [chatFile: string];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   'setting:changed': [path: SettingsPath, value: any, oldValue: any];
 

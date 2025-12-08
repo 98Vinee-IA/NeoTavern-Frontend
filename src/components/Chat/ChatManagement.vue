@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { debounce } from 'lodash-es';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
 import { DebounceTimeout, GenerationMode, GroupGenerationHandlingMode, GroupReplyStrategy } from '../../constants';
@@ -16,6 +16,7 @@ import { useWorldInfoStore } from '../../stores/world-info.store';
 import { POPUP_RESULT, POPUP_TYPE, type Character, type ChatInfo } from '../../types';
 import { getThumbnailUrl } from '../../utils/character';
 import { formatTimeStamp, humanizedDateTime } from '../../utils/commons';
+import { eventEmitter } from '../../utils/extensions';
 import { ConnectionProfileSelector, DraggableList, EmptyState, Pagination } from '../common';
 import {
   Button,
@@ -145,6 +146,9 @@ async function deleteChat(chatFile: string) {
       }
       chatStore.chatInfos = chatStore.chatInfos.filter((chat) => chat.file_id !== chatFile);
       chatStore.recentChats = chatStore.recentChats.filter((chat) => chat.file_id !== chatFile);
+      nextTick().then(() => {
+        eventEmitter.emit('chat:deleted', chatFile);
+      });
     } catch {
       toast.error(t('chatManagement.errors.delete'));
     }

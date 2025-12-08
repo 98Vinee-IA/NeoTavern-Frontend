@@ -861,11 +861,6 @@
       "zai": "Z.AI (GLM)",
       "koboldcpp": "KoboldCpp"
     },
-    "modelGroups": {
-      "gpt4o": "GPT-4o",
-      "gpt4turbo": "GPT-4 Turbo",
-      "other": "Other Models"
-    },
     "openrouterModel": "OpenRouter Model",
     "openrouterWebsite": "Use OpenRouter website setting",
     "openrouterOptions": "OpenRouter Options",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
 import { chatService } from '../../services/chat.service';
@@ -10,6 +10,7 @@ import { useSettingsStore } from '../../stores/settings.store';
 import { POPUP_RESULT, POPUP_TYPE, type ChatInfo } from '../../types';
 import { getThumbnailUrl } from '../../utils/character';
 import { formatTimeStamp } from '../../utils/commons';
+import { eventEmitter } from '../../utils/extensions';
 import { EmptyState, Pagination, SidebarHeader, SmartAvatar } from '../common';
 import { Button, ListItem } from '../UI';
 
@@ -135,6 +136,11 @@ async function deleteSelected() {
       }
       selectedChats.value.clear();
       isSelectionMode.value = false;
+      nextTick().then(() => {
+        for (const id of idsToDelete) {
+          eventEmitter.emit('chat:deleted', id);
+        }
+      });
     } catch (error) {
       console.error(error);
       toast.error(t('chatManagement.errors.delete'));
