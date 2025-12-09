@@ -639,6 +639,7 @@ const embeddedLorebookName = computed({
         <FormItem :label="t('characterEditor.description')" data-field-name="description">
           <Textarea
             v-model="localCharacter.description!"
+            allow-maximize
             :rows="12"
             :placeholder="t('characterEditor.descriptionPlaceholder')"
             identifier="character.description"
@@ -663,6 +664,7 @@ const embeddedLorebookName = computed({
           </div>
           <Textarea
             v-model="localCharacter.first_mes!"
+            allow-maximize
             :rows="10"
             :placeholder="t('characterEditor.firstMessagePlaceholder')"
             identifier="character.first_mes"
@@ -681,6 +683,7 @@ const embeddedLorebookName = computed({
         <FormItem :label="t('characterEditor.advanced.personality')" data-field-name="personality">
           <Textarea
             v-model="localCharacter.personality!"
+            allow-maximize
             :rows="4"
             :placeholder="t('characterEditor.advanced.personalityPlaceholder')"
             identifier="character.personality"
@@ -697,6 +700,7 @@ const embeddedLorebookName = computed({
         <FormItem :label="t('characterEditor.advanced.scenario')" data-field-name="scenario">
           <Textarea
             v-model="localCharacter.scenario!"
+            allow-maximize
             :rows="4"
             :placeholder="t('characterEditor.advanced.scenarioPlaceholder')"
             identifier="character.scenario"
@@ -716,6 +720,7 @@ const embeddedLorebookName = computed({
             <FormItem :label="t('characterEditor.advanced.characterNote')">
               <Textarea
                 v-model="localCharacter.data.depth_prompt.prompt"
+                allow-maximize
                 :rows="5"
                 :placeholder="t('characterEditor.advanced.characterNotePlaceholder')"
                 identifier="character.note"
@@ -753,6 +758,7 @@ const embeddedLorebookName = computed({
         <FormItem :label="t('characterEditor.advanced.dialogueExamples')" data-field-name="mes_example">
           <Textarea
             v-model="localCharacter.mes_example!"
+            allow-maximize
             :rows="6"
             :placeholder="t('characterEditor.advanced.dialogueExamplesPlaceholder')"
             identifier="character.mes_example"
@@ -777,6 +783,7 @@ const embeddedLorebookName = computed({
               <FormItem :label="t('characterEditor.advanced.postHistoryInstructions')">
                 <Textarea
                   v-model="localCharacter.data.post_history_instructions!"
+                  allow-maximize
                   :rows="3"
                   :placeholder="t('characterEditor.advanced.postHistoryInstructionsPlaceholder')"
                   identifier="character.post_history_instructions"
@@ -840,6 +847,7 @@ const embeddedLorebookName = computed({
                   <Textarea
                     v-if="localCharacter.data"
                     v-model="localCharacter.data.creator_notes!"
+                    allow-maximize
                     :rows="4"
                     :placeholder="t('characterEditor.advanced.creatorNotesPlaceholder')"
                     identifier="character.creator_notes"

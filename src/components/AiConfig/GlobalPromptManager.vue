@@ -145,6 +145,7 @@ function getBadgeClass(role?: string) {
               <FormItem :label="t('aiConfig.promptManager.content')">
                 <Textarea
                   v-show="!prompt.marker"
+                  allow-maximize
                   identifier="prompt.content"
                   :model-value="prompt.content || ''"
                   :rows="5"

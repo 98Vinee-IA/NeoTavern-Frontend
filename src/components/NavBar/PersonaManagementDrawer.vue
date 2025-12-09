@@ -407,6 +407,7 @@ function handleClose() {
             <FormItem :label="t('personaManagement.description.label')">
               <Textarea
                 identifier="persona.description"
+                allow-maximize
                 :model-value="personaStore.activePersona?.description ?? ''"
                 :rows="6"
                 :placeholder="t('personaManagement.description.placeholder')"

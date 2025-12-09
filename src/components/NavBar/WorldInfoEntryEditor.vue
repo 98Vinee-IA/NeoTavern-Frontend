@@ -282,7 +282,7 @@ const logicOptions = [
         <FormItem :label="t('worldInfo.entry.content')">
           <Textarea
             identifier="world_info.content"
-            :allow-maximize="true"
+            allow-maximize
             :model-value="modelValue?.content ?? ''"
             :rows="8"
             :placeholder="t('worldInfo.entry.contentPlaceholder')"
