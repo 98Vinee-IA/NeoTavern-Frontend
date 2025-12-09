@@ -1,8 +1,8 @@
 import { cloneDeep, get, set } from 'lodash-es';
 import { defineStore } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
-import { fetchAllExperimentalPresets } from '../api/presets';
-import { fetchUserSettings, fetchV2Settings, saveV2Settings } from '../api/settings';
+import { fetchAllSamplerPresets } from '../api/presets';
+import { fetchUserSettings, fetchNeoSettings, saveNeoSettings } from '../api/settings';
 import { useAutoSave } from '../composables/useAutoSave';
 import { useMobile } from '../composables/useMobile';
 import { toast } from '../composables/useToast';
@@ -10,7 +10,7 @@ import { SendOnEnterOptions } from '../constants';
 import {
   createDefaultSettings,
   mergeWithDefaults,
-  migrateLegacyToExperimental,
+  migrateLegacyUserSettings,
 } from '../services/settings-migration.service';
 import { settingsDefinition } from '../settings-definition';
 import { type SettingDefinition, type Settings, type SettingsPath } from '../types';
@@ -33,7 +33,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const { trigger: saveSettingsDebounced } = useAutoSave(async () => {
     if (settingsInitializing.value) return;
 
-    await saveV2Settings(settings.value);
+    await saveNeoSettings(settings.value);
   });
 
   function getSetting<P extends SettingsPath>(id: P): SettingsValue<P> {
@@ -70,19 +70,19 @@ export const useSettingsStore = defineStore('settings', () => {
     initializationPromise = (async () => {
       try {
         const userSettingsResponse = await fetchUserSettings();
-        const v2samplerPresets = await fetchAllExperimentalPresets();
+        const neoSamplerPresets = await fetchAllSamplerPresets();
         const legacySettings: LegacySettings = userSettingsResponse.settings;
 
         let experimentalSettings: Settings;
 
         try {
-          const v2Settings = await fetchV2Settings();
-          const result = mergeWithDefaults(v2Settings, legacySettings);
+          const neoSettings = await fetchNeoSettings();
+          const result = mergeWithDefaults(neoSettings, legacySettings);
           experimentalSettings = result.settings;
-        } catch (v2Error) {
-          console.warn('No v2 settings found, performing one-time migration:', v2Error);
-          experimentalSettings = migrateLegacyToExperimental(userSettingsResponse, v2samplerPresets);
-          await saveV2Settings(experimentalSettings);
+        } catch (neoError) {
+          console.warn('No Neo settings found, performing one-time migration:', neoError);
+          experimentalSettings = migrateLegacyUserSettings(userSettingsResponse, neoSamplerPresets);
+          await saveNeoSettings(experimentalSettings);
         }
 
         settings.value = experimentalSettings;

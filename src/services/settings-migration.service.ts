@@ -1,5 +1,5 @@
 import { defaultsDeep, set } from 'lodash-es';
-import { saveExperimentalPreset, type Preset } from '../api/presets';
+import { saveSamplerPreset, type Preset } from '../api/presets';
 import { type ParsedUserSettingsResponse } from '../api/settings';
 import {
   CustomPromptPostProcessing,
@@ -94,7 +94,7 @@ export function createDefaultSettings(): Settings {
   return defaultSettings;
 }
 
-export function migrateExperimentalPreset(legacyPreset: LegacyOaiPresetSettings): SamplerSettings {
+export function migrateLegacyOaiPreset(legacyPreset: LegacyOaiPresetSettings): SamplerSettings {
   // Migrate prompts from legacy ordered config to flat list
   const migratedPrompts: Prompt[] = [];
 
@@ -180,9 +180,9 @@ function collectPromptsFromLegacyPresets(presets: LegacyOaiPresetSettings[]): Pr
   return Array.from(promptMap.values());
 }
 
-export function migrateLegacyToExperimental(
+export function migrateLegacyUserSettings(
   userSettingsResponse: ParsedUserSettingsResponse,
-  v2samplerPresets: Preset<SamplerSettings>[],
+  neoSamplerPresets: Preset<SamplerSettings>[],
 ): Settings {
   const legacy = userSettingsResponse.settings;
   const p = legacy.power_user || ({} as LegacySettings['power_user']);
@@ -206,13 +206,13 @@ export function migrateLegacyToExperimental(
 
   // Migrate presets
   if (
-    v2samplerPresets.length === 0 &&
+    neoSamplerPresets.length === 0 &&
     Array.isArray(userSettingsResponse.openai_setting_names) &&
     Array.isArray(userSettingsResponse.openai_settings)
   ) {
     userSettingsResponse.openai_setting_names.forEach(async (name: string, i: number) => {
       try {
-        await saveExperimentalPreset(name, migrateExperimentalPreset(userSettingsResponse.openai_settings[i]));
+        await saveSamplerPreset(name, migrateLegacyOaiPreset(userSettingsResponse.openai_settings[i]));
       } catch (e: unknown) {
         console.error(`Failed to parse legacy preset "${name}":`, userSettingsResponse.openai_settings[i]);
         console.error(e);

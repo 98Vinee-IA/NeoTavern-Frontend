@@ -2,19 +2,19 @@ import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { fetchChatCompletionStatus } from '../api/connection';
 import {
-  deleteExperimentalPreset as apideleteExperimentalPreset,
   deleteInstructTemplate as apiDeleteInstructTemplate,
+  deleteSamplerPreset as apideleteSamplerPreset,
   saveInstructTemplate as apiSaveInstructTemplate,
-  fetchAllExperimentalPresets,
   fetchAllInstructTemplates,
-  saveExperimentalPreset,
+  fetchAllSamplerPresets,
+  saveSamplerPreset,
   type Preset,
 } from '../api/presets';
 import { PROVIDER_CAPABILITIES } from '../api/provider-definitions';
 import { useStrictI18n } from '../composables/useStrictI18n';
 import { toast } from '../composables/useToast';
 import { defaultPrompts } from '../constants';
-import { migrateExperimentalPreset } from '../services/settings-migration.service';
+import { migrateLegacyOaiPreset } from '../services/settings-migration.service';
 import type { ApiModel, ConnectionProfile, LegacyOaiPresetSettings, SamplerSettings } from '../types';
 import { api_providers, POPUP_RESULT, POPUP_TYPE } from '../types';
 import type { InstructTemplate } from '../types/instruct';
@@ -248,7 +248,7 @@ export const useApiStore = defineStore('api', () => {
 
   async function loadPresetsForApi() {
     try {
-      presets.value = await fetchAllExperimentalPresets();
+      presets.value = await fetchAllSamplerPresets();
     } catch (error) {
       console.error('Failed to load presets:', error);
       toast.error('Could not load presets.');
@@ -258,7 +258,7 @@ export const useApiStore = defineStore('api', () => {
   async function saveCurrentPresetAs(name: string) {
     try {
       const presetData: SamplerSettings = { ...settingsStore.settings.api.samplers };
-      await saveExperimentalPreset(name, presetData);
+      await saveSamplerPreset(name, presetData);
       const existingIndex = presets.value.findIndex((p) => p.name === name);
       if (existingIndex >= 0) {
         presets.value[existingIndex] = { name, preset: presetData };
@@ -294,8 +294,8 @@ export const useApiStore = defineStore('api', () => {
         const presetToRename = presets.value.find((p) => p.name === oldName);
         if (!presetToRename) throw new Error('Preset not found');
 
-        await apideleteExperimentalPreset(oldName);
-        await saveExperimentalPreset(newName, presetToRename.preset);
+        await apideleteSamplerPreset(oldName);
+        await saveSamplerPreset(newName, presetToRename.preset);
 
         presets.value = presets.value.filter((p) => p.name !== oldName);
         presets.value.push({ name: newName, preset: presetToRename.preset });
@@ -307,7 +307,7 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
-  async function deleteExperimentalPreset(name?: string) {
+  async function deleteSamplerPreset(name?: string) {
     if (!name) {
       toast.warning(t('aiConfig.presets.errors.deleteDefault'));
       return;
@@ -320,7 +320,7 @@ export const useApiStore = defineStore('api', () => {
 
     if (result === POPUP_RESULT.AFFIRMATIVE) {
       try {
-        await apideleteExperimentalPreset(name);
+        await apideleteSamplerPreset(name);
         if (settingsStore.settings.api.selectedSampler === name) {
           settingsStore.settings.api.selectedSampler = 'Default';
         }
@@ -347,7 +347,7 @@ export const useApiStore = defineStore('api', () => {
 
         if ('openai_max_context' in presetData || 'prompt_order' in presetData) {
           try {
-            presetData = migrateExperimentalPreset(presetData as LegacyOaiPresetSettings);
+            presetData = migrateLegacyOaiPreset(presetData as LegacyOaiPresetSettings);
             toast.success(t('aiConfig.presets.messages.migrateSuccess'));
           } catch (error) {
             console.error('Migration failed:', error);
@@ -357,7 +357,7 @@ export const useApiStore = defineStore('api', () => {
         }
 
         // TODO: Add confirmation for overwriting existing preset, like original ST
-        await saveExperimentalPreset(name, presetData);
+        await saveSamplerPreset(name, presetData);
         const existingIndex = presets.value.findIndex((p) => p.name === name);
         if (existingIndex >= 0) {
           presets.value[existingIndex] = { name, preset: presetData };
@@ -544,7 +544,7 @@ export const useApiStore = defineStore('api', () => {
     saveCurrentPresetAs,
     updateCurrentPreset,
     renamePreset,
-    deleteExperimentalPreset,
+    deleteSamplerPreset,
     importPreset,
     exportPreset,
     updatePromptContent,

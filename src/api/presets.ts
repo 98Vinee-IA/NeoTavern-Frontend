@@ -9,34 +9,21 @@ export interface Preset<T> {
   preset: T;
 }
 
-export async function fetchAllExperimentalPresets(): Promise<Preset<SamplerSettings>[]> {
-  const response = await fetch('/api/plugins/v2/v2ExperimentalSamplerPreset', {
+export async function fetchAllSamplerPresets(): Promise<Preset<SamplerSettings>[]> {
+  const response = await fetch('/api/plugins/neo/samplers', {
     method: 'GET',
     headers: getRequestHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch experimental presets');
+    throw new Error('Failed to fetch sampler presets');
   }
 
   return await response.json();
 }
 
-export async function fetchExperimentalPreset(name: string): Promise<Preset<SamplerSettings>> {
-  const response = await fetch(`/api/plugins/v2/v2ExperimentalSamplerPreset/${encodeURIComponent(name)}`, {
-    method: 'GET',
-    headers: getRequestHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch preset');
-  }
-
-  return await response.json();
-}
-
-export async function saveExperimentalPreset(name: string, preset: SamplerSettings): Promise<void> {
-  const response = await fetch('/api/plugins/v2/v2ExperimentalSamplerPreset', {
+export async function saveSamplerPreset(name: string, preset: SamplerSettings): Promise<void> {
+  const response = await fetch('/api/plugins/neo/samplers', {
     method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify({ name, preset }),
@@ -47,8 +34,8 @@ export async function saveExperimentalPreset(name: string, preset: SamplerSettin
   }
 }
 
-export async function deleteExperimentalPreset(name: string): Promise<void> {
-  const response = await fetch(`/api/plugins/v2/v2ExperimentalSamplerPreset/${encodeURIComponent(name)}`, {
+export async function deleteSamplerPreset(name: string): Promise<void> {
+  const response = await fetch(`/api/plugins/neo/samplers/${encodeURIComponent(name)}`, {
     method: 'DELETE',
     headers: getRequestHeaders(),
   });
@@ -59,7 +46,7 @@ export async function deleteExperimentalPreset(name: string): Promise<void> {
 }
 
 export async function fetchAllThemes(): Promise<Preset<Theme>[]> {
-  const response = await fetch('/api/plugins/v2/themes', {
+  const response = await fetch('/api/plugins/neo/themes', {
     method: 'GET',
     headers: getRequestHeaders(),
   });
@@ -70,22 +57,8 @@ export async function fetchAllThemes(): Promise<Preset<Theme>[]> {
 
   return await response.json();
 }
-
-export async function fetchTheme(name: string): Promise<Preset<Theme>> {
-  const response = await fetch(`/api/plugins/v2/themes/${encodeURIComponent(name)}`, {
-    method: 'GET',
-    headers: getRequestHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch theme');
-  }
-
-  return await response.json();
-}
-
 export async function saveTheme(name: string, preset: Theme): Promise<void> {
-  const response = await fetch('/api/plugins/v2/themes', {
+  const response = await fetch('/api/plugins/neo/themes', {
     method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify({ name, preset }),
@@ -97,7 +70,7 @@ export async function saveTheme(name: string, preset: Theme): Promise<void> {
 }
 
 export async function deleteTheme(name: string): Promise<void> {
-  const response = await fetch(`/api/plugins/v2/themes/${encodeURIComponent(name)}`, {
+  const response = await fetch(`/api/plugins/neo/themes/${encodeURIComponent(name)}`, {
     method: 'DELETE',
     headers: getRequestHeaders(),
   });

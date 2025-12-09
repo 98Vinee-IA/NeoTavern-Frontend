@@ -15,7 +15,7 @@ export default defineConfig({
       rollupTypes: false,
       beforeWriteFile: (filePath, content) => ({
         filePath,
-        content: `/**\n * SillyTavern Experimental Frontend - Extension Types\n * Version: ${process.env.npm_package_version}\n */\n\n${content}`,
+        content: `/**\n * NeoTavern Frontend - Extension Types\n * Version: ${process.env.npm_package_version}\n */\n\n${content}`,
       }),
     }),
   ],

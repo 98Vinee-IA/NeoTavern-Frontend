@@ -1,6 +1,6 @@
-# SillyTavern Experimental Frontend
+# NeoTavern Frontend
 
-A modern, experimental frontend for SillyTavern, built with Vue 3 and Vite.
+A modern, experimental frontend for SillyTavern.
 
 **Note:** This is a pre-alpha release. Features may be incomplete and bugs are expected.
 
@@ -8,7 +8,7 @@ A modern, experimental frontend for SillyTavern, built with Vue 3 and Vite.
 
 - **Node.js:** Version 20 or higher is required.
 - **SillyTavern:** You must have a running instance of the [SillyTavern](https://github.com/SillyTavern/SillyTavern). Make sure the branch is set to `staging`.
-- **V2-Server Plugin:** You must install the [V2-Server](https://github.com/bmen25124/SillyTavern-V2-Server) plugin.
+- **NeoTavern-Server-Plugin:** You must install the [NeoTavern-Server-Plugin](https://github.com/NeoTavern/NeoTavern-Server-Plugin) plugin.
 
 ## Installation and Usage
 
@@ -16,7 +16,7 @@ A modern, experimental frontend for SillyTavern, built with Vue 3 and Vite.
 
 1. Clone the repository or download the source code.
    ```bash
-   git clone https://github.com/bmen25124/SillyTavern-Experimental-Frontend.git
+   git clone https://github.com/NeoTavern/NeoTavern-Frontend.git
    ```
 2. Navigate to the folder.
 3. Double-click `start.bat`.
@@ -27,8 +27,8 @@ The script will automatically install dependencies, build the project, and launc
 
 1. Clone the repository.
    ```bash
-   git clone https://github.com/bmen25124/SillyTavern-Experimental-Frontend.git
-   cd SillyTavern-Experimental-Frontend
+   git clone https://github.com/NeoTavern/NeoTavern-Frontend.git
+   cd NeoTavern-Frontend
    ```
 2. Make the script executable and run it:
    ```bash
@@ -38,7 +38,7 @@ The script will automatically install dependencies, build the project, and launc
 
 ### Android (Termux)
 
-This guide is containing from scratch installation of SillyTavern, V2-Server Plugin, and Experimental Frontend unlike others. Because mobile users are something special.
+This guide is containing from scratch installation of SillyTavern, NeoTavern-Server-Plugin, and NeoTavern-Frontend unlike others. Because mobile users are something special.
 
 #### 1. Prepare Termux
 
@@ -64,12 +64,12 @@ This guide is containing from scratch installation of SillyTavern, V2-Server Plu
    ```
 3. Once you see `SillyTavern is listening on port 8000`, press **CTRL + C** to stop the server.
 
-#### 3. Install V2-Server Plugin
+#### 3. Install NeoTavern-Server-Plugin
 
-1. Enter the plugins folder and clone the V2 Server:
+1. Enter the plugins folder and clone the NeoTavern-Server-Plugin:
    ```bash
    cd plugins
-   git clone https://github.com/bmen25124/SillyTavern-V2-Server
+   git clone https://github.com/NeoTavern/NeoTavern-Server-Plugin
    ```
 2. Go back to the main folder:
    ```bash
@@ -90,11 +90,11 @@ This guide is containing from scratch installation of SillyTavern, V2-Server Plu
 
 1. Swipe from the **left edge** of the screen to open the Termux drawer.
 2. Tap **"New Session"**.
-3. In this new session, clone and run the Experimental Frontend:
+3. In this new session, clone and run the NeoTavern Frontend:
    ```bash
    cd ~
-   git clone https://github.com/bmen25124/SillyTavern-Experimental-Frontend.git
-   cd SillyTavern-Experimental-Frontend
+   git clone https://github.com/NeoTavern/NeoTavern-Frontend.git
+   cd NeoTavern-Frontend
    chmod +x start.sh
    ./start.sh
    ```

@@ -6,8 +6,6 @@ export interface UserSettingsResponse {
   settings: string; // JSON string of LegacySettings
   openai_setting_names: string[];
   openai_settings: string[]; // JSON string of LegacyOaiPresetSettings
-  v2ExperimentalSamplerPreset_names?: string[];
-  v2ExperimentalSamplerPreset_settings?: string[]; // JSON string of SamplerSettings
   world_names: string[];
   instruct: InstructTemplate[];
 }
@@ -25,9 +23,9 @@ let cacheTimestamp = 0;
 const CACHE_TTL = 2000; // 2 seconds cache duration to handle initial load bursts
 let fetchPromise: Promise<ParsedUserSettingsResponse> | null = null;
 
-let cachedV2Response: Settings | null = null;
-let v2CacheTimestamp = 0;
-let v2FetchPromise: Promise<Settings> | null = null;
+let cachedNeoResponse: Settings | null = null;
+let neoCacheTimestamp = 0;
+let neoFetchPromise: Promise<Settings> | null = null;
 
 export async function fetchUserSettings(force = false): Promise<ParsedUserSettingsResponse> {
   const now = Date.now();
@@ -76,51 +74,51 @@ export async function fetchUserSettings(force = false): Promise<ParsedUserSettin
   return fetchPromise;
 }
 
-export async function fetchV2Settings(force = false): Promise<Settings> {
+export async function fetchNeoSettings(force = false): Promise<Settings> {
   const now = Date.now();
 
-  if (!force && cachedV2Response && now - v2CacheTimestamp < CACHE_TTL) {
-    return cachedV2Response;
+  if (!force && cachedNeoResponse && now - neoCacheTimestamp < CACHE_TTL) {
+    return cachedNeoResponse;
   }
 
-  if (v2FetchPromise) {
-    return v2FetchPromise;
+  if (neoFetchPromise) {
+    return neoFetchPromise;
   }
 
-  v2FetchPromise = (async () => {
+  neoFetchPromise = (async () => {
     try {
-      const response = await fetch('/api/plugins/v2/settings', {
+      const response = await fetch('/api/plugins/neo/settings', {
         method: 'GET',
         headers: getRequestHeaders(),
         cache: 'no-cache',
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch v2 user settings: ${response.statusText}`);
+        throw new Error(`Failed to fetch Neo user settings: ${response.statusText}`);
       }
 
       const data = (await response.json()) as Settings;
 
-      cachedV2Response = data;
-      v2CacheTimestamp = Date.now();
+      cachedNeoResponse = data;
+      neoCacheTimestamp = Date.now();
 
       return data;
     } finally {
-      v2FetchPromise = null;
+      neoFetchPromise = null;
     }
   })();
 
-  return v2FetchPromise;
+  return neoFetchPromise;
 }
 
-export async function saveV2Settings(settings: Settings): Promise<void> {
-  await fetch('/api/plugins/v2/settings', {
+export async function saveNeoSettings(settings: Settings): Promise<void> {
+  await fetch('/api/plugins/neo/settings', {
     method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify(settings),
     cache: 'no-cache',
   });
 
-  cachedV2Response = null;
-  v2CacheTimestamp = 0;
+  cachedNeoResponse = null;
+  neoCacheTimestamp = 0;
 }

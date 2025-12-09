@@ -1,10 +1,10 @@
 @echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
-TITLE SillyTavern Experimental Frontend
+TITLE NeoTavern Frontend
 CLS
 
 ECHO ===================================================
-ECHO   SillyTavern Experimental Frontend
+ECHO   NeoTavern Frontend
 ECHO ===================================================
 ECHO.
 

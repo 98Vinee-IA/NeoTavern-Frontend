@@ -59,7 +59,7 @@ async function handleNewPreset() {
           icon="fa-trash-can"
           variant="danger"
           :title="t('aiConfig.presets.delete')"
-          @click="apiStore.deleteExperimentalPreset(selectedPreset)"
+          @click="apiStore.deleteSamplerPreset(selectedPreset)"
         />
       </div>
     </div>

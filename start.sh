@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "==================================================="
-echo "  SillyTavern Experimental Frontend"
+echo "  NeoTavern Frontend"
 echo "==================================================="
 
 # 1. Install dependencies if missing

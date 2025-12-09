@@ -78,7 +78,7 @@ export interface LegacyWorldInfoSettings {
   world_info_max_recursion_steps: number;
 }
 
-export interface ExperimentalWorldInfoSettings {
+export interface WorldInfoSettings {
   activeBookNames: string[];
   depth: number;
   minActivations: number;
@@ -105,8 +105,6 @@ export interface ProcessedWorldInfo {
   outletEntries: Record<string, string[]>;
   triggeredEntries: Record<string, WorldInfoEntry[]>;
 }
-
-export type WorldInfoSettings = ExperimentalWorldInfoSettings;
 
 export type WorldInfoOptions = {
   generationId: string;
