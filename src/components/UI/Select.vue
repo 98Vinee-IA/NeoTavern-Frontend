@@ -27,6 +27,7 @@ interface Props {
   multiple?: boolean;
   placeholder?: string;
   searchable?: boolean;
+  groupSelect?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -36,6 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   placeholder: 'Select...',
   searchable: false,
+  groupSelect: false,
 });
 
 const emit = defineEmits<{
@@ -112,6 +114,56 @@ function isSelected(value: T): boolean {
     return props.modelValue.includes(value);
   }
   return props.modelValue === value;
+}
+
+function isGroupSelected(group: Group<T>): boolean {
+  if (!props.multiple || !props.groupSelect || !Array.isArray(props.modelValue)) return false;
+
+  const enabledOptions = group.options.filter((opt) => !opt.disabled);
+  if (enabledOptions.length === 0) return false;
+
+  const values = props.modelValue as T[];
+  return enabledOptions.every((opt) => values.includes(opt.value));
+}
+
+function isGroupPartiallySelected(group: Group<T>): boolean {
+  if (!props.multiple || !props.groupSelect || !Array.isArray(props.modelValue)) return false;
+
+  const enabledOptions = group.options.filter((opt) => !opt.disabled);
+  if (enabledOptions.length === 0) return false;
+
+  const values = props.modelValue as T[];
+  const selectedCount = enabledOptions.filter((opt) => values.includes(opt.value)).length;
+  return selectedCount > 0 && selectedCount < enabledOptions.length;
+}
+
+function toggleGroup(group: Group<T>) {
+  if (!props.multiple || !props.groupSelect) return;
+
+  const enabledOptions = group.options.filter((opt) => !opt.disabled);
+  if (enabledOptions.length === 0) return;
+
+  const currentValues = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
+  const allSelected = enabledOptions.every((opt) => currentValues.includes(opt.value));
+
+  let newValues: T[];
+
+  if (allSelected) {
+    // Deselect all
+    const valuesToRemove = enabledOptions.map((opt) => opt.value);
+    newValues = currentValues.filter((val) => !valuesToRemove.includes(val));
+  } else {
+    // Select all (union)
+    newValues = [...currentValues];
+    enabledOptions.forEach((opt) => {
+      if (!newValues.includes(opt.value)) {
+        newValues.push(opt.value);
+      }
+    });
+  }
+
+  emit('update:modelValue', newValues);
+  emit('change', newValues);
 }
 
 function selectOption(option: Option<T>) {
@@ -257,7 +309,23 @@ watch(
         <template v-for="(item, index) in filteredOptions" :key="index">
           <!-- Group -->
           <div v-if="isGroup(item)" class="select-group">
-            <div v-if="item.label" class="select-group-label">{{ item.label }}</div>
+            <div
+              v-if="item.label"
+              class="select-group-label"
+              :class="{ 'is-interactive': multiple && groupSelect }"
+              @click.stop="toggleGroup(item)"
+            >
+              <div v-if="multiple && groupSelect" class="option-checkbox">
+                <Icon v-if="isGroupSelected(item)" icon="fa-check" class="check-icon" />
+                <Icon
+                  v-else-if="isGroupPartiallySelected(item)"
+                  icon="fa-minus"
+                  class="check-icon"
+                  style="font-size: 0.7em"
+                />
+              </div>
+              <span class="group-label-text">{{ item.label }}</span>
+            </div>
             <div
               v-for="opt in item.options"
               :key="String(opt.value)"
