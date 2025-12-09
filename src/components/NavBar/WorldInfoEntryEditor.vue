@@ -280,7 +280,9 @@ const logicOptions = [
       <!-- Content Section -->
       <div class="world-entry-editor-section--column">
         <FormItem :label="t('worldInfo.entry.content')">
+          <!-- FIXME: It is for mobile test -->
           <Textarea
+            code-mirror
             :allow-maximize="true"
             :model-value="modelValue?.content ?? ''"
             :rows="8"

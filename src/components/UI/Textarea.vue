@@ -1,9 +1,10 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
-import { markRaw, ref } from 'vue';
+import { computed, markRaw, ref } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { usePopupStore } from '../../stores/popup.store';
 import { POPUP_TYPE } from '../../types';
+import CodeMirrorEditor from './CodeMirrorEditor.vue';
 import TextareaExpanded from './TextareaExpanded.vue';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   disabled?: boolean;
   resizable?: boolean;
   allowMaximize?: boolean;
+  codeMirror?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -23,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
   allowMaximize: false,
   label: undefined,
   placeholder: '',
+  codeMirror: false,
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -32,14 +35,21 @@ const popupStore = usePopupStore();
 const { t } = useStrictI18n();
 
 const textareaRef = ref<HTMLTextAreaElement>();
+const codeEditorRef = ref<InstanceType<typeof CodeMirrorEditor>>();
 
 function onInput(event: Event) {
   emit('update:modelValue', (event.target as HTMLTextAreaElement).value);
 }
 
+function onCodeMirrorUpdate(value: string) {
+  emit('update:modelValue', value);
+}
+
 defineExpose({
   focus() {
-    if (textareaRef.value) {
+    if (props.codeMirror && codeEditorRef.value) {
+      codeEditorRef.value.focus();
+    } else if (textareaRef.value) {
       textareaRef.value.focus();
       textareaRef.value.setSelectionRange(textareaRef.value.value.length, textareaRef.value.value.length);
     }
@@ -56,6 +66,7 @@ async function maximizeEditor() {
     componentProps: {
       value: props.modelValue,
       label: props.label,
+      codeMirror: props.codeMirror,
       'onUpdate:value': (value: string) => {
         emit('update:modelValue', value);
       },
@@ -64,6 +75,10 @@ async function maximizeEditor() {
     cancelButton: false,
   });
 }
+
+const cmMinHeight = computed(() => {
+  return `calc(${props.rows} * 1em + var(--textarea-padding-y) * 2)`;
+});
 </script>
 
 <template>
@@ -75,7 +90,19 @@ async function maximizeEditor() {
       </div>
     </div>
 
+    <CodeMirrorEditor
+      v-if="codeMirror"
+      ref="codeEditorRef"
+      :model-value="modelValue"
+      :disabled="disabled"
+      :placeholder="placeholder"
+      :min-height="cmMinHeight"
+      :max-height="cmMinHeight"
+      @update:model-value="onCodeMirrorUpdate"
+    />
+
     <textarea
+      v-else
       ref="textareaRef"
       class="text-pole"
       :value="modelValue"

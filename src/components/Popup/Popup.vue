@@ -160,7 +160,11 @@ function onCancel() {
 function handleEnter(evt: KeyboardEvent) {
   if (evt.key === 'Enter' && !evt.shiftKey && !evt.altKey) {
     const target = evt.target as HTMLElement;
-    const isInput = target.tagName === 'TEXTAREA' || target.tagName === 'INPUT';
+    const isInput =
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'INPUT' ||
+      target.isContentEditable ||
+      target.className.includes('cm-');
     if (!isInput) {
       evt.preventDefault();
       handleResult(props.defaultResult ?? POPUP_RESULT.AFFIRMATIVE);
