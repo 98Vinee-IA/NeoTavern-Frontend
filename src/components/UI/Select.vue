@@ -215,9 +215,9 @@ watch(
     </div>
 
     <Transition name="fade-fast">
-      <div v-if="isOpen" ref="dropdownRef" class="select-dropdown">
+      <div v-show="isOpen" ref="dropdownRef" class="select-dropdown">
         <!-- Search Input -->
-        <div v-if="searchable" class="select-search-container" @click.stop>
+        <div v-show="searchable" class="select-search-container" @click.stop>
           <input
             ref="searchInputRef"
             v-model="searchQuery"
