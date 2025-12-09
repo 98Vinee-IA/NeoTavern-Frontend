@@ -4,7 +4,6 @@ import DOMPurify from 'dompurify';
 import type { Component, PropType } from 'vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
-import { useSettingsStore } from '../../stores/settings.store';
 import { POPUP_RESULT, POPUP_TYPE, type CustomPopupButton } from '../../types';
 import type { I18nKey } from '../../types/i18n';
 import { formatText } from '../../utils/chat';
@@ -35,7 +34,6 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit']);
 
 const { t } = useStrictI18n();
-const settings = useSettingsStore();
 const dialog = ref<HTMLDialogElement | null>(null);
 const mainInputComponent = ref<InstanceType<typeof Textarea> | null>(null);
 const cropper = ref<InstanceType<typeof ImageCropper> | null>(null);
@@ -163,7 +161,7 @@ function handleEnter(evt: KeyboardEvent) {
   if (evt.key === 'Enter' && !evt.shiftKey && !evt.altKey) {
     const target = evt.target as HTMLElement;
     const isInput = target.tagName === 'TEXTAREA' || target.tagName === 'INPUT';
-    if (!isInput || settings.shouldSendOnEnter) {
+    if (!isInput) {
       evt.preventDefault();
       handleResult(props.defaultResult ?? POPUP_RESULT.AFFIRMATIVE);
     }

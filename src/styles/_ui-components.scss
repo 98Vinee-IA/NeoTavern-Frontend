@@ -214,6 +214,9 @@
 }
 
 .textarea-wrapper {
+  display: flex;
+  flex-direction: column;
+
   .maximize-icon {
     cursor: pointer;
     opacity: 0.7;
