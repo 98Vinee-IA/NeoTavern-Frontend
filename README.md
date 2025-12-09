@@ -4,6 +4,31 @@ A modern, experimental frontend for SillyTavern.
 
 > [!IMPORTANT]  
 > This is a pre-alpha release. Features may be incomplete and bugs are expected.
+> If you are highly dependent on STScript or existing SillyTavern extensions, we do not recommend using this yet.
+
+## Intro
+
+Why another frontend for SillyTavern? For detailed reasoning, see the hackmd post: [NeoTavern](https://hackmd.io/@NlF71k9KQAS4hhlzE42UJQ/SJ3UMOGbbl)
+
+**Features compared to the SillyTavern:**
+
+- New UI. See [screenshots](https://imgur.com/a/puRlyQO)
+- There is no Chat/Text Completion seperation.
+- There is single prompt manager.
+- All chats are group chats. Add/remove member anytime.
+- Assigning multiple lorebooks per persona/chat.
+- Assigning a connection profile per chat.
+
+**What things did not implement yet:**
+
+- Slash commands.
+- Detailed macro system.
+- STScript support.
+- More built-in extensions.
+
+**For extension developers:**
+
+- Read the above hackmd post for design philosophy. Currently, there is no documentation or NPM package for types. Because extensions are not prioritized yet.
 
 ## Prerequisites
 
