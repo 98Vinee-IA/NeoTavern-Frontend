@@ -8,17 +8,40 @@ ECHO   NeoTavern Frontend
 ECHO ===================================================
 ECHO.
 
-:: 1. Check if node_modules exists
+:: 1. Ensure dependencies match package.json
+SET PKG_HASH_FILE=node_modules\.package-json.hash
+SET NEED_INSTALL=0
+SET LAST_PKG_HASH=none
+SET CURRENT_PKG_HASH=
+FOR /F "usebackq delims=" %%H IN (`node -p "require('crypto').createHash('sha256').update(require('fs').readFileSync('package.json')).digest('hex')"`) DO (
+    SET CURRENT_PKG_HASH=%%H
+)
+
+IF EXIST "%PKG_HASH_FILE%" (
+    SET /P LAST_PKG_HASH=<"%PKG_HASH_FILE%"
+)
+
 IF NOT EXIST "node_modules" (
     ECHO [1/3] First run detected. Installing dependencies...
+    SET NEED_INSTALL=1
+) ELSE IF NOT EXIST "%PKG_HASH_FILE%" (
+    ECHO [1/3] Dependency hash missing. Reinstalling dependencies...
+    SET NEED_INSTALL=1
+) ELSE IF "!CURRENT_PKG_HASH!" NEQ "!LAST_PKG_HASH!" (
+    ECHO [1/3] package.json changed. Reinstalling dependencies...
+    SET NEED_INSTALL=1
+) ELSE (
+    ECHO [1/3] Dependencies up-to-date.
+)
+
+IF "!NEED_INSTALL!"=="1" (
     call npm ci
     IF !ERRORLEVEL! NEQ 0 (
         ECHO Error installing dependencies.
         PAUSE
         EXIT /B
     )
-) ELSE (
-    ECHO [1/3] Dependencies found.
+    >"%PKG_HASH_FILE%" ECHO !CURRENT_PKG_HASH!
 )
 
 :: 2. Determine if Build is Needed
