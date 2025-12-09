@@ -4,6 +4,8 @@ A modern, experimental frontend for SillyTavern.
 
 > [!IMPORTANT]  
 > This is a pre-alpha release. Features may be incomplete and bugs are expected.
+
+> [!WARNING]  
 > If you are highly dependent on STScript or existing SillyTavern extensions, we do not recommend using this yet.
 
 ## Intro
@@ -25,6 +27,11 @@ Why another frontend for SillyTavern? For detailed reasoning, see the hackmd pos
 - Detailed macro system.
 - STScript support.
 - More built-in extensions.
+
+**Thing that not implemented fully:**
+
+- World Info: Outlets and timed effects are not implemented.
+- Local Providers: Currently there is only koboldcpp support. There is no Text Completion provider. Ollama/LM Studio support is planned.
 
 **For extension developers:**
 
