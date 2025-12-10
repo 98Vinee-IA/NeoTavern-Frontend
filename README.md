@@ -25,6 +25,7 @@ Why another frontend for SillyTavern? For detailed reasoning, see the hackmd pos
 - Detailed macro system.
 - STScript support.
 - More built-in extensions.
+- NovelAI/Horde/KoboldClassic. If they have OpenAI compatible API, we can add later. If not, we are not planning to add them.
 
 **Thing that not implemented fully:**
 
