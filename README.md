@@ -1,5 +1,3 @@
-# NeoTavern Frontend
-
 A modern, experimental frontend for SillyTavern.
 
 > [!IMPORTANT]  
