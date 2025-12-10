@@ -275,7 +275,8 @@ function updateMembersOrder(newMembers: Character[]) {
 
 function peekCharacter(avatar: string) {
   characterUiStore.selectCharacterByAvatar(avatar);
-  layoutStore.activeDrawer = 'character';
+  layoutStore.activateNavBarItem('character');
+  layoutStore.autoCloseSidebarsOnMobile();
 }
 
 function getCharName(avatar: string) {
