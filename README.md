@@ -142,6 +142,12 @@ This guide contains from scratch installation of SillyTavern, NeoTavern-Server-P
 Open your mobile browser and go to:
 `http://localhost:4173`
 
+## FAQ
+
+>Can I use my existing ST backend?
+
+Yes. NeoTavern-Frontend is not overriding the existing `settings.json`. However; using the same characters, instruct templates, backgrounds, and WI folders. If you are worried about your data, feel free to use a fresh ST backend.
+
 ## Development
 
 If you wish to modify the code or run in development mode:
