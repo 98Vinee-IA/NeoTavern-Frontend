@@ -69,7 +69,7 @@ function getChatAvatars(chat: ChatInfo): string[] {
 }
 
 function isGroupChat(chat: ChatInfo): boolean {
-  return !!chat.chat_metadata.group;
+  return getMemberCount(chat) > 1;
 }
 
 function getMemberCount(chat: ChatInfo): number {
