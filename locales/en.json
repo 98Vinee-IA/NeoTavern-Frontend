@@ -582,7 +582,7 @@
       "manageChats": "Manage chat",
       "regenerate": "Regenerate",
       "continue": "Continue",
-      "generate": "Generate",
+      "generate": "Generate (broken)",
       "selectMessages": "Select Messages"
     },
     "typingIndicator": "",
