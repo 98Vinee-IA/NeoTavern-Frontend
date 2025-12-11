@@ -640,7 +640,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function refreshChats() {
     const chats = await chatService.list();
-    chats.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
+    chats.sort((a, b) => b.last_mes.localeCompare(a.last_mes));
     chatInfos.value = chats;
   }
 
@@ -677,7 +677,7 @@ export const useChatStore = defineStore('chat', () => {
       }
     }
 
-    chatInfos.value.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
+    chatInfos.value.sort((a, b) => b.last_mes.localeCompare(a.last_mes));
 
     return result;
   }

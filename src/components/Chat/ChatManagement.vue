@@ -70,7 +70,7 @@ const chats = computed<ChatInfo[]>(() => {
     );
   }
 
-  allChats.sort((a, b) => a.last_mes.localeCompare(b.last_mes));
+  allChats.sort((a, b) => b.last_mes.localeCompare(a.last_mes));
   return allChats;
 });
 
