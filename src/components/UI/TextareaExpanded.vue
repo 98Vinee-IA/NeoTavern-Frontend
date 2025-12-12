@@ -8,11 +8,13 @@ const props = withDefaults(
     popupId?: string;
     value: string;
     label?: string;
+    language?: 'markdown' | 'css';
     codeMirror?: boolean;
   }>(),
   {
     popupId: undefined,
     label: undefined,
+    language: 'markdown',
     codeMirror: false,
   },
 );
@@ -45,6 +47,7 @@ function updateValue(val: string) {
     <div v-if="isCodeMirrorActive" class="expanded-codemirror-wrapper">
       <CodeMirrorEditor
         :model-value="inputValue"
+        :language="language"
         autofocus
         min-height="500px"
         max-height="calc(80vh - 100px)"

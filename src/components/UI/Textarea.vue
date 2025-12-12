@@ -17,6 +17,7 @@ interface Props {
   resizable?: boolean;
   allowMaximize?: boolean;
   codeMirror?: boolean;
+  language?: 'markdown' | 'css';
   identifier?: CodeMirrorTarget;
 }
 
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<Props>(), {
   label: undefined,
   placeholder: '',
   codeMirror: false,
+  language: 'markdown',
   identifier: undefined,
 });
 
@@ -78,6 +80,7 @@ async function maximizeEditor() {
     componentProps: {
       value: props.modelValue,
       label: props.label,
+      language: props.language,
       codeMirror: isCodeMirrorActive.value,
       'onUpdate:value': (value: string) => {
         emit('update:modelValue', value);
@@ -105,6 +108,7 @@ const cmMinHeight = computed(() => {
     <CodeMirrorEditor
       v-if="isCodeMirrorActive"
       ref="codeEditorRef"
+      :language="language"
       :model-value="modelValue"
       :disabled="disabled"
       :placeholder="placeholder"

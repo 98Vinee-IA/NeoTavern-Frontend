@@ -1068,14 +1068,16 @@
           "creatorNotes": "Creator's Note",
           "content": "Content",
           "input": "Input",
-          "editMessage": "Edit Message"
+          "editMessage": "Edit Message",
+          "customCss": "Custom CSS"
         },
         "groups": {
           "character": "Character",
           "persona": "Persona",
           "worldInfo": "World Info",
           "promptManager": "Prompt Manager",
-          "chat": "Chat"
+          "chat": "Chat",
+          "theme": "Theme"
         }
       }
     },

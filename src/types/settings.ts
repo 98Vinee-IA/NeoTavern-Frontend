@@ -274,7 +274,8 @@ export type CodeMirrorTarget =
   | 'world_info.content'
   | 'prompt.content'
   | 'chat.input'
-  | 'chat.edit_message';
+  | 'chat.edit_message'
+  | 'theme.custom_css';
 
 export interface Settings {
   ui: {

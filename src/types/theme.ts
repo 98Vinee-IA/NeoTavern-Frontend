@@ -49,6 +49,7 @@ export interface ThemeVariables {
 export interface Theme {
   isSystem?: boolean;
   variables: Partial<ThemeVariables>;
+  customCss?: string;
 }
 
 export const THEME_CATEGORIES: Record<string, (keyof ThemeVariables)[]> = {

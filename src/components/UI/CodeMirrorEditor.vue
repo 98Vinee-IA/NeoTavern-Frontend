@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { indentWithTab } from '@codemirror/commands';
+import { css } from '@codemirror/lang-css';
 import { markdown } from '@codemirror/lang-markdown';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap, placeholder as placeholderExt, ViewUpdate } from '@codemirror/view';
@@ -14,6 +15,7 @@ const props = withDefaults(
     autofocus?: boolean;
     minHeight?: string;
     maxHeight?: string;
+    language?: 'markdown' | 'css';
   }>(),
   {
     disabled: false,
@@ -21,6 +23,7 @@ const props = withDefaults(
     autofocus: false,
     minHeight: 'auto',
     maxHeight: 'none',
+    language: 'markdown',
   },
 );
 
@@ -29,6 +32,7 @@ const emit = defineEmits(['update:modelValue', 'focus', 'blur']);
 const editorContainer = ref<HTMLElement>();
 let editorView: EditorView | null = null;
 const readOnlyCompartment = new Compartment();
+const languageCompartment = new Compartment();
 
 // Custom theme to match application styles
 const appTheme = EditorView.theme(
@@ -80,6 +84,10 @@ const appTheme = EditorView.theme(
   { dark: true },
 );
 
+const getLanguageExtension = (lang: 'markdown' | 'css') => {
+  return lang === 'css' ? css() : markdown();
+};
+
 const initEditor = () => {
   if (!editorContainer.value) return;
 
@@ -88,7 +96,7 @@ const initEditor = () => {
     extensions: [
       basicSetup,
       keymap.of([indentWithTab]),
-      markdown(), // Default to markdown for chat/text heavy apps
+      languageCompartment.of(getLanguageExtension(props.language)),
       appTheme,
       EditorView.lineWrapping,
       EditorView.updateListener.of((v: ViewUpdate) => {
@@ -143,6 +151,18 @@ watch(
     if (editorView) {
       editorView.dispatch({
         effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(val)),
+      });
+    }
+  },
+);
+
+// Watch for language changes
+watch(
+  () => props.language,
+  (newLang) => {
+    if (editorView) {
+      editorView.dispatch({
+        effects: languageCompartment.reconfigure(getLanguageExtension(newLang)),
       });
     }
   },

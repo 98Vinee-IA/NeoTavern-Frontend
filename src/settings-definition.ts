@@ -182,6 +182,10 @@ export const settingsDefinition: SettingDefinition[] = [
           { value: 'chat.edit_message', label: 'settings.ui.editor.fields.editMessage' },
         ],
       },
+      {
+        label: 'settings.ui.editor.groups.theme',
+        options: [{ value: 'theme.custom_css', label: 'settings.ui.editor.fields.customCss' }],
+      },
     ],
   },
 ];

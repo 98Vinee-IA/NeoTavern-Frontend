@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { CollapsibleSection, FileInput, FormItem, Input, RangeControl } from '../../components/UI';
+import { CollapsibleSection, FileInput, FormItem, Input, RangeControl, Textarea } from '../../components/UI';
 import { PresetControl, SidebarHeader } from '../../components/common';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { usePopupStore } from '../../stores/popup.store';
@@ -103,6 +103,10 @@ function setVariable(key: keyof ThemeVariables, value: string | number) {
   themeStore.updateVariable(key, newValue);
 }
 
+function updateCustomCss(val: string) {
+  themeStore.updateCustomCss(val);
+}
+
 // Helpers for specific input types
 function isColor(key: keyof ThemeVariables) {
   return VARIABLE_TYPES[key] === 'color';
@@ -182,6 +186,20 @@ function onImport(files: File[]) {
 
       <!-- Variable Editors -->
       <div class="theme-editor">
+        <!-- Custom CSS Section -->
+        <CollapsibleSection title="Custom CSS">
+          <div class="theme-vars-list">
+            <Textarea
+              :model-value="themeStore.customCss"
+              allow-maximize
+              identifier="theme.custom_css"
+              language="css"
+              class="custom-css-editor"
+              @update:model-value="updateCustomCss"
+            />
+          </div>
+        </CollapsibleSection>
+
         <CollapsibleSection v-for="(vars, category) in THEME_CATEGORIES" :key="category" :title="category">
           <div class="theme-vars-list">
             <div v-for="key in vars" :key="key" class="theme-var-item">
@@ -244,6 +262,13 @@ function onImport(files: File[]) {
   flex-direction: column;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) 0;
+}
+
+.custom-css-editor {
+  min-height: 200px;
+  max-height: 500px;
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--base-border-radius);
 }
 
 .color-picker-row {

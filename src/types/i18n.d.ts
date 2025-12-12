@@ -1072,6 +1072,7 @@ export interface MessageSchema {
           content: string;
           input: string;
           editMessage: string;
+          customCss: string;
         };
         groups: {
           character: string;
@@ -1079,6 +1080,7 @@ export interface MessageSchema {
           worldInfo: string;
           promptManager: string;
           chat: string;
+          theme: string;
         };
       };
     };

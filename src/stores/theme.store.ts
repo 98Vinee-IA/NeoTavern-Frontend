@@ -16,6 +16,7 @@ export const useThemeStore = defineStore('theme', () => {
 
   // The current working state of variables (what is seen on screen)
   const currentVariables = ref<Partial<ThemeVariables>>({});
+  const customCss = ref<string>('');
 
   const settingsStore = useSettingsStore();
 
@@ -49,6 +50,19 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
 
+  /**
+   * Applies the custom CSS to a style tag in the document head
+   */
+  function applyCustomCss(css: string) {
+    let styleTag = document.getElementById('theme-custom-css');
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = 'theme-custom-css';
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = css;
+  }
+
   async function fetchThemes() {
     try {
       themes.value = await api.fetchAllThemes();
@@ -72,6 +86,10 @@ export const useThemeStore = defineStore('theme', () => {
       for (const key of Object.keys(VARIABLE_TYPES)) {
         root.style.removeProperty(key);
       }
+      // Clear Custom CSS
+      customCss.value = '';
+      applyCustomCss('');
+
       loadCurrentDOMStyles();
       return;
     }
@@ -80,7 +98,9 @@ export const useThemeStore = defineStore('theme', () => {
     if (found) {
       activeThemeName.value = name;
       currentVariables.value = { ...found.preset.variables };
+      customCss.value = found.preset.customCss || '';
       applyToDOM(currentVariables.value);
+      applyCustomCss(customCss.value);
     }
   }
 
@@ -89,11 +109,17 @@ export const useThemeStore = defineStore('theme', () => {
     document.documentElement.style.setProperty(key, value);
   }
 
+  function updateCustomCss(css: string) {
+    customCss.value = css;
+    applyCustomCss(css);
+  }
+
   async function saveTheme(name: string) {
     if (!name) return;
 
     const newTheme: Theme = {
       variables: { ...currentVariables.value },
+      customCss: customCss.value,
     };
 
     try {
@@ -124,6 +150,7 @@ export const useThemeStore = defineStore('theme', () => {
   function exportTheme() {
     const themeToExport: Theme = {
       variables: currentVariables.value,
+      customCss: customCss.value,
     };
 
     downloadFile(
@@ -145,7 +172,9 @@ export const useThemeStore = defineStore('theme', () => {
 
       // Apply immediately
       currentVariables.value = json.variables;
+      customCss.value = json.customCss || '';
       applyToDOM(json.variables);
+      applyCustomCss(customCss.value);
       activeThemeName.value = fileNameWithoutExt || 'Imported';
 
       // Auto save? Or let user save? Let's auto save for convenience
@@ -160,9 +189,11 @@ export const useThemeStore = defineStore('theme', () => {
     themes,
     activeThemeName,
     currentVariables,
+    customCss,
     fetchThemes,
     loadTheme,
     updateVariable,
+    updateCustomCss,
     saveTheme,
     deleteTheme,
     exportTheme,
