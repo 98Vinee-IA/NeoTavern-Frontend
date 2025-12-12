@@ -586,6 +586,7 @@ export const useChatStore = defineStore('chat', () => {
     promptStore.clearItemizedPrompt(messageIndex, swipeIndex);
 
     const newSwipeId = Math.min(swipeIndex, message.swipes.length - 1);
+    await eventEmitter.emit('message:swipe-deleted', { messageIndex, swipeIndex, newSwipeId });
     await syncSwipeToMes(messageIndex, newSwipeId);
   }
 
