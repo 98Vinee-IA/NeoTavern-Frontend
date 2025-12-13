@@ -14,11 +14,14 @@ const props = defineProps<Props>();
 const emit = defineEmits(['update:modelValue']);
 
 const inputValue = ref('');
-const inputId = `tag-input-${uuidv4()}`;
-const listId = `tag-list-${uuidv4()}`;
-const descId = `tag-desc-${uuidv4()}`;
+const uniqueId = `tag-input-${uuidv4()}`;
+const inputId = `${uniqueId}-input`;
+const listId = `${uniqueId}-list`;
+const descId = `${uniqueId}-desc`;
 
 const { t } = useStrictI18n();
+
+const liveMessage = ref('');
 
 function addTag() {
   const val = inputValue.value.trim();
@@ -35,14 +38,17 @@ function addTag() {
 
   if (distinct.length > 0) {
     emit('update:modelValue', [...props.modelValue, ...distinct]);
+    liveMessage.value = t('a11y.tagInput.added', { count: distinct.length, tags: distinct.join(', ') });
   }
   inputValue.value = '';
 }
 
 function removeTag(index: number) {
+  const tagToRemove = props.modelValue[index];
   const newTags = [...props.modelValue];
   newTags.splice(index, 1);
   emit('update:modelValue', newTags);
+  liveMessage.value = t('a11y.tagInput.removed', { tag: tagToRemove });
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -60,6 +66,9 @@ function handleKeydown(e: KeyboardEvent) {
     <label v-if="label" :for="inputId" class="tag-input-label sr-only">{{ label }}</label>
 
     <span :id="descId" class="sr-only">{{ t('a11y.tagInput.description') }}</span>
+
+    <!-- Live region for announcements -->
+    <div class="sr-only" role="status" aria-live="polite">{{ liveMessage }}</div>
 
     <div class="tag-input-controls">
       <input
@@ -81,8 +90,8 @@ function handleKeydown(e: KeyboardEvent) {
       />
     </div>
 
-    <div :id="listId" class="tags-list" role="list" :aria-label="t('a11y.tagInput.tagsList')">
-      <span v-for="(tag, idx) in modelValue" :key="idx" class="tag" role="listitem">
+    <ul :id="listId" class="tags-list" role="list" :aria-label="t('a11y.tagInput.tagsList')">
+      <li v-for="(tag, idx) in modelValue" :key="idx" class="tag">
         {{ tag }}
         <button
           class="tag-close-btn"
@@ -93,8 +102,8 @@ function handleKeydown(e: KeyboardEvent) {
         >
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
-      </span>
-    </div>
+      </li>
+    </ul>
   </div>
 </template>
 
@@ -118,6 +127,16 @@ function handleKeydown(e: KeyboardEvent) {
   &:focus {
     outline: 1px dotted currentColor;
   }
+}
+
+.tags-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 .sr-only {

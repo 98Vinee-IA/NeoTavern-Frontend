@@ -507,6 +507,7 @@ export interface MessageSchema {
     seconds: string;
     remove: string;
     dragToReorder: string;
+    dragHandle: string;
     toggle: string;
     refresh: string;
     messages: string;
@@ -528,6 +529,8 @@ export interface MessageSchema {
     collapseSidebar: string;
     expandSidebar: string;
     loadingButton: string;
+    upload: string;
+    image: string;
   };
   popup: {
     cropAvatar: {
@@ -667,7 +670,9 @@ export interface MessageSchema {
     tokenWarning: string;
   };
   characterPanel: {
-    pinToggle: string;
+    toolbar: string;
+    listLabel: string;
+    isFavorite: string;
     createNew: string;
     importFile: string;
     importUrl: string;
@@ -722,6 +727,8 @@ export interface MessageSchema {
       convertToPersona: string;
       rename: string;
     };
+    name: string;
+    tags: string;
     advanced: {
       promptOverrides: string;
       postHistoryInstructions: string;
@@ -1192,6 +1199,12 @@ export interface MessageSchema {
       tagsList: string;
       removeTag: string;
       addTag: string;
+      added: string;
+      removed: string;
+    };
+    imageCropper: {
+      cropBoxLabel: string;
+      cropBoxDescription: string;
     };
     pagination: {
       navigation: string;

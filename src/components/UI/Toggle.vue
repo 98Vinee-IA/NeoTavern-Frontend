@@ -1,17 +1,25 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
+import { computed } from 'vue';
 import { uuidv4 } from '../../utils/commons';
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean;
   disabled?: boolean;
   title?: string;
   label?: string;
+  id?: string;
 }>();
 
 const emit = defineEmits(['update:modelValue']);
 
-const id = `toggle-${uuidv4()}`;
+const toggleId = computed(() => props.id || `toggle-${uuidv4()}`);
+
+function toggle() {
+  if (!props.disabled) {
+    emit('update:modelValue', !props.modelValue);
+  }
+}
 </script>
 
 <template>
@@ -19,13 +27,13 @@ const id = `toggle-${uuidv4()}`;
     class="toggle-label"
     :class="{ disabled }"
     :title="title"
-    :for="id"
-    @keydown.enter.prevent="emit('update:modelValue', !modelValue)"
-    @keydown.space.prevent="emit('update:modelValue', !modelValue)"
+    :for="toggleId"
+    @keydown.enter.prevent="toggle"
+    @keydown.space.prevent="toggle"
   >
     <span class="toggle-switch">
       <input
-        :id="id"
+        :id="toggleId"
         type="checkbox"
         role="switch"
         :aria-checked="modelValue"

@@ -21,6 +21,7 @@ const emit = defineEmits(['update:isOpen']);
 
 // Internal state.
 const internalIsOpen = ref(props.isOpen);
+const headerId = `collapsible-header-${uuidv4()}`;
 const contentId = `collapsible-content-${uuidv4()}`;
 
 const { beforeEnter, enter, afterEnter, beforeLeave, leave, afterLeave } = slideTransitionHooks;
@@ -52,6 +53,7 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div class="inline-drawer">
     <div
+      :id="headerId"
       class="inline-drawer-header"
       role="button"
       tabindex="0"
@@ -86,7 +88,7 @@ function onKeydown(event: KeyboardEvent) {
       @leave="leave"
       @after-leave="afterLeave"
     >
-      <div v-show="internalIsOpen" :id="contentId" class="drawer-wrapper">
+      <div v-show="internalIsOpen" :id="contentId" class="drawer-wrapper" role="region" :aria-labelledby="headerId">
         <div class="inline-drawer-content">
           <slot />
         </div>

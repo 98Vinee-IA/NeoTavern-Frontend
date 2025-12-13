@@ -30,6 +30,7 @@ interface Props {
   placeholder?: string;
   searchable?: boolean;
   groupSelect?: boolean;
+  id?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -40,6 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Select...',
   searchable: false,
   groupSelect: false,
+  id: undefined,
 });
 
 const emit = defineEmits<{
@@ -58,7 +60,7 @@ const highlightedIndex = ref<number>(-1); // For visual navigation
 const { isMobile } = useMobile();
 const { t } = useStrictI18n();
 
-const selectId = `select-${uuidv4()}`;
+const selectId = props.id || `select-${uuidv4()}`;
 const listboxId = `${selectId}-listbox`;
 const labelId = props.label ? `${selectId}-label` : undefined;
 
@@ -453,6 +455,7 @@ function getFlatIndex(opt: Option<T>) {
               v-if="item.label"
               class="select-group-label"
               :class="{ 'is-interactive': multiple && groupSelect }"
+              role="presentation"
               @click.stop="toggleGroup(item)"
             >
               <div v-if="multiple && groupSelect" class="option-checkbox">

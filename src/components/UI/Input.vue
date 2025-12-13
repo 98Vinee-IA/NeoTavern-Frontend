@@ -11,9 +11,10 @@ interface Props {
   min?: number;
   max?: number;
   step?: number;
+  id?: string;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   type: 'text',
   disabled: false,
   label: undefined,
@@ -21,11 +22,13 @@ withDefaults(defineProps<Props>(), {
   min: undefined,
   max: undefined,
   step: undefined,
+  id: undefined,
 });
 
 const emit = defineEmits(['update:modelValue', 'input', 'change']);
 
-const inputId = `input-${uuidv4()}`;
+// Use provided ID or generate one
+const inputId = props.id || `input-${uuidv4()}`;
 
 function handleInput(event: Event) {
   const target = event.target as HTMLInputElement;

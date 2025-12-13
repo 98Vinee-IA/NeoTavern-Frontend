@@ -18,6 +18,7 @@ const props = withDefaults(
     maxHeight?: string;
     language?: 'markdown' | 'css';
     ariaLabel?: string;
+    id?: string;
   }>(),
   {
     disabled: false,
@@ -26,6 +27,8 @@ const props = withDefaults(
     minHeight: 'auto',
     maxHeight: 'none',
     language: 'markdown',
+    ariaLabel: undefined,
+    id: undefined,
   },
 );
 
@@ -106,6 +109,7 @@ const initEditor = () => {
       EditorView.contentAttributes.of({
         'aria-label': props.ariaLabel || t('a11y.codeMirrorEditor.label'),
         'aria-multiline': 'true',
+        ...(props.id ? { id: props.id } : {}),
       }),
       EditorView.updateListener.of((v: ViewUpdate) => {
         if (v.docChanged) {

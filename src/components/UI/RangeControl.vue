@@ -12,21 +12,25 @@ interface Props {
   label?: string;
   disabled?: boolean;
   title?: string;
+  id?: string;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   min: 0,
   max: 100,
   step: 1,
   disabled: false,
   label: undefined,
   title: undefined,
+  id: undefined,
 });
 
 const emit = defineEmits(['update:modelValue']);
 
-const rangeId = `range-${uuidv4()}`;
-const labelId = `range-label-${uuidv4()}`;
+const baseId = props.id || `range-${uuidv4()}`;
+const inputId = `${baseId}-input`;
+const numberId = `${baseId}-number`;
+const labelId = props.label ? `${baseId}-label` : undefined;
 
 function update(val: number | string) {
   const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -37,13 +41,13 @@ function update(val: number | string) {
 </script>
 
 <template>
-  <div class="range-block" :title="title">
+  <div class="range-block" :title="title" role="group" :aria-labelledby="labelId">
     <div v-if="label" :id="labelId" class="range-block-title">
-      <label :for="rangeId">{{ label }}</label>
+      <label :for="inputId">{{ label }}</label>
     </div>
     <div class="range-block-range-and-counter">
       <input
-        :id="rangeId"
+        :id="inputId"
         type="range"
         class="neo-range-slider"
         :min="min"
@@ -51,10 +55,14 @@ function update(val: number | string) {
         :step="step"
         :value="modelValue"
         :disabled="disabled"
-        :aria-labelledby="label ? labelId : undefined"
+        :aria-valuemin="min"
+        :aria-valuemax="max"
+        :aria-valuenow="modelValue"
+        :aria-label="!label ? t('a11y.rangeControl.value') : undefined"
         @input="update(($event.target as HTMLInputElement).value)"
       />
       <input
+        :id="numberId"
         type="number"
         class="neo-range-input"
         :min="min"

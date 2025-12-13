@@ -504,6 +504,7 @@
     "seconds": "seconds",
     "remove": "Remove",
     "dragToReorder": "Drag to reorder",
+    "dragHandle": "Drag handle",
     "toggle": "Toggle",
     "refresh": "Refresh",
     "messages": "messages",
@@ -524,7 +525,9 @@
     "add": "Add",
     "collapseSidebar": "Collapse Sidebar",
     "expandSidebar": "Expand Sidebar",
-    "loadingButton": "Loading"
+    "loadingButton": "Loading",
+    "upload": "Upload",
+    "image": "Image"
   },
   "popup": {
     "cropAvatar": {
@@ -664,7 +667,9 @@
     "tokenWarning": "Character definition is large ({tokens} tokens), using over {percentage}% of your context window. This may impact performance and context limits."
   },
   "characterPanel": {
-    "pinToggle": "Locked = Character Management panel will stay open",
+    "toolbar": "Character Panel toolbar",
+    "listLabel": "List of characters",
+    "isFavorite": "Is favorite",
     "createNew": "Create New Character",
     "importFile": "Import Character from File",
     "importUrl": "Import content from external URL",
@@ -719,6 +724,8 @@
       "convertToPersona": "Convert to Persona",
       "rename": "Rename"
     },
+    "name": "Name",
+    "tags": "Tags",
     "advanced": {
       "promptOverrides": "Prompt Overrides",
       "postHistoryInstructions": "Post-History Instructions",
@@ -1188,7 +1195,13 @@
       "description": "Type a tag and press Enter or Comma to add it.",
       "tagsList": "Selected Tags",
       "removeTag": "Remove tag: {tag}",
-      "addTag": "Add Tag"
+      "addTag": "Add Tag",
+      "added": "{count} tag(s) added: {tags}",
+      "removed": "Removed tag: {tag}"
+    },
+    "imageCropper": {
+      "cropBoxLabel": "Crop selection box. Drag to move or resize.",
+      "cropBoxDescription": "Use arrow keys to move. Shift + arrow keys to resize. Enter or Space to confirm."
     },
     "pagination": {
       "navigation": "Pagination"

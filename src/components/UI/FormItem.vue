@@ -4,13 +4,15 @@ defineProps<{
   description?: string;
   error?: string;
   horizontal?: boolean;
+  for?: string;
 }>();
 </script>
 
 <template>
   <div class="form-item" :class="{ 'is-horizontal': horizontal, 'has-error': !!error }">
-    <div v-if="label" class="form-item-label" :title="horizontal ? description : undefined">
-      {{ label }}
+    <div v-if="label" class="form-item-label">
+      <label v-if="$props.for" :for="$props.for" :title="horizontal ? description : undefined">{{ label }}</label>
+      <span v-else :title="horizontal ? description : undefined">{{ label }}</span>
     </div>
 
     <div class="form-item-control">

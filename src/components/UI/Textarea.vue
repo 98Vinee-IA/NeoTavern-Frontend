@@ -20,6 +20,7 @@ interface Props {
   codeMirror?: boolean;
   language?: 'markdown' | 'css';
   identifier?: CodeMirrorTarget;
+  id?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -32,6 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
   codeMirror: false,
   language: 'markdown',
   identifier: undefined,
+  id: undefined,
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -44,7 +46,7 @@ const { t } = useStrictI18n();
 const textareaRef = ref<HTMLTextAreaElement>();
 const codeEditorRef = ref<InstanceType<typeof CodeMirrorEditor>>();
 
-const textareaId = computed(() => `textarea-${uuidv4()}`);
+const textareaId = computed(() => props.id || `textarea-${uuidv4()}`);
 
 const isCodeMirrorActive = computed(() => {
   if (props.codeMirror) return true;
