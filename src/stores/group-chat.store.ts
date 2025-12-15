@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { GroupGenerationHandlingMode, GroupReplyStrategy } from '../constants';
+import type { GroupMemberStatus } from '../types';
 import type { Character } from '../types/character';
 import { useCharacterStore } from './character.store';
 import { useChatStore } from './chat.store';
@@ -45,6 +46,8 @@ export const useGroupChatStore = defineStore('group-chat', () => {
     if (member) {
       member.muted = !member.muted;
       chatStore.triggerSave();
+    } else {
+      throw new Error(`${avatar} not found in group chat.`);
     }
   }
 
@@ -65,11 +68,26 @@ export const useGroupChatStore = defineStore('group-chat', () => {
           allowSelfResponses: false,
           autoMode: 0,
         },
-        members: {},
+        members:
+          chatStore.activeChat.metadata.members?.reduce(
+            (acc, avatar) => {
+              acc[avatar as string] = { muted: false };
+              return acc;
+            },
+            {} as Record<string, GroupMemberStatus>,
+          ) || {},
       };
     }
-    if (!chatStore.activeChat.metadata.group.members[avatar]) {
-      chatStore.activeChat.metadata.group.members[avatar] = { muted: false };
+    const groupMembers = chatStore.activeChat.metadata.group.members;
+    if (!groupMembers || Object.keys(groupMembers).length === 0) {
+      chatStore.activeChat.metadata.group.members =
+        chatStore.activeChat.metadata.members?.reduce(
+          (acc, avatar) => {
+            acc[avatar as string] = { muted: false };
+            return acc;
+          },
+          {} as Record<string, GroupMemberStatus>,
+        ) || {};
     }
 
     chatStore.triggerSave();
