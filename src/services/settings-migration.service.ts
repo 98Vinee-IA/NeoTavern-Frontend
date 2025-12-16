@@ -105,7 +105,7 @@ export function migrateLegacyOaiPreset(legacyPreset: LegacyOaiPresetSettings): S
   const migratedPrompts: Prompt[] = [];
 
   if (legacyPreset.prompts && legacyPreset.prompt_order) {
-    const orderConfig = legacyPreset.prompt_order[0]?.order || [];
+    const orderConfig = legacyPreset.prompt_order[legacyPreset.prompt_order.length - 1]?.order || [];
     const definitionMap = new Map(legacyPreset.prompts.map((p) => [p.identifier, p]));
 
     // 1. Add prompts defined in order
