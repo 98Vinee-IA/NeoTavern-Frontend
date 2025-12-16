@@ -175,6 +175,13 @@ NeoTavern supports **Progressive Web App (PWA)** functionality. This allows you 
 
 Yes. NeoTavern-Frontend is not overriding the existing `settings.json`. However; using the same characters, instruct templates, backgrounds, and WI folders. If you are worried about your data, feel free to use a fresh ST backend.
 
+> How can I reset my NeoTavern data?
+
+Removed these folders/files in your SillyTavern `data` directory and refresh the page:
+- `NeoSettings.json`
+- `NeoSamplers`
+- `NeoThemes`
+
 ## Development
 
 If you wish to modify the code or run in development mode:
