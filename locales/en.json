@@ -602,7 +602,7 @@
       "manageChats": "Manage chat",
       "regenerate": "Regenerate",
       "continue": "Continue",
-      "generate": "Generate (broken)",
+      "generate": "Generate",
       "selectMessages": "Select Messages"
     },
     "typingIndicator": "",

@@ -3,6 +3,7 @@ import { buildChatCompletionPayload, ChatCompletionService } from '../api/genera
 import { ApiTokenizer } from '../api/tokenizer';
 import { default_user_avatar, GenerationMode, GroupGenerationHandlingMode } from '../constants';
 import {
+  type ApiChatMessage,
   type Character,
   type ChatMessage,
   type ChatMetadata,
@@ -127,7 +128,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
 
   async function generateResponse(
     initialMode: GenerationMode,
-    { generationId, forceSpeakerAvatar }: { generationId?: string; forceSpeakerAvatar?: string } = {},
+    {
+      generationId,
+      forceSpeakerAvatar,
+      bypassPrefill,
+    }: { generationId?: string; forceSpeakerAvatar?: string; bypassPrefill?: boolean } = {},
   ) {
     if (isGenerating.value) return;
 
@@ -151,7 +156,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           forceSpeakerAvatar = lastMsg.original_avatar;
           // Pop the message to be regenerated
           currentChatContext.messages.pop();
-          await nextTick();
         }
       }
     } else if (mode === GenerationMode.ADD_SWIPE || mode === GenerationMode.CONTINUE) {
@@ -214,7 +218,13 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         if (startController.signal.aborted) break;
 
         // Perform Single Generation
-        await performSingleGeneration(activeCharacter, mode, finalGenerationId, currentChatContext);
+        await performSingleGeneration(
+          activeCharacter,
+          mode,
+          finalGenerationId,
+          currentChatContext,
+          bypassPrefill ?? false,
+        );
 
         groupChatStore.generatingAvatar = null;
 
@@ -236,6 +246,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     mode: GenerationMode,
     generationId: string,
     chatContext: ChatStateRef,
+    bypassPrefill: boolean,
   ) {
     let generatedMessage: ChatMessage | null = null;
     let generationError: Error | undefined;
@@ -321,10 +332,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     if (deps.activeChat.value !== chatContext) throw new Error('Context switched');
 
     // Trim history for Swipe
-    const lastMessage = context.history.length > 0 ? context.history[context.history.length - 1] : null;
+    let lastMessage = context.history.length > 0 ? context.history[context.history.length - 1] : null;
     if (mode === GenerationMode.ADD_SWIPE) {
       if (lastMessage && !lastMessage.is_user) {
         context.history.pop();
+        lastMessage = context.history.length > 0 ? context.history[context.history.length - 1] : null;
       }
     }
 
@@ -386,9 +398,37 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     const messages = await promptBuilder.build();
     if (messages.length === 0) throw new Error(t('chat.generate.noPrompts'));
 
+    // Bypass prefill for Single Chats
+    // Because group chats already have the speaker prefix injected
+    if (
+      bypassPrefill &&
+      !groupChatStore.isGroupChat &&
+      [GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode) &&
+      !lastMessage?.is_system &&
+      !lastMessage?.is_user
+    ) {
+      const newMessage: ApiChatMessage = {
+        role: 'user',
+        content: '(Continue)', // TODO: Add it from settings
+        name: context.playerName,
+      };
+      messages.push(newMessage);
+      lastMessage = {
+        extra: {},
+        is_system: false,
+        is_user: true,
+        mes: newMessage.content,
+        name: newMessage.name || context.playerName,
+        original_avatar: uiStore.activePlayerAvatar || default_user_avatar,
+        send_date: getMessageTimeStamp(),
+        swipe_id: 0,
+        swipes: [newMessage.content],
+        swipe_info: [],
+      };
+    }
+
     // Inject Assistant Prefix for Group Chats
     // "In group generations, we need to prefix the name with {role: assistant, content: `${name}: `}"
-    // FIXME: "Generate" button doesn't work if the last message is assistant
     // FIXME: Reasoning not going to work in group chats because of prefill logic
     if (
       groupChatStore.isGroupChat &&

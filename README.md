@@ -178,6 +178,7 @@ Yes. NeoTavern-Frontend is not overriding the existing `settings.json`. However;
 > How can I reset my NeoTavern data?
 
 Remove these folders/files in your SillyTavern `data` directory and refresh the page:
+
 - `NeoSettings.json`
 - `NeoSamplers`
 - `NeoThemes`

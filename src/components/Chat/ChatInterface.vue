@@ -62,7 +62,7 @@ function submitMessage() {
 }
 
 function generate() {
-  chatStore.generateResponse(GenerationMode.NEW);
+  chatStore.generateResponse(GenerationMode.NEW, { bypassPrefill: true });
   isOptionsMenuVisible.value = false;
 }
 
@@ -71,7 +71,7 @@ function regenerate() {
   if (isLastMessageUser) {
     chatStore.generateResponse(GenerationMode.NEW);
   } else {
-    chatStore.generateResponse(GenerationMode.REGENERATE);
+    chatStore.generateResponse(GenerationMode.REGENERATE, { bypassPrefill: true });
   }
   isOptionsMenuVisible.value = false;
 }
