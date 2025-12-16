@@ -53,6 +53,32 @@ export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
     });
   };
 
+  const injectInputOption = () => {
+    const menu = document.querySelector('#chat-form .options-menu');
+    if (!menu) return;
+
+    if (menu.querySelector('.translation-input-option')) return;
+
+    const item = document.createElement('a');
+    item.className = 'options-menu-item translation-input-option';
+    item.setAttribute('role', 'menuitem');
+    item.tabIndex = 0;
+    item.innerHTML = '<i class="fa-solid fa-language"></i><span>Translate Input</span>';
+
+    item.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      translator.translateInput();
+
+      const btn = document.getElementById('chat-options-button');
+      if (btn && getComputedStyle(menu).display !== 'none') {
+        btn.click();
+      }
+    };
+
+    menu.appendChild(item);
+  };
+
   const shouldTranslate = (message: ChatMessage, autoMode: AutoTranslateMode): boolean => {
     const isSystem = message.is_system;
     const isUser = message.is_user;
@@ -71,7 +97,12 @@ export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
 
   const unbinds: Array<() => void> = [];
 
-  unbinds.push(api.events.on('chat:entered', injectButtons));
+  unbinds.push(
+    api.events.on('chat:entered', () => {
+      injectButtons();
+      injectInputOption();
+    }),
+  );
 
   // Listen for new messages for Injection AND Auto-Translation
   unbinds.push(
@@ -94,11 +125,12 @@ export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
 
   // Initial Injection
   injectButtons();
+  injectInputOption();
 
   return () => {
     settingsApp?.unmount();
     unbinds.forEach((u) => u());
-    // Remove buttons
     document.querySelectorAll('.translation-button-wrapper').forEach((el) => el.remove());
+    document.querySelectorAll('.translation-input-option').forEach((el) => el.remove());
   };
 }
