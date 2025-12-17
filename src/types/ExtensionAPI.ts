@@ -412,10 +412,12 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
      * Processes a string replacing macros (e.g. {{user}}, {{char}}) with context data.
      * @param text The text to process.
      * @param context Optional context overrides. If not provided, active context is used.
+     * @param additionalMacros Optional custom macros to merge into the context. These can override built-in macros.
      */
     process: (
       text: string,
       context?: { activeCharacter?: Character; characters?: Character[]; persona?: Persona },
+      additionalMacros?: Record<string, unknown>,
     ) => string;
   };
   ui: {

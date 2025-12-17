@@ -97,4 +97,42 @@ describe('MacroService', () => {
       expect(result).toBe(' inside }}');
     });
   });
+
+  describe('Additional Macros', () => {
+    test('uses additional macros when provided', () => {
+      const contextWithAdditional: MacroContextData = {
+        ...context,
+        additionalMacros: { customMacro: 'CustomValue' },
+      };
+      const template = 'Custom: {{customMacro}}';
+      const result = macroService.process(template, contextWithAdditional);
+      expect(result).toBe('Custom: CustomValue');
+    });
+
+    test('additional macros override built-in macros', () => {
+      const contextWithAdditional: MacroContextData = {
+        ...context,
+        additionalMacros: { char: 'OverriddenName' },
+      };
+      const template = '{{char}} is here';
+      const result = macroService.process(template, contextWithAdditional);
+      expect(result).toBe('OverriddenName is here');
+    });
+
+    test('combines built-in and additional macros', () => {
+      const contextWithAdditional: MacroContextData = {
+        ...context,
+        additionalMacros: { location: 'Tokyo' },
+      };
+      const template = '{{user}} and {{char}} are in {{location}}';
+      const result = macroService.process(template, contextWithAdditional);
+      expect(result).toBe('Bob and Alice are in Tokyo');
+    });
+
+    test('works without additional macros', () => {
+      const template = '{{char}} says hello';
+      const result = macroService.process(template, context);
+      expect(result).toBe('Alice says hello');
+    });
+  });
 });

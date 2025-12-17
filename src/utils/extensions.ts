@@ -467,7 +467,7 @@ const baseExtensionAPI: ExtensionAPI = {
     },
   },
   macro: {
-    process: (text, context) => {
+    process: (text, context, additionalMacros) => {
       const charStore = useCharacterStore();
       const personaStore = usePersonaStore();
 
@@ -481,6 +481,7 @@ const baseExtensionAPI: ExtensionAPI = {
         characters,
         persona,
         activeCharacter,
+        additionalMacros,
       });
     },
   },

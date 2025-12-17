@@ -5,6 +5,7 @@ export interface MacroContextData {
   characters: Character[];
   persona: Persona;
   activeCharacter?: Character;
+  additionalMacros?: Record<string, unknown>;
 }
 
 export class MacroService {
@@ -31,7 +32,7 @@ export class MacroService {
   private buildContext(data: MacroContextData): Record<string, any> {
     const primaryChar = data.activeCharacter || data.characters[0];
 
-    return {
+    const baseContext = {
       user: data.persona.name,
       persona: data.persona.description,
 
@@ -44,6 +45,8 @@ export class MacroService {
 
       chars: data.characters.map((c) => c.name),
     };
+
+    return data.additionalMacros ? { ...baseContext, ...data.additionalMacros } : baseContext;
   }
 
   /**
