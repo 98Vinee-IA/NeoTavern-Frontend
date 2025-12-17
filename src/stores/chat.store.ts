@@ -519,7 +519,7 @@ export const useChatStore = defineStore('chat', () => {
         currentSwipeId++;
         await syncSwipeToMes(messageIndex, currentSwipeId);
       } else {
-        await generateResponse(GenerationMode.ADD_SWIPE);
+        await generateResponse(GenerationMode.ADD_SWIPE, { bypassPrefill: true });
       }
     }
   }

@@ -332,7 +332,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     if (deps.activeChat.value !== chatContext) throw new Error('Context switched');
 
     // Trim history for Swipe
-    let lastMessage = context.history.length > 0 ? context.history[context.history.length - 1] : null;
+    const lastMessage = context.history.length > 0 ? context.history[context.history.length - 1] : null;
     if (mode === GenerationMode.ADD_SWIPE) {
       if (lastMessage && !lastMessage.is_user) {
         context.history.pop();
@@ -412,18 +412,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         name: context.playerName,
       };
       messages.push(newMessage);
-      lastMessage = {
-        extra: {},
-        is_system: false,
-        is_user: true,
-        mes: newMessage.content,
-        name: newMessage.name || context.playerName,
-        original_avatar: uiStore.activePlayerAvatar || default_user_avatar,
-        send_date: getMessageTimeStamp(),
-        swipe_id: 0,
-        swipes: [newMessage.content],
-        swipe_info: [],
-      };
     }
 
     // Inject Assistant Prefix for Group Chats
@@ -518,7 +506,8 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     let effectiveMessages = [...messages];
     if (effectivePostProcessing) {
       try {
-        const isPrefill = messages.length > 1 ? messages[messages.length - 1].role === 'assistant' : false;
+        const isPrefill =
+          bypassPrefill && messages.length > 1 ? messages[messages.length - 1].role === 'assistant' : false;
         const lastPrefillMessage = isPrefill ? messages.pop() : null;
         effectiveMessages = await ChatCompletionService.formatMessages(
           effectiveMessages || [],
