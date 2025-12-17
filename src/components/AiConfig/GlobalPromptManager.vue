@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { cloneDeep } from 'lodash-es';
 import { computed, ref } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -57,9 +56,7 @@ function toggleExpand(identifier: string) {
 }
 
 function updatePromptField(index: number, field: keyof Prompt, value: never) {
-  const newList = cloneDeep(prompts.value);
-  (newList[index] as never)[field] = value;
-  prompts.value = newList;
+  (prompts.value[index] as never)[field] = value;
 }
 
 function getBadgeClass(role?: string) {

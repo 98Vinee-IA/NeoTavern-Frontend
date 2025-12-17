@@ -94,16 +94,12 @@ function toggleExpand(identifier: string) {
 }
 
 function toggleEnabled(index: number) {
-  const newList = cloneDeep(presetPrompts.value);
-  newList[index].enabled = !newList[index].enabled;
-  presetPrompts.value = newList;
+  presetPrompts.value[index].enabled = !presetPrompts.value[index].enabled;
 }
 
 function updatePromptField(index: number, field: keyof Prompt, value: string | number | MessageRole) {
-  const newList = cloneDeep(presetPrompts.value);
   // @ts-expect-error Dynamic assignment
-  newList[index][field] = value;
-  presetPrompts.value = newList;
+  presetPrompts.value[index][field] = value;
 }
 
 function getBadgeClass(role?: string) {
