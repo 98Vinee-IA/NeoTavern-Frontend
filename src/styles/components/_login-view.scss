@@ -1,0 +1,134 @@
+@use '../mixins' as *;
+
+.login-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--theme-background-tint);
+  backdrop-filter: blur(var(--blur-radius));
+}
+
+.login-card {
+  @include card-base();
+  width: 100%;
+  max-width: 480px;
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  box-shadow: 0 4px 20px var(--theme-shadow-color);
+  animation: fadeInQuick var(--animation-duration-md) ease-out;
+  min-height: 300px;
+}
+
+.login-header {
+  text-align: center;
+
+  h2 {
+    @include heading(1.5);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .subtitle {
+    color: var(--theme-emphasis-color);
+    font-size: 0.9em;
+    min-height: 1.2em; // Maintain height if empty
+  }
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  color: var(--theme-emphasis-color);
+}
+
+.login-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+  max-height: 400px;
+  overflow-y: auto;
+  padding: var(--spacing-xs);
+}
+
+.user-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-md);
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--base-border-radius);
+  cursor: pointer;
+  transition: all var(--animation-duration-sm) ease;
+  background-color: var(--black-30a);
+
+  &:hover {
+    background-color: var(--white-20a);
+    transform: translateY(-2px);
+    border-color: var(--theme-underline-color);
+  }
+
+  .avatar-wrapper {
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--spacing-sm);
+
+    :deep(.smart-avatar),
+    :deep(img) {
+      width: 100%;
+      height: 100%;
+      border-radius: var(--base-border-radius-round);
+    }
+  }
+
+  .user-info {
+    text-align: center;
+    width: 100%;
+
+    .name {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .handle {
+      display: block;
+      font-size: 0.8em;
+      color: var(--theme-emphasis-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-sm);
+
+    button {
+      min-width: 100px;
+    }
+  }
+}

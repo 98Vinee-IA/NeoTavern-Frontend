@@ -1,5 +1,8 @@
 # NeoTavern Frontend - Docker Support
 
+> [!WARNING]  
+> This is not working yet. Do not read/follow this guide.
+
 This directory contains the necessary files to run NeoTavern Frontend using Docker.
 
 ## Prerequisites

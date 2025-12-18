@@ -23,7 +23,6 @@ Why another frontend for [SillyTavern?](https://github.com/SillyTavern/SillyTave
 
 **What things did not implement:**
 
-- Multi-user support. If multi-user is enabled in your ST, you will get lots of connection errors.
 - STScript, QRs, slash commands, detailed macro system.
 - More built-in extensions.
 - NovelAI/Horde/KoboldClassic. If they have OpenAI compatible API, we can add later. If not, we are not planning to add them.
@@ -38,6 +37,7 @@ Why another frontend for [SillyTavern?](https://github.com/SillyTavern/SillyTave
 - World Info: Outlets and timed effects are not implemented.
 - Local Providers: Currently, there is only koboldcpp/ollama support. LM Studio/llamaserver/others are planned.
 - Instruct Templates: We can import/edit/use them. But we have not implemented the whole field, such as `wrap`.
+- Multi-user mode: We can select users in the beginning. But there is no user management system yet.
 
 **For extension developers:**
 

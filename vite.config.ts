@@ -35,6 +35,11 @@ const proxyRules = {
   '/api': { target: 'http://localhost:8000', changeOrigin: true },
   '/csrf-token': { target: 'http://localhost:8000', changeOrigin: true },
   '/thumbnail': { target: 'http://localhost:8000', changeOrigin: true },
+  '/login-check': {
+    target: 'http://localhost:8000',
+    changeOrigin: true,
+    rewrite: (path) => path.replace(/^\/login-check/, '/'),
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -104,7 +109,7 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          navigateFallbackDenylist: [/^\/api/, /^\/characters/, /^\/backgrounds/, /^\/personas/],
+          navigateFallbackDenylist: [/^\/api/, /^\/characters/, /^\/backgrounds/, /^\/personas/, /^\/login-check/],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         },
       }),

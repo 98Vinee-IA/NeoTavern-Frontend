@@ -23,10 +23,10 @@ async function initializeApp() {
   // @ts-expect-error 'i18n.global' is of type 'unknown'
   const t = i18n.global.t as StrictT;
 
-  // Fetch CSRF token before mounting
+  // Initialize Auth Store (CSRF + Login Check)
   try {
     const authStore = useAuthStore();
-    await authStore.fetchToken();
+    await authStore.initialize();
   } catch (error) {
     toast.error(t('errors.csrfToken'), 'Error', {
       timeout: 0,

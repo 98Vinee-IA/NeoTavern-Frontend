@@ -530,7 +530,10 @@
     "image": "Image",
     "info": "Info",
     "general": "General",
-    "default": "Default"
+    "default": "Default",
+    "welcome": "Welcome",
+    "back": "Back",
+    "login": "Login"
   },
   "popup": {
     "cropAvatar": {

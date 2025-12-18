@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch, type CSSProperties } from 'vue';
+import LoginView from './components/Login/LoginView.vue';
 import NavBar from './components/NavBar/NavBar.vue';
 import Popup from './components/Popup/Popup.vue';
 import SidebarHost from './components/Shared/SidebarHost.vue';
 import { useAppRegistration } from './composables/useAppRegistration';
 import { useStrictI18n } from './composables/useStrictI18n';
 import { useApiStore } from './stores/api.store';
+import { useAuthStore } from './stores/auth.store';
 import { useBackgroundStore } from './stores/background.store';
 import { useChatStore } from './stores/chat.store';
 import { useComponentRegistryStore } from './stores/component-registry.store';
@@ -30,6 +32,7 @@ const worldInfoStore = useWorldInfoStore();
 const secretStore = useSecretStore();
 const chatStore = useChatStore();
 const themeStore = useThemeStore();
+const authStore = useAuthStore();
 const { t } = useStrictI18n();
 const { registerCoreComponents } = useAppRegistration();
 
@@ -78,9 +81,8 @@ const allMainLayouts = computed(() => {
     }));
 });
 
-onMounted(async () => {
-  registerCoreComponents();
-
+async function initializeAppData() {
+  isInitializing.value = true;
   await settingsStore.initializeSettings();
 
   if (settingsStore.settings.ui.forceMobileMode) {
@@ -97,23 +99,44 @@ onMounted(async () => {
     },
   );
 
-  await Promise.all([
-    secretStore.fetchSecrets(),
-    chatStore.refreshChats(),
-    apiStore.initialize(),
-    apiStore.loadPresetsForApi(),
-    apiStore.loadInstructTemplates(),
-    backgroundStore.initialize(),
-    worldInfoStore.initialize(),
-    personaStore.initialize(),
-    themeStore.fetchThemes(),
-  ]);
-  themeStore.loadCurrentDOMStyles();
+  try {
+    await Promise.all([
+      secretStore.fetchSecrets(),
+      chatStore.refreshChats(),
+      apiStore.initialize(),
+      apiStore.loadPresetsForApi(),
+      apiStore.loadInstructTemplates(),
+      backgroundStore.initialize(),
+      worldInfoStore.initialize(),
+      personaStore.initialize(),
+      themeStore.fetchThemes(),
+    ]);
+    themeStore.loadCurrentDOMStyles();
+    await extensionStore.initializeExtensions();
+  } catch (error) {
+    console.error('Failed to initialize app data', error);
+  } finally {
+    isInitializing.value = false;
+  }
+}
 
-  await extensionStore.initializeExtensions();
+onMounted(async () => {
+  registerCoreComponents();
 
-  // Mark initialization as complete
-  isInitializing.value = false;
+  if (authStore.needsLogin) {
+    isInitializing.value = false;
+    watch(
+      () => authStore.needsLogin,
+      async (needsLogin) => {
+        if (!needsLogin) {
+          await initializeAppData();
+        }
+      },
+    );
+    return;
+  }
+
+  await initializeAppData();
 });
 </script>
 
@@ -128,11 +151,15 @@ onMounted(async () => {
     </div>
   </div>
 
+  <template v-if="authStore.needsLogin">
+    <LoginView />
+  </template>
+
   <!-- 
     Flex Layout Wrapper 
     This creates the structure: [NavBar] [LeftSidebar] [MainContent] [RightSidebar]
   -->
-  <div id="app-layout">
+  <div v-else-if="!isInitializing" id="app-layout">
     <NavBar />
 
     <SidebarHost side="left" />
