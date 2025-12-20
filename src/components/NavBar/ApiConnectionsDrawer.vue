@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { apiConnectionDefinition } from '../../api-connection-definition';
+import { buildChatCompletionPayload, ChatCompletionService } from '../../api/generation';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
 import { CustomPromptPostProcessing, TokenizerType } from '../../constants';
@@ -139,6 +140,53 @@ const postProcessingOptions = computed(() => [
 const proxies = computed(() =>
   (settingsStore.settings.proxies ?? []).map((proxy) => ({ label: proxy.name, value: proxy.id })),
 );
+
+const isTestingMessage = ref(false);
+
+async function testMessage() {
+  if (isTestingMessage.value) return;
+
+  isTestingMessage.value = true;
+
+  try {
+    const testMessages = [{ role: 'user' as const, content: 'Hello', name: 'user' }];
+
+    const payload = buildChatCompletionPayload({
+      messages: testMessages,
+      model: apiStore.activeModel || '',
+      provider: settingsStore.settings.api.provider,
+      samplerSettings: {
+        ...JSON.parse(JSON.stringify(settingsStore.settings.api.samplers)),
+        max_tokens: 50,
+        max_context: 200,
+        stream: false,
+      },
+      providerSpecific: settingsStore.settings.api.providerSpecific,
+      proxy: settingsStore.settings.api.proxy,
+      formatter: settingsStore.settings.api.formatter,
+      instructTemplate: apiStore.instructTemplates.find(
+        (t) => t.name === settingsStore.settings.api.instructTemplateName,
+      ),
+      playerName: 'User',
+      modelList: apiStore.modelList,
+    });
+
+    const response = await ChatCompletionService.generate(payload, settingsStore.settings.api.formatter);
+
+    if (typeof response === 'function') {
+      toast.error(t('apiConnections.testMessage.unexpectedStream'));
+      return;
+    }
+
+    toast.success(t('apiConnections.testMessage.success', { response: response.content }));
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    toast.error(t('apiConnections.testMessage.failed', { error: errorMessage }));
+    console.error('Test message failed:', error);
+  } finally {
+    isTestingMessage.value = false;
+  }
+}
 </script>
 
 <template>
@@ -314,8 +362,8 @@ const proxies = computed(() =>
         </FormItem>
 
         <div class="api-connections-drawer-actions">
-          <Button :loading="apiStore.isConnecting" :disabled="apiStore.isConnecting" @click.prevent="apiStore.connect">
-            {{ apiStore.isConnecting ? t('apiConnections.connecting') : t('apiConnections.connect') }}
+          <Button :loading="isTestingMessage" :disabled="isTestingMessage" @click.prevent="testMessage">
+            {{ isTestingMessage ? t('apiConnections.testMessage.testing') : t('apiConnections.testMessage.label') }}
           </Button>
         </div>
         <div class="online_status">

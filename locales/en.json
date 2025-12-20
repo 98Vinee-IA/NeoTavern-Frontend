@@ -473,7 +473,7 @@
     "status": {
       "bypassed": "Status check bypassed",
       "valid": "Valid",
-      "noConnection": "No connection...",
+      "noConnection": "No connection... If you are sure that the connection details are correct, try sending a test message to verify the connection.",
       "notConnected": "Not connected...",
       "connecting": "Connecting..."
     }
@@ -922,8 +922,6 @@
     "azureModel": "Model Name",
     "deepseekModel": "DeepSeek Model",
     "koboldUrl": "KoboldCpp URL",
-    "connect": "Connect",
-    "connecting": "Connecting",
     "providers": {
       "openai": "OpenAI",
       "claude": "Claude",
@@ -1021,6 +1019,13 @@
       "urlPlaceholder": "http://localhost:8080",
       "password": "Password",
       "passwordPlaceholder": "Optional"
+    },
+    "testMessage": {
+      "label": "Test Message",
+      "testing": "Testing...",
+      "success": "Test successful! Response: {response}",
+      "failed": "Test failed: {error}",
+      "unexpectedStream": "Unexpected streaming response received."
     }
   },
   "settings": {

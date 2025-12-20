@@ -925,8 +925,6 @@ export interface MessageSchema {
     azureModel: string;
     deepseekModel: string;
     koboldUrl: string;
-    connect: string;
-    connecting: string;
     providers: {
       openai: string;
       claude: string;
@@ -1024,6 +1022,13 @@ export interface MessageSchema {
       urlPlaceholder: string;
       password: string;
       passwordPlaceholder: string;
+    };
+    testMessage: {
+      label: string;
+      testing: string;
+      success: string;
+      failed: string;
+      unexpectedStream: string;
     };
   };
   settings: {
