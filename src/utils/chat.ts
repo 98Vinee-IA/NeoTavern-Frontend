@@ -1,4 +1,5 @@
 import DOMPurify, { type Config } from 'dompurify';
+import hljs from 'highlight.js';
 import { Marked, type TokenizerAndRendererExtension } from 'marked';
 import { GroupReplyStrategy, talkativeness_default } from '../constants';
 import { macroService, type MacroContextData } from '../services/macro-service';
@@ -19,6 +20,22 @@ const renderer = {
   link({ href, title, text }: { href: string; title?: string | null; text: string }): string {
     const titleAttr = title ? ` title="${title}"` : '';
     return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+  },
+  code({ text, lang }: { text: string; lang?: string }): string {
+    if (lang) {
+      try {
+        const highlighted = hljs.highlight(text, { language: lang, ignoreIllegals: true });
+        return `<pre><code class="hljs language-${lang}">${highlighted.value}</code></pre>`;
+      } catch {
+        console.warn(`Failed to highlight code for language: ${lang}`);
+      }
+    }
+    try {
+      const highlighted = hljs.highlightAuto(text);
+      return `<pre><code class="hljs">${highlighted.value}</code></pre>`;
+    } catch {
+      return `<pre><code>${text}</code></pre>`;
+    }
   },
 };
 
