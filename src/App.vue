@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, type CSSProperties } from 'vue';
+import { computed, nextTick, onMounted, ref, watch, type CSSProperties } from 'vue';
 import LoginView from './components/Login/LoginView.vue';
 import NavBar from './components/NavBar/NavBar.vue';
 import Popup from './components/Popup/Popup.vue';
@@ -112,12 +112,14 @@ async function initializeAppData() {
       themeStore.fetchThemes(),
     ]);
     themeStore.loadCurrentDOMStyles();
-    await extensionStore.initializeExtensions();
   } catch (error) {
     console.error('Failed to initialize app data', error);
   } finally {
     isInitializing.value = false;
   }
+
+  await nextTick();
+  await extensionStore.initializeExtensions();
 }
 
 onMounted(async () => {
