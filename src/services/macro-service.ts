@@ -30,6 +30,9 @@ export class MacroService {
     Handlebars.registerHelper('raw', function (options) {
       return options.fn();
     });
+    Handlebars.registerHelper('eq', function (a, b) {
+      return a === b;
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,7 +103,7 @@ export class MacroService {
         currentText = newText;
         depth++;
       } catch (e) {
-        console.warn('MacroService: Failed to process template:', e);
+        console.error('MacroService: Failed to process template:', e);
         break;
       }
     }

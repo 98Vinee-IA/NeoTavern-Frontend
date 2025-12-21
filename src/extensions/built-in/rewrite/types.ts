@@ -93,6 +93,9 @@ Personality: {{personality}}
 Scenario: {{scenario}}
 {{/if}}
 {{#if first_mes}}
+{{#if fieldName}}{{#unless (eq fieldName 'character.alternate_greeting')}}
+First Message: {{first_mes}}
+{{/unless}}{{else}}
 First Message: {{first_mes}}
 {{/if}}
 {{#if mes_example}}
