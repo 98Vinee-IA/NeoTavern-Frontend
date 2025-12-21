@@ -1,4 +1,4 @@
-import { defaultSamplerSettings, GroupGenerationHandlingMode } from '../constants';
+import { defaultSamplerSettings } from '../constants';
 import type {
   ApiChatMessage,
   Character,
@@ -63,7 +63,7 @@ export class PromptBuilder {
     fieldGetter: (char: Character) => string | undefined,
     singleCharContent?: string,
   ): string {
-    // If it's a group, we iterate all characters and process their specific field with their own context
+    // If multiple characters are in context, process all of them
     if (this.characters.length > 1) {
       return this.characters
         .map((c) => {
@@ -128,8 +128,7 @@ export class PromptBuilder {
     }
     const historyPlaceholder = { role: 'system', content: '[[CHAT_HISTORY_PLACEHOLDER]]', name: 'system' } as const;
 
-    const handlingMode = this.chatMetadata.group?.config?.handlingMode ?? GroupGenerationHandlingMode.SWAP;
-    const isGroupContext = this.characters.length > 1 || handlingMode !== GroupGenerationHandlingMode.SWAP;
+    const isGroupContext = this.characters.length > 1;
 
     for (const promptDefinition of enabledPrompts) {
       const role = promptDefinition.role ?? 'system';
@@ -295,7 +294,9 @@ export class PromptBuilder {
         name: msg.name,
       };
 
-      if (!msg.is_user && (this.chatMetadata.members?.length ?? 0) > 1) {
+      // Default Group Chat behavior: If context has multiple characters, prefix assistant messages.
+      // Extensions can modify this via 'prompt:built' if they want a different format.
+      if (!msg.is_user && isGroupContext && !apiMsg.content.startsWith(`${msg.name}:`)) {
         apiMsg.content = `${msg.name}: ${processedContent}`;
       }
 

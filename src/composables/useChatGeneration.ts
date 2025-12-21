@@ -1,14 +1,14 @@
-import { nextTick, ref, type ComputedRef, type Ref } from 'vue';
+import { nextTick, ref, type Ref } from 'vue';
 import { buildChatCompletionPayload, ChatCompletionService } from '../api/generation';
 import { ApiTokenizer } from '../api/tokenizer';
-import { default_user_avatar, GenerationMode, GroupGenerationHandlingMode } from '../constants';
+import { default_user_avatar, GenerationMode } from '../constants';
 import {
-  type ApiChatMessage,
   type Character,
   type ChatMessage,
   type ChatMetadata,
   type ConnectionProfile,
   type GenerationContext,
+  type GenerationPayloadBuilderConfig,
   type GenerationResponse,
   type ItemizedPrompt,
   type PromptTokenBreakdown,
@@ -22,14 +22,12 @@ import { toast } from './useToast';
 import { PromptBuilder } from '../services/prompt-engine';
 import { useApiStore } from '../stores/api.store';
 import { useCharacterStore } from '../stores/character.store';
-import { useGroupChatStore } from '../stores/group-chat.store';
 import { usePersonaStore } from '../stores/persona.store';
 import { usePromptStore } from '../stores/prompt.store';
 import { useSettingsStore } from '../stores/settings.store';
 import { useUiStore } from '../stores/ui.store';
 import { useWorldInfoStore } from '../stores/world-info.store';
 import { getThumbnailUrl } from '../utils/character';
-import { getCharactersForContext } from '../utils/chat';
 import { getMessageTimeStamp, uuidv4 } from '../utils/commons';
 import { eventEmitter } from '../utils/extensions';
 import { trimInstructResponse } from '../utils/instruct';
@@ -42,7 +40,6 @@ export interface ChatStateRef {
 
 export interface ChatGenerationDependencies {
   activeChat: Ref<ChatStateRef | null>;
-  groupConfig: ComputedRef<ChatMetadata['group'] | null>;
   syncSwipeToMes: (msgIndex: number, swipeIndex: number) => Promise<void>;
   stopAutoModeTimer: () => void;
 }
@@ -53,7 +50,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
   const generationController = ref<AbortController | null>(null);
 
   const characterStore = useCharacterStore();
-  const groupChatStore = useGroupChatStore();
   const apiStore = useApiStore();
   const settingsStore = useSettingsStore();
   const promptStore = usePromptStore();
@@ -66,7 +62,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       generationController.value.abort();
       isGenerating.value = false;
       generationController.value = null;
-      groupChatStore.generatingAvatar = null;
     }
   }
 
@@ -128,11 +123,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
 
   async function generateResponse(
     initialMode: GenerationMode,
-    {
-      generationId,
-      forceSpeakerAvatar,
-      bypassPrefill,
-    }: { generationId?: string; forceSpeakerAvatar?: string; bypassPrefill?: boolean } = {},
+    { generationId, forceSpeakerAvatar }: { generationId?: string; forceSpeakerAvatar?: string } = {},
   ) {
     if (isGenerating.value) return;
 
@@ -144,100 +135,79 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     let mode = initialMode;
     const currentChatContext = deps.activeChat.value;
 
-    // Handle Regenerate Logic:
-    // If regenerating the last message (bot), we force that avatar and treat it as a single generation.
-    // If the last message is user, we treat it as NEW (response to user).
+    // Handle Regenerate Logic
     if (mode === GenerationMode.REGENERATE) {
       const lastMsg = currentChatContext.messages[currentChatContext.messages.length - 1];
       if (lastMsg) {
         if (lastMsg.is_user) {
           mode = GenerationMode.NEW;
         } else {
-          forceSpeakerAvatar = lastMsg.original_avatar;
+          forceSpeakerAvatar = forceSpeakerAvatar ?? lastMsg.original_avatar;
           // Pop the message to be regenerated
           currentChatContext.messages.pop();
         }
       }
     } else if (mode === GenerationMode.ADD_SWIPE || mode === GenerationMode.CONTINUE) {
-      // These modes imply working on the last message
       const lastMsg = currentChatContext.messages[currentChatContext.messages.length - 1];
       if (!lastMsg || lastMsg.is_user) return;
-    }
-
-    // Queue Preparation
-    if (forceSpeakerAvatar) {
-      groupChatStore.clearQueue();
-      groupChatStore.addToQueue([forceSpeakerAvatar]);
-    } else if (mode === GenerationMode.NEW) {
-      // Only auto-fill queue for new generations
-      if (groupChatStore.generationQueue.length === 0) {
-        let textToScan = '';
-        const lastMsg = currentChatContext.messages[currentChatContext.messages.length - 1];
-        if (lastMsg && lastMsg.is_user) textToScan = lastMsg.mes;
-        groupChatStore.prepareGenerationQueue(textToScan);
-      }
-    } else {
-      // For Continue/Swipe, we are working on existing message, so queue is irrelevant or implicit 1
-      // But we need to ensure we have a "current speaker" set up for logic below
-      if (groupChatStore.generationQueue.length === 0) {
-        const lastMsg = currentChatContext.messages[currentChatContext.messages.length - 1];
-        if (lastMsg && !lastMsg.is_user) {
-          groupChatStore.addToQueue([lastMsg.original_avatar]);
-        }
-      }
-    }
-
-    if (groupChatStore.generationQueue.length === 0) {
-      // If still empty (e.g. Manual mode), stop.
-      // Or notify? SillyTavern usually just stops.
-      return;
+      forceSpeakerAvatar = forceSpeakerAvatar ?? lastMsg.original_avatar;
     }
 
     const finalGenerationId = generationId || uuidv4();
     isGenerating.value = true;
     generationController.value = new AbortController();
 
+    let generatedMessage: ChatMessage | null = null;
+    let generationError: Error | undefined;
+
     try {
-      while (groupChatStore.generationQueue.length > 0) {
-        if (generationController.value?.signal.aborted) break;
-        if (deps.activeChat.value !== currentChatContext) break;
+      let activeCharacter: Character | undefined;
 
-        const activeAvatar = groupChatStore.popFromQueue();
-        if (!activeAvatar) break;
-
-        groupChatStore.generatingAvatar = activeAvatar;
-        const activeCharacter = characterStore.activeCharacters.find((c) => c.avatar === activeAvatar);
-
-        if (!activeCharacter) {
-          toast.error(t('chat.generate.noSpeaker'));
-          break;
-        }
-
-        const startController = new AbortController();
-        await eventEmitter.emit('generation:started', { controller: startController, generationId: finalGenerationId });
-        if (startController.signal.aborted) break;
-
-        // Perform Single Generation
-        await performSingleGeneration(
-          activeCharacter,
-          mode,
-          finalGenerationId,
-          currentChatContext,
-          bypassPrefill ?? false,
-        );
-
-        groupChatStore.generatingAvatar = null;
-
-        // If not NEW mode, we only do one pass (Swipes/Regen/Continue are singular actions)
-        if (mode !== GenerationMode.NEW) break;
+      // Determine the Active Speaker
+      if (forceSpeakerAvatar) {
+        activeCharacter = characterStore.activeCharacters.find((c) => c.avatar === forceSpeakerAvatar);
+      } else {
+        // If no force speaker, we assume single chat (first char) OR let extensions override context below
+        // Default to first char
+        activeCharacter = characterStore.activeCharacters[0];
       }
+
+      if (!activeCharacter) {
+        // Fallback: If no characters active (weird), try to find any in store.
+        if (characterStore.characters.length > 0) {
+          activeCharacter = characterStore.characters[0];
+        } else {
+          toast.error(t('chat.generate.noSpeaker'));
+          return;
+        }
+      }
+
+      const startController = new AbortController();
+      await eventEmitter.emit('generation:started', {
+        controller: startController,
+        generationId: finalGenerationId,
+        activeCharacter,
+      });
+      if (startController.signal.aborted) return;
+
+      // Perform Single Generation
+      generatedMessage = await performSingleGeneration(activeCharacter, mode, finalGenerationId, currentChatContext);
     } catch (error) {
       console.error('Generation Error:', error);
-      toast.error(error instanceof Error ? error.message : t('chat.generate.errorFallback'));
+      generationError = error instanceof Error ? error : new Error(String(error));
+      toast.error(generationError.message || t('chat.generate.errorFallback'));
     } finally {
       isGenerating.value = false;
-      groupChatStore.generatingAvatar = null;
       generationController.value = null;
+
+      // Emit finished event AFTER resetting isGenerating flag
+      // This allows extensions (like Group Chat) to trigger the next generation immediately without recursion block
+      await nextTick();
+      await eventEmitter.emit(
+        'generation:finished',
+        { message: generatedMessage, error: generationError },
+        { generationId: finalGenerationId },
+      );
     }
   }
 
@@ -246,10 +216,8 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     mode: GenerationMode,
     generationId: string,
     chatContext: ChatStateRef,
-    bypassPrefill: boolean,
-  ) {
+  ): Promise<ChatMessage | null> {
     let generatedMessage: ChatMessage | null = null;
-    let generationError: Error | undefined;
 
     const activeChatMessages = chatContext.messages;
     const genStarted = new Date().toISOString();
@@ -287,22 +255,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     const effectiveTemplate = apiStore.instructTemplates.find((t) => t.name === effectiveTemplateName);
 
     const tokenizer = new ApiTokenizer({ tokenizerType: settings.api.tokenizer, model: effectiveModel });
-    const handlingMode = deps.groupConfig.value?.config.handlingMode ?? GroupGenerationHandlingMode.SWAP;
 
-    const mutedMap: Record<string, boolean> = {};
-    if (deps.groupConfig.value?.members) {
-      for (const [key, val] of Object.entries(deps.groupConfig.value.members)) {
-        mutedMap[key] = val.muted;
-      }
-    }
-
-    const charactersForContext = getCharactersForContext(
-      characterStore.activeCharacters,
-      activeCharacter,
-      handlingMode !== GroupGenerationHandlingMode.SWAP,
-      handlingMode === GroupGenerationHandlingMode.JOIN_INCLUDE_MUTED,
-      mutedMap,
-    );
+    // Event-driven Context Resolution
+    const contextCharactersWrapper = { characters: [activeCharacter] };
+    await eventEmitter.emit('generation:resolve-context', contextCharactersWrapper);
+    const charactersForContext = contextCharactersWrapper.characters;
 
     const clonedSampler = {
       ...effectiveSamplerSettings,
@@ -333,7 +290,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
 
     // Trim history for Swipe
     const lastMessage = context.history.length > 0 ? context.history[context.history.length - 1] : null;
-    const previousMessage = context.history.length > 1 ? context.history[context.history.length - 2] : null;
     if (mode === GenerationMode.ADD_SWIPE) {
       if (lastMessage && !lastMessage.is_user) {
         context.history.pop();
@@ -345,36 +301,39 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       effectivePostProcessing = profileSettings.customPromptPostProcessing;
     }
 
-    // Handle "Stop if line starts with non-active character" logic
+    // Name Hijacking Logic
     const stopOnNameHijack = settings.chat.stopOnNameHijack ?? 'all';
+    const isMultiCharContext = context.characters.length > 1;
+
     const shouldCheckHijack =
-      effectivePostProcessing || // Post processing already prefixing names
+      effectivePostProcessing ||
       stopOnNameHijack === 'all' ||
-      (stopOnNameHijack === 'group' && groupChatStore.isGroupChat) ||
-      (stopOnNameHijack === 'single' && !groupChatStore.isGroupChat);
+      (stopOnNameHijack === 'group' && isMultiCharContext) ||
+      (stopOnNameHijack === 'single' && !isMultiCharContext);
 
+    // Populate initial stop sequences
     const stopNames = new Set<string>();
-    if (shouldCheckHijack) {
-      const stops = new Set(context.settings.sampler.stop);
+    const initialStops = new Set(context.settings.sampler.stop);
 
+    if (shouldCheckHijack) {
       // Add other characters
-      characterStore.activeCharacters.forEach((c) => {
+      context.characters.forEach((c) => {
         if (c.avatar !== activeCharacter.avatar) {
-          stops.add(`\n${c.name}:`);
+          initialStops.add(`\n${c.name}:`);
           stopNames.add(c.name.trim());
         }
       });
       // Add user
       if (context.playerName) {
-        stops.add(`\n${context.playerName}:`);
+        initialStops.add(`\n${context.playerName}:`);
         stopNames.add(context.playerName.trim());
       }
 
-      context.settings.sampler.stop = Array.from(stops);
+      context.settings.sampler.stop = Array.from(initialStops);
     }
 
     await eventEmitter.emit('process:generation-context', context);
-    if (context.controller.signal.aborted) return;
+    if (context.controller.signal.aborted) return null;
 
     const promptBuilder = new PromptBuilder({
       generationId,
@@ -397,39 +356,22 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     const messages = await promptBuilder.build();
     if (messages.length === 0) throw new Error(t('chat.generate.noPrompts'));
 
-    bypassPrefill = groupChatStore.isGroupChat ? false : bypassPrefill;
-
-    // Bypass prefill for Single Chats
-    // Because group chats already have the speaker prefix injected
+    // Handle (Continue) injection
+    // If the last message is an assistant message that doesn't look like a prefill (ends in ':'),
+    // we inject a user message with '(Continue)' to force a new turn.
+    // If it looks like a prefill, we assume the model will complete it naturally.
+    const lastPromptMsg = messages[messages.length - 1];
     if (
-      bypassPrefill &&
-      [GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode) &&
-      !lastMessage?.is_system &&
-      mode === GenerationMode.ADD_SWIPE
-        ? previousMessage
-          ? !previousMessage.is_user
-          : false
-        : !lastMessage?.is_user
-    ) {
-      const newMessage: ApiChatMessage = {
-        role: 'user',
-        content: '(Continue)', // TODO: Add it from settings
-        name: context.playerName,
-      };
-      messages.push(newMessage);
-    }
-
-    // Inject Assistant Prefix for Group Chats
-    // "In group generations, we need to prefix the name with {role: assistant, content: `${name}: `}"
-    // FIXME: Reasoning not going to work in group chats because of prefill logic
-    if (
-      groupChatStore.isGroupChat &&
+      context.chatMetadata.members &&
+      context.chatMetadata.members.length === 1 &&
+      lastPromptMsg?.role === 'assistant' &&
+      !lastPromptMsg.content.trim().endsWith(':') &&
       [GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode)
     ) {
       messages.push({
-        role: 'assistant',
-        content: `${activeCharacter.name}: `,
-        name: activeCharacter.name,
+        role: 'user',
+        content: '(Continue)', // TODO: Add it from settings
+        name: context.playerName,
       });
     }
 
@@ -511,13 +453,20 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     let effectiveMessages = [...messages];
     if (effectivePostProcessing) {
       try {
+        // We ensure we operate only on effectiveMessages to avoid duplication.
         const isPrefill =
-          bypassPrefill && messages.length > 1 ? messages[messages.length - 1].role === 'assistant' : false;
-        const lastPrefillMessage = isPrefill ? messages.pop() : null;
+          effectiveMessages.length > 1
+            ? effectiveMessages[effectiveMessages.length - 1].role === 'assistant' &&
+              effectiveMessages[effectiveMessages.length - 1].content.trim().endsWith(':')
+            : false;
+
+        const lastPrefillMessage = isPrefill ? effectiveMessages.pop() : null;
+
         effectiveMessages = await ChatCompletionService.formatMessages(
           effectiveMessages || [],
           effectivePostProcessing,
         );
+
         if (lastPrefillMessage) {
           if (!lastPrefillMessage.content.startsWith(`${lastPrefillMessage.name}: `)) {
             lastPrefillMessage.content = `${lastPrefillMessage.name}: ${lastPrefillMessage.content}`;
@@ -531,7 +480,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       }
     }
 
-    const payloadRaw = {
+    const payloadRaw: GenerationPayloadBuilderConfig = {
       messages: effectiveMessages,
       model: context.settings.model,
       samplerSettings: context.settings.sampler,
@@ -545,14 +494,21 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       activeCharacter: activeCharacter,
     };
 
-    const payload = buildChatCompletionPayload(payloadRaw);
-
     const payloadController = new AbortController();
-    await eventEmitter.emit('process:request-payload', payload, {
+    await eventEmitter.emit('generation:build-payload', payloadRaw, {
       controller: payloadController,
       generationId,
     });
-    if (payloadController.signal.aborted) return;
+    if (payloadController.signal.aborted) return null;
+
+    const payload = buildChatCompletionPayload(payloadRaw);
+
+    const requestPayloadController = new AbortController();
+    await eventEmitter.emit('process:request-payload', payload, {
+      controller: requestPayloadController,
+      generationId,
+    });
+    if (requestPayloadController.signal.aborted) return null;
 
     // --- Generation Execution ---
 
@@ -670,7 +626,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       if (!responseController.signal.aborted) {
         if (!response.content || response.content.trim() === '') {
           toast.error(t('chat.generate.emptyResponseError'));
-          return;
+          return null;
         }
         await handleGenerationResult(response.content, response.reasoning);
       }
@@ -725,7 +681,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
                 controller: createController,
                 generationId,
               });
-              if (createController.signal.aborted) return;
+              if (createController.signal.aborted) return null;
 
               if (deps.activeChat.value !== chatContext) throw new Error('Context switched');
 
@@ -767,7 +723,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           if (chunk.reasoning && chunk.reasoning !== targetMessage.extra.reasoning)
             targetMessage.extra.reasoning = chunk.reasoning;
 
-          // Check for name hijacking/hallucinations
+          // Check for name hijacking/hallucinations (Stream)
           if (shouldCheckHijack) {
             const lastNewLine = targetMessage.mes.lastIndexOf('\n');
             const currentLine = lastNewLine === -1 ? targetMessage.mes : targetMessage.mes.slice(lastNewLine + 1);
@@ -798,12 +754,14 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         // Check if we never created a message (empty response)
         if (!messageCreated) {
           toast.error(t('chat.generate.emptyResponseError'));
-          return;
+          return null;
         }
 
         // Finalize streaming
         const finalMessage = activeChatMessages[targetMessageIndex];
         if (finalMessage) {
+          generatedMessage = finalMessage;
+
           if (context.settings.formatter === 'text' && context.settings.instructTemplate) {
             const trimmed = trimInstructResponse(finalMessage.mes, context.settings.instructTemplate);
             finalMessage.mes = trimmed;
@@ -833,12 +791,8 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         }
       }
     }
-    await nextTick();
-    await eventEmitter.emit(
-      'generation:finished',
-      { message: generatedMessage, error: generationError },
-      { generationId },
-    );
+
+    return generatedMessage;
   }
 
   return {

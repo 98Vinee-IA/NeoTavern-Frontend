@@ -47,7 +47,6 @@ export interface MessageSchema {
     };
     tabs: {
       chats: string;
-      group: string;
       config: string;
     };
     import: {
