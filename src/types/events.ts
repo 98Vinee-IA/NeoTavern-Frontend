@@ -76,6 +76,15 @@ export interface ExtensionEventMap {
   ];
 
   'prompt:building-started': [options: PromptBuilderOptions];
+  'prompt:history-message-processing': [
+    apiMessage: ApiChatMessage,
+    context: {
+      originalMessage: ChatMessage;
+      isGroupContext: boolean;
+      characters: Character[];
+      persona: Persona;
+    },
+  ];
   'prompt:built': [messages: ApiChatMessage[], context: { generationId: string }];
   'world-info:processing-started': [options: WorldInfoOptions];
   'world-info:entry-activated': [entry: WorldInfoEntry, context: { generationId: string }];

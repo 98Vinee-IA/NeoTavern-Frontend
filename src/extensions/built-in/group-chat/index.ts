@@ -102,10 +102,13 @@ export function activate(api: ExtensionAPI) {
     () => {
       if (!service.isGroupChat) return;
 
-      // User message created -> Prepare queue for response
-      service.prepareGenerationQueue(api.chat.getLastMessage()?.mes);
-      service.processQueue();
-      service.startAutoModeTimer();
+      const lastMsg = api.chat.getLastMessage();
+
+      if (lastMsg?.is_user) {
+        service.prepareGenerationQueue(lastMsg.mes);
+        service.processQueue();
+        service.startAutoModeTimer();
+      }
     },
     EventPriority.HIGH,
   );
@@ -167,6 +170,19 @@ export function activate(api: ExtensionAPI) {
             }
           }
         });
+      }
+    },
+    EventPriority.HIGH,
+  );
+
+  // 8. Events: History Message Processing (Name Prefixing)
+  api.events.on(
+    'prompt:history-message-processing',
+    (apiMsg, context) => {
+      if (!context.isGroupContext) return;
+
+      if (!apiMsg.content.startsWith(`${context.originalMessage.name}:`)) {
+        apiMsg.content = `${context.originalMessage.name}: ${apiMsg.content}`;
       }
     },
     EventPriority.HIGH,

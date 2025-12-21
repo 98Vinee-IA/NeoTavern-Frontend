@@ -186,31 +186,17 @@ export class GroupChatService {
   }
 
   public async processQueue() {
-    if (this.generatingAvatar.value) return; // Busy
+    if (this.generatingAvatar.value) return;
 
-    // Check if we need to auto-populate queue
-    // This happens if queue is empty BUT auto-mode is active OR reply strategy dictates a response
-    // Usually triggered after user message or finished generation
-    if (this.generationQueue.value.length === 0) {
-      // Logic is handled by `prepareGenerationQueue` usually called before this
-      return;
-    }
-
-    const nextAvatar = this.generationQueue.value[0]; // Peek
+    const nextAvatar = this.generationQueue.value.shift();
     if (!nextAvatar) return;
 
     this.generatingAvatar.value = nextAvatar;
 
-    // Trigger generation via API
     try {
       await this.api.chat.generateResponse({
         forceSpeakerAvatar: nextAvatar,
       });
-      // The pop happens when generation finishes?
-      // Core's `generateResponse` is fire-and-forget regarding the queue,
-      // it just does one generation.
-      // So we pop AFTER we trigger it? No, if we pop now, `generatingAvatar` holds the state.
-      this.popFromQueue();
     } catch (e) {
       console.error(e);
       this.generatingAvatar.value = null;
