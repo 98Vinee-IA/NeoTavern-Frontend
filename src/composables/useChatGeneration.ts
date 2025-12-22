@@ -277,7 +277,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         await eventEmitter.emit(
           'generation:finished',
           { message: generatedMessage, error: generationError },
-          { generationId: finalGenerationId },
+          { generationId: finalGenerationId, mode },
         );
       }
     }

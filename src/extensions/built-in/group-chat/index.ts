@@ -129,11 +129,15 @@ export function activate(api: ExtensionAPI) {
 
   api.events.on(
     'generation:finished',
-    async () => {
+    async (_result, context) => {
       service.generatingAvatar.value = null;
 
       if (service.wasAborted) {
         service.wasAborted = false;
+        return;
+      }
+
+      if (context.mode !== GenerationMode.NEW) {
         return;
       }
 

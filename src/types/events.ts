@@ -70,7 +70,10 @@ export interface ExtensionEventMap {
 
   // Generation Flow Events
   'generation:started': [context: { controller: AbortController; generationId: string; activeCharacter?: Character }];
-  'generation:finished': [result: { message: ChatMessage | null; error?: Error }, context: { generationId: string }];
+  'generation:finished': [
+    result: { message: ChatMessage | null; error?: Error },
+    context: { generationId: string; mode: GenerationMode },
+  ];
   'generation:aborted': [context: { generationId: string }];
   'generation:before-message-create': [
     message: ChatMessage,
