@@ -610,7 +610,6 @@ export interface MessageSchema {
       manageChats: string;
       regenerate: string;
       continue: string;
-      generate: string;
       selectMessages: string;
     };
     typingIndicator: string;

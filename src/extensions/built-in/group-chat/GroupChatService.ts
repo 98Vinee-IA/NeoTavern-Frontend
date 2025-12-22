@@ -5,7 +5,7 @@ import { determineNextSpeaker } from './utils';
 
 // TODO: i18n
 
-const DEFAULT_DECISION_TEMPLATE = `You are an AI assistant orchestrating a roleplay group chat.
+export const DEFAULT_DECISION_TEMPLATE = `You are an AI assistant orchestrating a roleplay group chat.
 Your task is to determine who should speak next based on the recent conversation context.
 
 [Active Members]

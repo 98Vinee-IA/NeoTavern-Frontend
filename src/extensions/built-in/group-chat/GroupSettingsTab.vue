@@ -16,6 +16,7 @@ import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { Character, ExtensionAPI } from '../../../types';
 import { getThumbnailUrl } from '../../../utils/character';
 import type { GroupChatService } from './GroupChatService';
+import { DEFAULT_DECISION_TEMPLATE } from './GroupChatService';
 import { GroupGenerationHandlingMode, GroupReplyStrategy } from './types';
 
 // Props are injected by the extension system usually, but since we mount it manually
@@ -105,6 +106,13 @@ function updateMembersOrder(newMembers: Character[]) {
 function saveDebounced() {
   if (groupConfig.value) {
     service.saveConfig(groupConfig.value);
+  }
+}
+
+function resetDecisionPrompt() {
+  if (groupConfig.value) {
+    groupConfig.value.config.decisionPromptTemplate = DEFAULT_DECISION_TEMPLATE;
+    saveDebounced();
   }
 }
 
@@ -282,11 +290,20 @@ function forceTalk(avatar: string) {
           </FormItem>
 
           <FormItem label="Decision Prompt" description="Use handlebars {{...}} for variables.">
-            <Textarea
-              v-model="groupConfig.config.decisionPromptTemplate!"
-              :rows="6"
-              @update:model-value="saveDebounced"
-            />
+            <div class="textarea-container">
+              <Textarea
+                v-model="groupConfig.config.decisionPromptTemplate!"
+                :rows="6"
+                @update:model-value="saveDebounced"
+              />
+              <Button
+                class="reset-prompt-btn"
+                icon="fa-rotate-left"
+                title="Reset to default"
+                variant="ghost"
+                @click="resetDecisionPrompt"
+              />
+            </div>
             <div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px">
               Available macros: <code>{{ '{' + '{user}' + '}' }}</code
               >, <code>{{ '{' + '{memberNames}' + '}' }}</code
@@ -427,6 +444,22 @@ function forceTalk(avatar: string) {
     border: none;
     border-top: 1px solid var(--theme-border-color);
     margin: 0;
+  }
+}
+
+.textarea-container {
+  position: relative;
+}
+
+.reset-prompt-btn {
+  position: absolute;
+  top: 5px;
+  right: 20px;
+  opacity: 0.5;
+  background-color: var(--black-50a);
+
+  &:hover {
+    opacity: 1;
   }
 }
 
