@@ -26,6 +26,17 @@ Example Response:
 {{firstCharName}}
 \`\`\``;
 
+export const DEFAULT_SUMMARY_TEMPLATE = `Summarize the following character in 2-3 sentences. Focus on their personality and role to help other characters interact with them.
+
+Name: {{name}}
+Description: {{description}}
+Personality: {{personality}}`;
+
+export const DEFAULT_SUMMARY_INJECTION_TEMPLATE = `{{description}}
+
+[Other Group Members]
+{{summaries}}`;
+
 export class GroupChatService {
   private api: ExtensionAPI;
 
@@ -33,6 +44,7 @@ export class GroupChatService {
   public generatingAvatar = ref<string | null>(null);
   public autoModeTimer: ReturnType<typeof setTimeout> | null = null;
   public isAnalyzing = ref(false);
+  public isGeneratingSummary = ref(false);
   public wasAborted = false;
 
   // We mirror the current config to a reactive object for the UI
@@ -61,6 +73,7 @@ export class GroupChatService {
     this.clearQueue();
     this.stopAutoModeTimer();
     this.isAnalyzing.value = false;
+    this.isGeneratingSummary.value = false;
     this.generatingAvatar.value = null;
   }
 
@@ -82,30 +95,21 @@ export class GroupChatService {
           handlingMode: GroupGenerationHandlingMode.SWAP,
           allowSelfResponses: false,
           autoMode: 0,
-          decisionPromptTemplate: DEFAULT_DECISION_TEMPLATE,
           decisionContextSize: 15,
-          connectionProfile: undefined,
         },
         members: {},
       };
 
       // Sync initial members
       meta.members?.forEach((avatar) => {
-        if (loadedConfig) loadedConfig.members[avatar] = { muted: false };
+        if (loadedConfig) loadedConfig.members[avatar] = { muted: false, summary: '' };
       });
 
       this.saveConfig(loadedConfig);
     } else {
-      let dirty = false;
-      if (!loadedConfig.config.decisionPromptTemplate) {
-        loadedConfig.config.decisionPromptTemplate = DEFAULT_DECISION_TEMPLATE;
-        dirty = true;
-      }
+      // Ensure decisionContextSize has a default
       if (loadedConfig.config.decisionContextSize === undefined) {
         loadedConfig.config.decisionContextSize = 15;
-        dirty = true;
-      }
-      if (dirty) {
         this.saveConfig(loadedConfig);
       }
     }
@@ -135,6 +139,59 @@ export class GroupChatService {
     }
   }
 
+  public updateMemberSummary(avatar: string, summary: string) {
+    if (!this.groupConfig.value) return;
+    const member = this.groupConfig.value.members[avatar];
+    if (member) {
+      member.summary = summary;
+      this.saveConfig(this.groupConfig.value);
+    }
+  }
+
+  public async generateMemberSummary(avatar: string) {
+    if (!this.groupConfig.value) return;
+    const char = this.api.character.get(avatar);
+    if (!char) return;
+
+    const extensionSettings = this.api.settings.get();
+    const template = extensionSettings?.defaultSummaryPromptTemplate || DEFAULT_SUMMARY_TEMPLATE;
+    const connectionProfile = extensionSettings?.defaultConnectionProfile;
+
+    const prompt = this.api.macro.process(template, { activeCharacter: char });
+
+    const messages: ApiChatMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+        name: 'System',
+      },
+    ];
+
+    this.isGeneratingSummary.value = true;
+    try {
+      const response = await this.api.llm.generate(messages, {
+        connectionProfileName: connectionProfile,
+      });
+
+      let content = '';
+      if (typeof response === 'function') {
+        const gen = response();
+        for await (const chunk of gen) {
+          content += chunk.delta;
+        }
+      } else {
+        content = response.content;
+      }
+
+      this.updateMemberSummary(avatar, content.trim());
+    } catch (e) {
+      console.error('[GroupChat] Failed to generate summary', e);
+      this.api.ui.showToast('Failed to generate summary', 'error');
+    } finally {
+      this.isGeneratingSummary.value = false;
+    }
+  }
+
   public async addMember(avatar: string) {
     const meta = this.api.chat.metadata.get();
     if (!meta) return;
@@ -146,7 +203,7 @@ export class GroupChatService {
 
     // Update config map
     if (this.groupConfig.value) {
-      this.groupConfig.value.members[avatar] = { muted: false };
+      this.groupConfig.value.members[avatar] = { muted: false, summary: '' };
       this.saveConfig(this.groupConfig.value);
     } else {
       // Re-init if missing
@@ -246,9 +303,10 @@ export class GroupChatService {
     const playerName = persona?.name || 'User';
 
     const config = this.groupConfig.value?.config;
-    const template = config?.decisionPromptTemplate || DEFAULT_DECISION_TEMPLATE;
+    const extensionSettings = this.api.settings.get();
+    const template = extensionSettings?.defaultDecisionPromptTemplate || DEFAULT_DECISION_TEMPLATE;
     const contextSize = config?.decisionContextSize ?? 15;
-    const connectionProfile = config?.connectionProfile;
+    const connectionProfile = extensionSettings?.defaultConnectionProfile;
 
     // Context Construction
     const recentMessages = history.slice(-contextSize);

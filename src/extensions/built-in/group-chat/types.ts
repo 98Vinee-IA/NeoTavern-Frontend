@@ -10,10 +10,12 @@ export enum GroupGenerationHandlingMode {
   SWAP = 'swap',
   JOIN_EXCLUDE_MUTED = 'join_exclude',
   JOIN_INCLUDE_MUTED = 'join_include',
+  SWAP_INCLUDE_SUMMARIES = 'swap_include_summaries',
 }
 
 export interface GroupMemberStatus {
   muted: boolean;
+  summary?: string;
 }
 
 export interface GroupChatConfig {
@@ -22,9 +24,14 @@ export interface GroupChatConfig {
     handlingMode: GroupGenerationHandlingMode;
     allowSelfResponses: boolean;
     autoMode: number; // seconds, 0 = disabled
-    decisionPromptTemplate?: string;
     decisionContextSize: number;
-    connectionProfile?: string;
   };
   members: Record<string, GroupMemberStatus>;
+}
+
+export interface GroupExtensionSettings {
+  defaultDecisionPromptTemplate: string;
+  defaultSummaryPromptTemplate: string;
+  summaryInjectionTemplate: string;
+  defaultConnectionProfile?: string;
 }

@@ -1,9 +1,10 @@
 import { h } from 'vue';
 import { EventPriority, GenerationMode } from '../../../constants';
 import type { Character, ExtensionAPI } from '../../../types';
-import { GroupChatService } from './GroupChatService';
+import { DEFAULT_SUMMARY_INJECTION_TEMPLATE, GroupChatService } from './GroupChatService';
 import GroupSettingsTab from './GroupSettingsTab.vue';
 import { manifest } from './manifest';
+import SettingsPanel from './SettingsPanel.vue';
 import { GroupGenerationHandlingMode, GroupReplyStrategy } from './types';
 
 export { manifest };
@@ -11,6 +12,12 @@ export { manifest };
 export function activate(api: ExtensionAPI) {
   const service = new GroupChatService(api);
   const unbinds: Array<() => void> = [];
+
+  // 0. Mount Extension Settings Panel
+  const settingsContainer = document.getElementById(api.meta.containerId);
+  if (settingsContainer) {
+    api.ui.mount(settingsContainer, SettingsPanel, { api });
+  }
 
   // 1. UI: Register the Settings Tab
   const WrappedTab = {
@@ -86,7 +93,11 @@ export function activate(api: ExtensionAPI) {
 
         // Filter Logic
         let activeChars: Character[] = [];
-        if (handlingMode === GroupGenerationHandlingMode.SWAP) {
+
+        if (
+          handlingMode === GroupGenerationHandlingMode.SWAP ||
+          handlingMode === GroupGenerationHandlingMode.SWAP_INCLUDE_SUMMARIES
+        ) {
           // Only the current speaker is active
           if (service.generatingAvatar.value) {
             const char = allChars.find((c) => c.avatar === service.generatingAvatar.value);
@@ -94,6 +105,42 @@ export function activate(api: ExtensionAPI) {
           } else if (payload.characters.length > 0) {
             // Fallback to what was passed (likely clicked 'force talk' or default)
             activeChars = payload.characters;
+          }
+
+          // Special logic for SWAP_INCLUDE_SUMMARIES
+          if (handlingMode === GroupGenerationHandlingMode.SWAP_INCLUDE_SUMMARIES && activeChars.length === 1) {
+            const activeChar = activeChars[0];
+            const otherMembers = members
+              .filter((m) => m !== activeChar.avatar && !mutedMap[m]?.muted)
+              .map((avatar) => {
+                const char = allChars.find((c) => c.avatar === avatar);
+                const summary = mutedMap[avatar]?.summary;
+                return { name: char?.name || avatar, summary };
+              })
+              .filter((m) => !!m.name);
+
+            if (otherMembers.length > 0) {
+              const summaryBlock = otherMembers
+                .map((m) => `${m.name}: ${m.summary || 'No summary available.'}`)
+                .join('\n');
+
+              const extensionSettings = api.settings.get();
+              const injectionTemplate =
+                extensionSettings?.summaryInjectionTemplate || DEFAULT_SUMMARY_INJECTION_TEMPLATE;
+              const newDescription = api.macro.process(
+                injectionTemplate,
+                { activeCharacter: activeChar },
+                { summaries: summaryBlock },
+              );
+
+              // We clone the character to avoid mutating store state
+              activeChars = [
+                {
+                  ...activeChar,
+                  description: newDescription,
+                },
+              ];
+            }
           }
         } else {
           // JOIN modes

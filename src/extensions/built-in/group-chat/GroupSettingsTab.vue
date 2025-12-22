@@ -11,21 +11,12 @@ import {
   Select,
   Textarea,
 } from '../../../components/UI';
-import { ConnectionProfileSelector, DraggableList, EmptyState } from '../../../components/common';
+import { DraggableList, EmptyState } from '../../../components/common';
 import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { Character, ExtensionAPI } from '../../../types';
 import { getThumbnailUrl } from '../../../utils/character';
 import type { GroupChatService } from './GroupChatService';
-import { DEFAULT_DECISION_TEMPLATE } from './GroupChatService';
 import { GroupGenerationHandlingMode, GroupReplyStrategy } from './types';
-
-// Props are injected by the extension system usually, but since we mount it manually
-// we might need a way to pass the service.
-// For now, we assume the service is available globally or injected via provide/inject
-// but since we are in `index.ts`, we can just import the singleton if we make one,
-// OR pass it as a prop when mounting.
-// The ExtensionAPI `registerChatSettingsTab` expects a Component.
-// We will attach the API/Service to the component instance in `index.ts`.
 
 const props = defineProps<{
   api: ExtensionAPI;
@@ -46,6 +37,7 @@ const addMemberPage = ref(1);
 const addMemberExpanded = ref(false);
 const groupMembersExpanded = ref(true);
 const groupConfigExpanded = ref(true);
+const editingSummaryAvatar = ref<string | null>(null);
 
 const groupConfig = computed(() => service.groupConfig.value);
 
@@ -94,6 +86,7 @@ const replyStrategyOptions = computed(() => [
 
 const handlingModeOptions = computed(() => [
   { label: t('group.modes.swap'), value: GroupGenerationHandlingMode.SWAP },
+  { label: 'Swap + Summaries', value: GroupGenerationHandlingMode.SWAP_INCLUDE_SUMMARIES },
   { label: t('group.modes.joinExclude'), value: GroupGenerationHandlingMode.JOIN_EXCLUDE_MUTED },
   { label: t('group.modes.joinInclude'), value: GroupGenerationHandlingMode.JOIN_INCLUDE_MUTED },
 ]);
@@ -113,13 +106,6 @@ function saveDebounced() {
   }
 }
 
-function resetDecisionPrompt() {
-  if (groupConfig.value) {
-    groupConfig.value.config.decisionPromptTemplate = DEFAULT_DECISION_TEMPLATE;
-    saveDebounced();
-  }
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function peekCharacter(_avatar: string) {
   // FIXME: Not exposed in API yet, skipping for now or use workaround
@@ -130,6 +116,18 @@ function forceTalk(avatar: string) {
   service.clearQueue();
   service.addToQueue([avatar]);
   service.processQueue();
+}
+
+function toggleSummaryEdit(avatar: string) {
+  if (editingSummaryAvatar.value === avatar) {
+    editingSummaryAvatar.value = null;
+  } else {
+    editingSummaryAvatar.value = avatar;
+  }
+}
+
+function updateSummary(avatar: string, value: string) {
+  service.updateMemberSummary(avatar, value);
 }
 </script>
 
@@ -178,61 +176,92 @@ function forceTalk(avatar: string) {
         @update:items="updateMembersOrder"
       >
         <template #default="{ item: member }">
-          <ListItem :class="{ muted: groupConfig?.members[member.avatar]?.muted }" style="margin-bottom: 2px">
-            <template #start>
-              <div
-                class="menu-button fa-solid fa-grip-lines group-member-handle"
-                style="cursor: grab; opacity: 0.5; margin-right: 5px"
-              ></div>
-              <img
-                :src="getThumbnailUrl('avatar', member.avatar)"
-                style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover"
-              />
-            </template>
-            <template #default>
-              <div class="group-member-content-wrapper">
-                <span
-                  class="group-member-name"
-                  :class="{ 'line-through': groupConfig?.members[member.avatar]?.muted }"
-                  >{{ member.name }}</span
-                >
-                <div v-if="service.generatingAvatar.value === member.avatar" class="typing-indicator-small">
-                  <div class="dot" />
-                  <div class="dot" />
-                  <div class="dot" />
+          <div class="member-row-container">
+            <ListItem :class="{ muted: groupConfig?.members[member.avatar]?.muted }" style="margin-bottom: 2px">
+              <template #start>
+                <div
+                  class="menu-button fa-solid fa-grip-lines group-member-handle"
+                  style="cursor: grab; opacity: 0.5; margin-right: 5px"
+                ></div>
+                <img
+                  :src="getThumbnailUrl('avatar', member.avatar)"
+                  style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover"
+                />
+              </template>
+              <template #default>
+                <div class="group-member-content-wrapper">
+                  <span
+                    class="group-member-name"
+                    :class="{ 'line-through': groupConfig?.members[member.avatar]?.muted }"
+                    >{{ member.name }}</span
+                  >
+                  <div v-if="service.generatingAvatar.value === member.avatar" class="typing-indicator-small">
+                    <div class="dot" />
+                    <div class="dot" />
+                    <div class="dot" />
+                  </div>
                 </div>
+              </template>
+              <template #end>
+                <Button
+                  v-if="isGroup"
+                  variant="ghost"
+                  :icon="editingSummaryAvatar === member.avatar ? 'fa-chevron-up' : 'fa-pen-to-square'"
+                  :title="'Edit Summary'"
+                  @click.stop="toggleSummaryEdit(member.avatar)"
+                />
+                <Button
+                  v-if="isGroup"
+                  variant="ghost"
+                  icon="fa-address-card"
+                  :title="t('group.peek')"
+                  @click="peekCharacter(member.avatar)"
+                />
+                <Button
+                  v-if="isGroup"
+                  variant="ghost"
+                  icon="fa-comment-dots"
+                  :title="t('group.forceTalk')"
+                  @click="forceTalk(member.avatar)"
+                />
+                <Button
+                  v-if="isGroup"
+                  variant="ghost"
+                  :icon="groupConfig?.members[member.avatar]?.muted ? 'fa-comment-slash' : 'fa-comment'"
+                  :title="t('group.mute')"
+                  @click="service.toggleMemberMute(member.avatar)"
+                />
+                <Button
+                  icon="fa-trash-can"
+                  variant="danger"
+                  :title="t('common.remove')"
+                  @click="service.removeMember(member.avatar)"
+                />
+              </template>
+            </ListItem>
+
+            <div v-if="editingSummaryAvatar === member.avatar" class="summary-editor">
+              <div class="summary-editor-header">
+                <span>Summary (for Swap+Summary mode)</span>
+                <Button
+                  size="small"
+                  variant="ghost"
+                  icon="fa-wand-magic-sparkles"
+                  :loading="service.isGeneratingSummary.value"
+                  title="Generate with AI"
+                  @click="service.generateMemberSummary(member.avatar)"
+                >
+                  Generate
+                </Button>
               </div>
-            </template>
-            <template #end>
-              <Button
-                v-if="isGroup"
-                variant="ghost"
-                icon="fa-address-card"
-                :title="t('group.peek')"
-                @click="peekCharacter(member.avatar)"
+              <Textarea
+                :model-value="groupConfig?.members[member.avatar]?.summary || ''"
+                :rows="3"
+                placeholder="Brief summary of this character..."
+                @update:model-value="(val) => updateSummary(member.avatar, val)"
               />
-              <Button
-                v-if="isGroup"
-                variant="ghost"
-                icon="fa-comment-dots"
-                :title="t('group.forceTalk')"
-                @click="forceTalk(member.avatar)"
-              />
-              <Button
-                v-if="isGroup"
-                variant="ghost"
-                :icon="groupConfig?.members[member.avatar]?.muted ? 'fa-comment-slash' : 'fa-comment'"
-                :title="t('group.mute')"
-                @click="service.toggleMemberMute(member.avatar)"
-              />
-              <Button
-                icon="fa-trash-can"
-                variant="danger"
-                :title="t('common.remove')"
-                @click="service.removeMember(member.avatar)"
-              />
-            </template>
-          </ListItem>
+            </div>
+          </div>
         </template>
       </DraggableList>
     </CollapsibleSection>
@@ -276,51 +305,22 @@ function forceTalk(avatar: string) {
           />
         </FormItem>
 
-        <template v-if="groupConfig.config.replyStrategy === GroupReplyStrategy.LLM_DECISION">
-          <FormItem label="Connection Profile">
-            <ConnectionProfileSelector
-              v-model="groupConfig.config.connectionProfile"
-              @update:model-value="saveDebounced"
-            />
-          </FormItem>
-
-          <FormItem label="Context Size (Messages)">
-            <Input
-              v-model="groupConfig.config.decisionContextSize"
-              type="number"
-              :min="1"
-              @update:model-value="saveDebounced"
-            />
-          </FormItem>
-
-          <FormItem label="Decision Prompt" description="Use handlebars {{...}} for variables.">
-            <div class="textarea-container">
-              <Textarea
-                v-model="groupConfig.config.decisionPromptTemplate!"
-                :rows="6"
-                allow-maximize
-                @update:model-value="saveDebounced"
-              />
-              <Button
-                class="reset-prompt-btn"
-                icon="fa-rotate-left"
-                title="Reset to default"
-                variant="ghost"
-                @click="resetDecisionPrompt"
-              />
-            </div>
-            <div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px">
-              Available macros: <code>{{ '{' + '{user}' + '}' }}</code
-              >, <code>{{ '{' + '{memberNames}' + '}' }}</code
-              >, <code>{{ '{' + '{recentMessages}' + '}' }}</code>
-            </div>
-          </FormItem>
-        </template>
-
         <FormItem :label="t('group.handlingMode')">
           <Select
             v-model="groupConfig.config.handlingMode"
             :options="handlingModeOptions"
+            @update:model-value="saveDebounced"
+          />
+        </FormItem>
+
+        <FormItem
+          v-if="groupConfig.config.replyStrategy === GroupReplyStrategy.LLM_DECISION"
+          label="Context Size (Messages)"
+        >
+          <Input
+            v-model="groupConfig.config.decisionContextSize"
+            type="number"
+            :min="1"
             @update:model-value="saveDebounced"
           />
         </FormItem>
@@ -366,6 +366,18 @@ function forceTalk(avatar: string) {
   background-color: var(--black-30a);
   border-radius: var(--base-border-radius);
   max-height: 300px;
+
+  .member-row-container {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--black-20a);
+    border-radius: var(--base-border-radius);
+    margin-bottom: 2px;
+  }
+
+  .list-item {
+    background-color: transparent; // override default
+  }
 
   .list-item.muted {
     opacity: 0.6;
@@ -413,6 +425,21 @@ function forceTalk(avatar: string) {
         animation-delay: -0.16s;
       }
     }
+  }
+}
+
+.summary-editor {
+  padding: var(--spacing-sm);
+  background-color: var(--black-10a);
+  border-top: 1px solid var(--theme-border-color);
+
+  .summary-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 0.8em;
+    opacity: 0.8;
   }
 }
 
@@ -580,7 +607,8 @@ function forceTalk(avatar: string) {
 }
 
 .animations-disabled {
-  .typing-dot-animation {
+  .typing-indicator-small .dot,
+  .queue-analyzing .loading-dots .dot {
     animation: none !important;
   }
 }
