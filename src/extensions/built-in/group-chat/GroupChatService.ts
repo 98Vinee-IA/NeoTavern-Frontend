@@ -1,9 +1,30 @@
 import { ref } from 'vue';
-import type { ChatMessage, ExtensionAPI } from '../../../types';
+import type { ApiChatMessage, Character, ChatMessage, ExtensionAPI } from '../../../types';
 import { GroupGenerationHandlingMode, GroupReplyStrategy, type GroupChatConfig } from './types';
 import { determineNextSpeaker } from './utils';
 
 // TODO: i18n
+
+const DEFAULT_DECISION_TEMPLATE = `You are an AI assistant orchestrating a roleplay group chat.
+Your task is to determine who should speak next based on the recent conversation context.
+
+[Active Members]
+{{memberNames}}
+{{user}} (The User)
+
+[Recent Conversation]
+{{recentMessages}}
+
+[Instructions]
+1. Analyze the conversation flow to decide who should reply.
+2. If it is {{user}}'s turn to speak, output "{{user}}".
+3. If a character should speak, output their exact name.
+4. Output only the name inside a code block. Do not output anything else.
+
+Example Response:
+\`\`\`
+{{firstCharName}}
+\`\`\``;
 
 export class GroupChatService {
   private api: ExtensionAPI;
@@ -11,6 +32,7 @@ export class GroupChatService {
   public generationQueue = ref<string[]>([]);
   public generatingAvatar = ref<string | null>(null);
   public autoModeTimer: ReturnType<typeof setTimeout> | null = null;
+  public isAnalyzing = ref(false);
 
   // We mirror the current config to a reactive object for the UI
   public groupConfig = ref<GroupChatConfig | null>(null);
@@ -28,6 +50,7 @@ export class GroupChatService {
     this.loadConfig();
     this.generationQueue.value = [];
     this.generatingAvatar.value = null;
+    this.isAnalyzing.value = false;
     this.stopAutoModeTimer();
   }
 
@@ -49,6 +72,9 @@ export class GroupChatService {
           handlingMode: GroupGenerationHandlingMode.SWAP,
           allowSelfResponses: false,
           autoMode: 0,
+          decisionPromptTemplate: DEFAULT_DECISION_TEMPLATE,
+          decisionContextSize: 15,
+          connectionProfile: undefined,
         },
         members: {},
       };
@@ -59,6 +85,19 @@ export class GroupChatService {
       });
 
       this.saveConfig(loadedConfig);
+    } else {
+      let dirty = false;
+      if (!loadedConfig.config.decisionPromptTemplate) {
+        loadedConfig.config.decisionPromptTemplate = DEFAULT_DECISION_TEMPLATE;
+        dirty = true;
+      }
+      if (loadedConfig.config.decisionContextSize === undefined) {
+        loadedConfig.config.decisionContextSize = 15;
+        dirty = true;
+      }
+      if (dirty) {
+        this.saveConfig(loadedConfig);
+      }
     }
 
     this.groupConfig.value = loadedConfig;
@@ -142,7 +181,7 @@ export class GroupChatService {
 
   // --- Logic ---
 
-  public prepareGenerationQueue() {
+  public async prepareGenerationQueue() {
     if (this.generationQueue.value.length > 0) return;
     const meta = this.api.chat.metadata.get();
     const activeMembers = meta?.members ?? [];
@@ -159,13 +198,99 @@ export class GroupChatService {
     if (validMembers.length === 0) return;
 
     const activeChars = this.api.character.getActives().filter((c) => validMembers.includes(c.avatar));
+    const history = this.api.chat.getHistory();
 
-    const nextSpeakers = determineNextSpeaker(activeChars, this.groupConfig.value, [
-      ...this.api.chat.getHistory(),
-    ] as ChatMessage[]);
+    // LLM Decision Strategy
+    if (this.groupConfig.value.config.replyStrategy === GroupReplyStrategy.LLM_DECISION) {
+      this.isAnalyzing.value = true;
+      try {
+        const nextSpeaker = await this.determineSpeakerViaLLM(activeChars, history);
+        if (nextSpeaker) {
+          this.addToQueue([nextSpeaker.avatar]);
+        }
+      } finally {
+        this.isAnalyzing.value = false;
+      }
+      return;
+    }
+
+    // Standard Strategies (Sync)
+    const nextSpeakers = determineNextSpeaker(activeChars, this.groupConfig.value, [...history]);
 
     if (nextSpeakers.length > 0) {
       this.addToQueue(nextSpeakers.map((c) => c.avatar));
+    }
+  }
+
+  private async determineSpeakerViaLLM(activeChars: Character[], history: ChatMessage[]): Promise<Character | null> {
+    const persona = this.api.persona.getActive();
+    const playerName = persona?.name || 'User';
+
+    const config = this.groupConfig.value?.config;
+    const template = config?.decisionPromptTemplate || DEFAULT_DECISION_TEMPLATE;
+    const contextSize = config?.decisionContextSize ?? 15;
+    const connectionProfile = config?.connectionProfile;
+
+    // Context Construction
+    const recentMessages = history.slice(-contextSize);
+    const recentMessagesStr = recentMessages.map((m) => `${m.name}: ${m.mes}`).join('\n');
+    const memberNames = activeChars.map((c) => c.name).join(', ');
+    const firstCharName = activeChars[0]?.name || 'CharacterName';
+
+    // Process Template
+    const prompt = this.api.macro.process(template, undefined, {
+      memberNames,
+      recentMessages: recentMessagesStr,
+      firstCharName,
+    });
+
+    const messages: ApiChatMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+        name: 'System',
+      },
+    ];
+
+    try {
+      const response = await this.api.llm.generate(messages, {
+        connectionProfileName: connectionProfile,
+      });
+
+      let content = '';
+      if (typeof response === 'function') {
+        const gen = response();
+        for await (const chunk of gen) {
+          content += chunk.delta;
+        }
+      } else {
+        content = response.content;
+      }
+
+      // Extract Name from Code Block
+      const codeBlockRegex = /```(?:[\w]*\n)?([\s\S]*?)```/i;
+      const match = content.match(codeBlockRegex);
+      const extractedName = match ? match[1].trim() : content.trim();
+
+      // Check if it matches a character
+      const character = activeChars.find((c) => c.name.trim().toLowerCase() === extractedName.toLowerCase());
+
+      if (character) {
+        return character;
+      }
+
+      // If it matches player, we return null (no queue -> user input)
+      if (extractedName.toLowerCase() === playerName.toLowerCase()) {
+        this.stopAutoModeTimer();
+        return null;
+      }
+
+      // Fallback
+      console.warn('[GroupChat] LLM suggested unknown speaker:', extractedName);
+      return null;
+    } catch (e) {
+      console.error('[GroupChat] Failed to determine speaker via LLM', e);
+      return null;
     }
   }
 
@@ -195,8 +320,9 @@ export class GroupChatService {
     if (duration > 0) {
       this.autoModeTimer = setTimeout(() => {
         // Auto-mode triggers a generic generation, which will fill queue
-        this.prepareGenerationQueue();
-        this.processQueue();
+        this.prepareGenerationQueue().then(() => {
+          this.processQueue();
+        });
       }, duration * 1000);
     }
   }

@@ -9,8 +9,9 @@ import {
   ListItem,
   Search,
   Select,
+  Textarea,
 } from '../../../components/UI';
-import { DraggableList, EmptyState } from '../../../components/common';
+import { ConnectionProfileSelector, DraggableList, EmptyState } from '../../../components/common';
 import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { Character, ExtensionAPI } from '../../../types';
 import { getThumbnailUrl } from '../../../utils/character';
@@ -83,6 +84,7 @@ const replyStrategyOptions = computed(() => [
   { label: t('group.strategies.natural'), value: GroupReplyStrategy.NATURAL_ORDER },
   { label: t('group.strategies.list'), value: GroupReplyStrategy.LIST_ORDER },
   { label: t('group.strategies.pooled'), value: GroupReplyStrategy.POOLED_ORDER },
+  { label: 'LLM Decision', value: GroupReplyStrategy.LLM_DECISION },
 ]);
 
 const handlingModeOptions = computed(() => [
@@ -122,12 +124,28 @@ function forceTalk(avatar: string) {
 <template>
   <div class="group-settings-tab">
     <!-- Queue Display -->
-    <div v-if="service.generationQueue.value.length > 0" class="queue-section">
+    <div v-if="service.generationQueue.value.length > 0 || service.isAnalyzing.value" class="queue-section">
       <div class="queue-header">
-        <span>{{ t('group.queue') }} ({{ service.generationQueue.value.length }})</span>
-        <Button icon="fa-trash" variant="ghost" :title="t('group.clearQueue')" @click="service.clearQueue" />
+        <span v-if="service.isAnalyzing.value">Deciding next speaker...</span>
+        <span v-else>{{ t('group.queue') }} ({{ service.generationQueue.value.length }})</span>
+        <Button
+          v-if="!service.isAnalyzing.value"
+          icon="fa-trash"
+          variant="ghost"
+          :title="t('group.clearQueue')"
+          @click="service.clearQueue"
+        />
       </div>
-      <div class="queue-list">
+
+      <div v-if="service.isAnalyzing.value" class="queue-analyzing">
+        <div class="loading-dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <div v-else class="queue-list">
         <div v-for="(avatar, idx) in service.generationQueue.value" :key="idx" class="queue-item">
           <div class="queue-avatar-wrapper">
             <img :src="getThumbnailUrl('avatar', avatar)" :title="avatar" />
@@ -245,6 +263,37 @@ function forceTalk(avatar: string) {
             @update:model-value="saveDebounced"
           />
         </FormItem>
+
+        <template v-if="groupConfig.config.replyStrategy === GroupReplyStrategy.LLM_DECISION">
+          <FormItem label="Connection Profile">
+            <ConnectionProfileSelector
+              v-model="groupConfig.config.connectionProfile"
+              @update:model-value="saveDebounced"
+            />
+          </FormItem>
+
+          <FormItem label="Context Size (Messages)">
+            <Input
+              v-model="groupConfig.config.decisionContextSize"
+              type="number"
+              :min="1"
+              @update:model-value="saveDebounced"
+            />
+          </FormItem>
+
+          <FormItem label="Decision Prompt" description="Use handlebars {{...}} for variables.">
+            <Textarea
+              v-model="groupConfig.config.decisionPromptTemplate!"
+              :rows="6"
+              @update:model-value="saveDebounced"
+            />
+            <div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px">
+              Available macros: <code>{{ '{' + '{user}' + '}' }}</code
+              >, <code>{{ '{' + '{memberNames}' + '}' }}</code
+              >, <code>{{ '{' + '{recentMessages}' + '}' }}</code>
+            </div>
+          </FormItem>
+        </template>
 
         <FormItem :label="t('group.handlingMode')">
           <Select
@@ -449,6 +498,36 @@ function forceTalk(avatar: string) {
 .queue-item .separator {
   opacity: 0.5;
   font-size: 0.8em;
+}
+
+.queue-analyzing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  opacity: 0.8;
+  font-style: italic;
+
+  .loading-dots {
+    display: flex;
+    gap: 4px;
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--theme-text-color);
+      border-radius: 50%;
+      animation: typing-dot-animation 1.4s infinite ease-in-out;
+
+      &:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      &:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+    }
+  }
 }
 
 @keyframes typing-dot-animation {

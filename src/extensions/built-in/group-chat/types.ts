@@ -3,6 +3,7 @@ export enum GroupReplyStrategy {
   NATURAL_ORDER = 1,
   LIST_ORDER = 2,
   POOLED_ORDER = 3,
+  LLM_DECISION = 4,
 }
 
 export enum GroupGenerationHandlingMode {
@@ -21,6 +22,9 @@ export interface GroupChatConfig {
     handlingMode: GroupGenerationHandlingMode;
     allowSelfResponses: boolean;
     autoMode: number; // seconds, 0 = disabled
+    decisionPromptTemplate?: string;
+    decisionContextSize: number;
+    connectionProfile?: string;
   };
   members: Record<string, GroupMemberStatus>;
 }

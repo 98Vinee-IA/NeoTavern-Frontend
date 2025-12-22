@@ -4,7 +4,7 @@ import type { Character, ExtensionAPI } from '../../../types';
 import { GroupChatService } from './GroupChatService';
 import GroupSettingsTab from './GroupSettingsTab.vue';
 import { manifest } from './manifest';
-import { GroupGenerationHandlingMode } from './types';
+import { GroupGenerationHandlingMode, GroupReplyStrategy } from './types';
 
 export { manifest };
 
@@ -99,15 +99,19 @@ export function activate(api: ExtensionAPI) {
   // 5. Events: Generation & Queue
   api.events.on(
     'chat:generation-requested',
-    (payload) => {
+    async (payload) => {
       if (!service.isGroupChat) return;
       if (payload.mode !== GenerationMode.NEW) return;
 
-      service.prepareGenerationQueue();
+      await service.prepareGenerationQueue();
       if (service.generationQueue.value.length > 0) {
         payload.handled = true;
         service.processQueue();
         service.startAutoModeTimer();
+      } else {
+        if (service.groupConfig.value?.config.replyStrategy === GroupReplyStrategy.LLM_DECISION) {
+          payload.handled = true;
+        }
       }
     },
     EventPriority.HIGH,
@@ -115,8 +119,13 @@ export function activate(api: ExtensionAPI) {
 
   api.events.on(
     'generation:finished',
-    () => {
+    async () => {
       service.generatingAvatar.value = null;
+
+      if (service.groupConfig.value?.config.replyStrategy === GroupReplyStrategy.LLM_DECISION) {
+        await service.prepareGenerationQueue();
+      }
+
       // Process next in queue
       service.processQueue();
       service.startAutoModeTimer();
