@@ -500,8 +500,9 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
      * @param id Unique identifier for the tab.
      * @param title Title of the tab.
      * @param component The Vue component to render content.
+     * @returns A cleanup function to unregister the tab.
      */
-    registerChatSettingsTab: (id: string, title: string, component: Component) => void;
+    registerChatSettingsTab: (id: string, title: string, component: Component) => () => void;
 
     /**
      * Mounts a predefined system component to the DOM.

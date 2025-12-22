@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import {
   Button,
   Checkbox,
@@ -36,6 +36,10 @@ const { t } = useStrictI18n();
 const service = props.service;
 const api = props.api;
 
+onMounted(() => {
+  service.init();
+});
+
 // Local state for UI
 const addMemberSearchTerm = ref('');
 const addMemberPage = ref(1);
@@ -43,7 +47,7 @@ const addMemberExpanded = ref(false);
 const groupMembersExpanded = ref(true);
 const groupConfigExpanded = ref(true);
 
-const groupConfig = service.groupConfig;
+const groupConfig = computed(() => service.groupConfig.value);
 
 const isGroup = computed(() => service.isGroupChat);
 

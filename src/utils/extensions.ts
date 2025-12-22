@@ -529,6 +529,7 @@ const baseExtensionAPI: ExtensionAPI = {
     },
     registerChatSettingsTab: (id, title, component) => {
       useComponentRegistryStore().registerChatSettingsTab(id, title, component);
+      return () => useComponentRegistryStore().unregisterChatSettingsTab(id);
     },
     mountComponent: async (container, componentName, props) => {
       if (!container) return;
@@ -781,6 +782,7 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
     registerChatSettingsTab: (id: string, title: string, component: Vue.Component) => {
       const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
       useComponentRegistryStore().registerChatSettingsTab(namespacedId, title, component);
+      return () => useComponentRegistryStore().unregisterChatSettingsTab(namespacedId);
     },
   };
 
