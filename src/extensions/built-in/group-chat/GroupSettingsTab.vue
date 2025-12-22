@@ -258,6 +258,7 @@ function updateSummary(avatar: string, value: string) {
                 :model-value="groupConfig?.members[member.avatar]?.summary || ''"
                 :rows="3"
                 placeholder="Brief summary of this character..."
+                allow-maximize
                 @update:model-value="(val) => updateSummary(member.avatar, val)"
               />
             </div>
