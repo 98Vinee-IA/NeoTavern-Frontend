@@ -298,6 +298,7 @@ function forceTalk(avatar: string) {
               <Textarea
                 v-model="groupConfig.config.decisionPromptTemplate!"
                 :rows="6"
+                allow-maximize
                 @update:model-value="saveDebounced"
               />
               <Button

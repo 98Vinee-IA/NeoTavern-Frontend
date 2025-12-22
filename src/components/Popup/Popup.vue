@@ -41,12 +41,6 @@ const generatedButtons = ref<CustomPopupButton[]>([]);
 const sanitizedTitle = computed(() => DOMPurify.sanitize(props.title));
 const formattedContent = computed(() => formatText(props.content));
 
-function handleBackdropClick(event: MouseEvent) {
-  if (event.target === event.currentTarget) {
-    onCancel();
-  }
-}
-
 function resolveOptions() {
   if (props.customButtons) {
     generatedButtons.value = props.customButtons;
@@ -150,11 +144,6 @@ function handleResult(result: number) {
   emit('close');
 }
 
-function onCancel() {
-  emit('submit', { result: POPUP_RESULT.CANCELLED, value: null });
-  emit('close');
-}
-
 // function handleEnter(evt: KeyboardEvent) {
 //   if (evt.key === 'Enter' && !evt.shiftKey && !evt.altKey) {
 //     const target = evt.target as HTMLElement;
@@ -181,7 +170,6 @@ function onCancel() {
         :aria-labelledby="title ? `${id}-title` : undefined"
         :aria-describedby="content ? `${id}-content` : undefined"
         aria-modal="true"
-        @click="handleBackdropClick"
       >
         <div :id="id" class="popup" :class="{ wide: wide, large: large }">
           <div class="popup-body">

@@ -391,7 +391,7 @@ function handleCopyOutput() {
       </div>
       <FormItem label="Instruction">
         <div class="input-with-reset">
-          <Textarea v-model="promptOverride" :rows="2" />
+          <Textarea v-model="promptOverride" :rows="2" allow-maximize />
           <Button
             v-if="canResetPrompt"
             class="reset-btn"
