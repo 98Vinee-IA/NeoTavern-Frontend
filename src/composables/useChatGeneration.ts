@@ -1,4 +1,4 @@
-import { nextTick, ref, type Ref } from 'vue';
+import { computed, nextTick, ref, type Ref } from 'vue';
 import { buildChatCompletionPayload, ChatCompletionService } from '../api/generation';
 import { ApiTokenizer } from '../api/tokenizer';
 import { default_user_avatar, GenerationMode } from '../constants';
@@ -46,9 +46,16 @@ export interface ChatGenerationDependencies {
 
 export function useChatGeneration(deps: ChatGenerationDependencies) {
   const { t } = useStrictI18n();
-  const isGenerating = ref(false);
+
+  // Internal state for actual generation
+  const _isGenerating = ref(false);
+  // State for context resolution / group orchestration (LLM decisions, etc.)
   const isPreparing = ref(false);
+
+  const isGenerating = computed(() => _isGenerating.value || isPreparing.value);
+
   const generationController = ref<AbortController | null>(null);
+  const currentGenerationId = ref<string | null>(null);
 
   const characterStore = useCharacterStore();
   const apiStore = useApiStore();
@@ -58,11 +65,21 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
   const worldInfoStore = useWorldInfoStore();
   const uiStore = useUiStore();
 
-  function abortGeneration() {
+  async function abortGeneration() {
     if (generationController.value) {
       generationController.value.abort();
-      isGenerating.value = false;
-      generationController.value = null;
+    }
+
+    const genId = currentGenerationId.value;
+
+    // Reset states
+    _isGenerating.value = false;
+    isPreparing.value = false;
+    generationController.value = null;
+    currentGenerationId.value = null;
+
+    if (genId) {
+      await eventEmitter.emit('generation:aborted', { generationId: genId });
     }
   }
 
@@ -126,11 +143,13 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     initialMode: GenerationMode,
     { generationId, forceSpeakerAvatar }: { generationId?: string; forceSpeakerAvatar?: string } = {},
   ) {
-    if (isGenerating.value) return;
+    // Prevent generation if already actively writing text.
+    if (_isGenerating.value) return;
 
-    // Prevent race conditions when determining speaker (e.g. double click),
-    // but allow recursive calls if specific speaker is forced (extension handover).
-    if (!forceSpeakerAvatar && isPreparing.value) return;
+    // If we are in the preparation phase (deciding speaker),
+    // we only allow proceed if a speaker is explicitly forced (handoff from extension).
+    // This allows the recursive call from the extension to proceed while the parent call is technically "preparing".
+    if (isPreparing.value && !forceSpeakerAvatar) return;
 
     if (!deps.activeChat.value) {
       console.error('Attempted to generate response without an active chat.');
@@ -159,6 +178,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     }
 
     const finalGenerationId = generationId || uuidv4();
+    currentGenerationId.value = finalGenerationId;
+
+    // Create a controller for the entire generation process (including prep/orchestration)
+    const overallController = new AbortController();
+    generationController.value = overallController;
 
     let generatedMessage: ChatMessage | null = null;
     let generationError: Error | undefined;
@@ -174,14 +198,19 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         isPreparing.value = true;
 
         try {
-          // Ask extensions if they want to handle it (e.g. Group Chat Queue)
+          // Ask extensions if they want to handle it (e.g. Group Chat Queue / LLM Decision)
           const payload = {
             mode,
             generationId: finalGenerationId,
             handled: false,
           };
 
-          await eventEmitter.emit('chat:generation-requested', payload);
+          await eventEmitter.emit('chat:generation-requested', payload, { controller: overallController });
+
+          if (overallController.signal.aborted) {
+            // If aborted during prep
+            return;
+          }
 
           if (payload.handled) {
             // Extension handled it (e.g. scheduled the queue).
@@ -197,6 +226,8 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         }
       }
 
+      if (overallController.signal.aborted) return;
+
       if (!activeCharacter) {
         // Fallback: If no characters active (weird), try to find any in store.
         if (characterStore.characters.length > 0) {
@@ -208,9 +239,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       }
 
       // Now we commit to generation
-      isGenerating.value = true;
-      const controller = new AbortController();
-      generationController.value = controller;
+      _isGenerating.value = true;
 
       const startController = new AbortController();
       await eventEmitter.emit('generation:started', {
@@ -219,22 +248,30 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         activeCharacter,
       });
       if (startController.signal.aborted) return;
+      if (overallController.signal.aborted) return;
 
       generatedMessage = await performSingleGeneration(
         activeCharacter,
         mode,
         finalGenerationId,
         currentChatContext,
-        controller,
+        overallController,
       );
     } catch (error) {
-      console.error('Generation Error:', error);
-      generationError = error instanceof Error ? error : new Error(String(error));
-      toast.error(generationError.message || t('chat.generate.errorFallback'));
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Silent catch for user abort
+        console.log('Generation aborted by user.');
+      } else {
+        console.error('Generation Error:', error);
+        generationError = error instanceof Error ? error : new Error(String(error));
+        toast.error(generationError.message || t('chat.generate.errorFallback'));
+      }
     } finally {
-      if (isGenerating.value && !handledByExtension) {
-        isGenerating.value = false;
+      // If we were generating (and not just prepping/handled), finalize
+      if (_isGenerating.value && !handledByExtension) {
+        _isGenerating.value = false;
         generationController.value = null;
+        currentGenerationId.value = null;
 
         await nextTick();
         await eventEmitter.emit(
@@ -635,7 +672,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           controller: createController,
           generationId,
         });
-        if (createController.signal.aborted) return;
+        if (createController.signal.aborted) return null;
 
         activeChatMessages.push(botMessage);
         generatedMessage = botMessage;

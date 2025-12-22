@@ -71,6 +71,7 @@ export interface ExtensionEventMap {
   // Generation Flow Events
   'generation:started': [context: { controller: AbortController; generationId: string; activeCharacter?: Character }];
   'generation:finished': [result: { message: ChatMessage | null; error?: Error }, context: { generationId: string }];
+  'generation:aborted': [context: { generationId: string }];
   'generation:before-message-create': [
     message: ChatMessage,
     context: { controller: AbortController; generationId: string },
@@ -108,7 +109,10 @@ export interface ExtensionEventMap {
    * Fired when a generation is requested, but the speaker is not forced.
    * Extensions can set `handled` to true to prevent the default generation behavior (e.g., to implement custom queuing logic like Group Chat).
    */
-  'chat:generation-requested': [payload: { mode: GenerationMode; generationId: string; handled: boolean }];
+  'chat:generation-requested': [
+    payload: { mode: GenerationMode; generationId: string; handled: boolean },
+    context: { controller: AbortController },
+  ];
 
   /**
    * Fired before the final ChatCompletionPayload is constructed.

@@ -38,6 +38,12 @@ export function activate(api: ExtensionAPI) {
     EventPriority.HIGH,
   );
 
+  api.events.on('generation:aborted', () => {
+    if (service.isGroupChat) {
+      service.abort();
+    }
+  });
+
   // 3. Events: Generation Start (Sync State for Manual Generations)
   api.events.on(
     'generation:started',
@@ -99,11 +105,15 @@ export function activate(api: ExtensionAPI) {
   // 5. Events: Generation & Queue
   api.events.on(
     'chat:generation-requested',
-    async (payload) => {
+    async (payload, context) => {
       if (!service.isGroupChat) return;
       if (payload.mode !== GenerationMode.NEW) return;
 
-      await service.prepareGenerationQueue();
+      await service.prepareGenerationQueue(context?.controller.signal);
+
+      // If aborted during prep, we stop here (generation flow in core handles abort)
+      if (context?.controller.signal.aborted) return;
+
       if (service.generationQueue.value.length > 0) {
         payload.handled = true;
         service.processQueue();
@@ -121,6 +131,11 @@ export function activate(api: ExtensionAPI) {
     'generation:finished',
     async () => {
       service.generatingAvatar.value = null;
+
+      if (service.wasAborted) {
+        service.wasAborted = false;
+        return;
+      }
 
       if (service.groupConfig.value?.config.replyStrategy === GroupReplyStrategy.LLM_DECISION) {
         await service.prepareGenerationQueue();

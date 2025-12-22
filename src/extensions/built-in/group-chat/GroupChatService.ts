@@ -33,6 +33,7 @@ export class GroupChatService {
   public generatingAvatar = ref<string | null>(null);
   public autoModeTimer: ReturnType<typeof setTimeout> | null = null;
   public isAnalyzing = ref(false);
+  public wasAborted = false;
 
   // We mirror the current config to a reactive object for the UI
   public groupConfig = ref<GroupChatConfig | null>(null);
@@ -51,7 +52,16 @@ export class GroupChatService {
     this.generationQueue.value = [];
     this.generatingAvatar.value = null;
     this.isAnalyzing.value = false;
+    this.wasAborted = false;
     this.stopAutoModeTimer();
+  }
+
+  public abort() {
+    this.wasAborted = true;
+    this.clearQueue();
+    this.stopAutoModeTimer();
+    this.isAnalyzing.value = false;
+    this.generatingAvatar.value = null;
   }
 
   public loadConfig() {
@@ -181,8 +191,9 @@ export class GroupChatService {
 
   // --- Logic ---
 
-  public async prepareGenerationQueue() {
+  public async prepareGenerationQueue(signal?: AbortSignal) {
     if (this.generationQueue.value.length > 0) return;
+    this.wasAborted = false;
     const meta = this.api.chat.metadata.get();
     const activeMembers = meta?.members ?? [];
 
@@ -204,10 +215,18 @@ export class GroupChatService {
     if (this.groupConfig.value.config.replyStrategy === GroupReplyStrategy.LLM_DECISION) {
       this.isAnalyzing.value = true;
       try {
-        const nextSpeaker = await this.determineSpeakerViaLLM(activeChars, history);
+        const nextSpeaker = await this.determineSpeakerViaLLM(activeChars, history, signal);
+        if (signal?.aborted) return;
+
         if (nextSpeaker) {
           this.addToQueue([nextSpeaker.avatar]);
         }
+      } catch (e) {
+        if (signal?.aborted) {
+          console.log('[GroupChat] LLM Decision aborted.');
+          return;
+        }
+        console.error('[GroupChat] LLM Decision error:', e);
       } finally {
         this.isAnalyzing.value = false;
       }
@@ -222,7 +241,11 @@ export class GroupChatService {
     }
   }
 
-  private async determineSpeakerViaLLM(activeChars: Character[], history: ChatMessage[]): Promise<Character | null> {
+  private async determineSpeakerViaLLM(
+    activeChars: Character[],
+    history: ChatMessage[],
+    signal?: AbortSignal,
+  ): Promise<Character | null> {
     const persona = this.api.persona.getActive();
     const playerName = persona?.name || 'User';
 
@@ -255,6 +278,7 @@ export class GroupChatService {
     try {
       const response = await this.api.llm.generate(messages, {
         connectionProfileName: connectionProfile,
+        signal,
       });
 
       let content = '';
@@ -289,6 +313,7 @@ export class GroupChatService {
       console.warn('[GroupChat] LLM suggested unknown speaker:', extractedName);
       return null;
     } catch (e) {
+      if (signal?.aborted) throw e;
       console.error('[GroupChat] Failed to determine speaker via LLM', e);
       return null;
     }
