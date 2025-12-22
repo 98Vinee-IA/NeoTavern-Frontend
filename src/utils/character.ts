@@ -102,7 +102,11 @@ export function filterAndSortCharacters(characters: Character[], searchTerm: str
         })
       : characters;
 
-  const [sortKey, sortDir] = sortOrder.split(':') as ['name' | 'create_date' | 'fav', 'asc' | 'desc'];
+  const [sortKey, sortDir] = sortOrder.split(':') as ['name' | 'create_date' | 'fav' | 'random', 'asc' | 'desc'];
+
+  if (sortKey === 'random') {
+    return [...filteredCharacters].sort(() => Math.random() - 0.5);
+  }
 
   return [...filteredCharacters].sort((a, b) => {
     const dir = sortDir === 'asc' ? 1 : -1;

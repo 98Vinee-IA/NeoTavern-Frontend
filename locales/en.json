@@ -686,7 +686,8 @@
       "nameDesc": "Z-A",
       "newest": "Newest",
       "oldest": "Oldest",
-      "favorites": "Favorites"
+      "favorites": "Favorites",
+      "random": "Random"
     },
     "editor": {
       "placeholderTitle": "Select a Character",

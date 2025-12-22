@@ -690,6 +690,7 @@ export interface MessageSchema {
       newest: string;
       oldest: string;
       favorites: string;
+      random: string;
     };
     editor: {
       placeholderTitle: string;

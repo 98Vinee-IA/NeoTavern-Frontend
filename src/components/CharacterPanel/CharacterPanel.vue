@@ -91,6 +91,7 @@ const sortOptions = [
   { value: 'create_date:desc', label: t('characterPanel.sorting.newest') },
   { value: 'create_date:asc', label: t('characterPanel.sorting.oldest') },
   { value: 'fav:desc', label: t('characterPanel.sorting.favorites') },
+  { value: 'random:asc', label: t('characterPanel.sorting.random') },
 ];
 
 function handleClose() {
