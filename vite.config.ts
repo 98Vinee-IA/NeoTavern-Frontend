@@ -94,7 +94,7 @@ export default defineConfig(({ mode }) => {
           theme_color: '#171717',
           background_color: '#171717',
           display: 'standalone',
-          orientation: 'portrait',
+          orientation: 'any',
           icons: [
             {
               src: 'pwa-192x192.png',
@@ -109,8 +109,12 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
+          skipWaiting: true,
+          clientsClaim: true,
           navigateFallbackDenylist: [/^\/api/, /^\/characters/, /^\/backgrounds/, /^\/personas/, /^\/login-check/],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+          cleanupOutdatedCaches: true,
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         },
       }),
       {

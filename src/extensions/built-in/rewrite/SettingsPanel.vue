@@ -283,7 +283,7 @@ function onArgTypeChange(arg: RewriteTemplateArg) {
 
               <FormItem label="Template Macro">
                 <div class="textarea-container">
-                  <Textarea v-model="activeTemplate.template" :rows="10" />
+                  <Textarea v-model="activeTemplate.template" :rows="10" allow-maximize />
                   <Button
                     v-if="isDefaultTemplate(activeTemplate.id)"
                     class="reset-macro-btn"
