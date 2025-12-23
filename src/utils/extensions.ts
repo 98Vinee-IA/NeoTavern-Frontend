@@ -15,7 +15,7 @@ import { sanitizeSelector } from './client';
 import { formatFileSize, getMessageTimeStamp, uuidv4 } from './commons';
 
 // Internal Store Imports
-import { ChatCompletionService, buildChatCompletionPayload } from '../api/generation';
+import { ChatCompletionService, buildChatCompletionPayload, resolveConnectionProfileSettings } from '../api/generation';
 import { toast } from '../composables/useToast';
 import { chatService } from '../services/chat.service';
 import { useApiStore } from '../stores/api.store';
@@ -560,73 +560,67 @@ const baseExtensionAPI: ExtensionAPI = {
   },
   llm: {
     generate: async (messages, options = {}) => {
-      const settingsStore = useSettingsStore();
-      const apiStore = useApiStore();
-      let provider = settingsStore.settings.api.provider;
-      let model = apiStore.activeModel;
-      let samplerSettings = { ...settingsStore.settings.api.samplers, ...(options.samplerOverrides ?? {}) };
+      // Resolve connection profile settings
+      const {
+        provider,
+        model,
+        samplerSettings,
+        formatter,
+        instructTemplate,
+        providerSpecific,
+        customPromptPostProcessing,
+      } = await resolveConnectionProfileSettings({
+        profileName: options.connectionProfileName,
+        samplerOverrides: options.samplerOverrides,
+      });
 
-      let formatter = settingsStore.settings.api.formatter;
-      let instructTemplateName = settingsStore.settings.api.instructTemplateName;
+      // Apply additional overrides from options
+      const effectiveFormatter = options.formatter ?? formatter;
+      const effectiveInstructTemplateName = options.instructTemplateName;
+      let effectiveInstructTemplate = instructTemplate;
+      if (effectiveInstructTemplateName) {
+        const apiStore = useApiStore();
+        effectiveInstructTemplate = apiStore.instructTemplates.find((t) => t.name === effectiveInstructTemplateName);
+      }
 
-      if (options.connectionProfileName) {
-        const profile = apiStore.connectionProfiles.find((p) => p.name === options.connectionProfileName);
-        if (!profile) throw new Error(`Profile "${options.connectionProfileName}" not found.`);
-        provider = profile.provider ?? provider;
-        model = profile.model ?? model;
-        formatter = profile.formatter ?? formatter;
-        instructTemplateName = profile.instructTemplate ?? instructTemplateName;
-
-        if (profile.sampler) {
-          const sampler = apiStore.presets.find((p) => p.name === profile.sampler);
-          if (sampler) samplerSettings = { ...sampler.preset, ...(options.samplerOverrides ?? {}) };
-        }
-        if (profile.customPromptPostProcessing) {
-          const isPrefill = messages.length > 1 ? messages[messages.length - 1].role === 'assistant' : false;
-          const lastPrefillMessage = isPrefill ? messages.pop() : null;
-          messages = await ChatCompletionService.formatMessages(messages, profile.customPromptPostProcessing);
-          if (lastPrefillMessage) {
-            if (!lastPrefillMessage.content.startsWith(`${lastPrefillMessage.name}: `)) {
-              lastPrefillMessage.content = `${lastPrefillMessage.name}: ${lastPrefillMessage.content}`;
-            }
-            messages.push(lastPrefillMessage);
+      // Apply custom prompt post-processing if defined in profile
+      let processedMessages = [...messages];
+      if (customPromptPostProcessing) {
+        const isPrefill = messages.length > 1 ? messages[messages.length - 1].role === 'assistant' : false;
+        const lastPrefillMessage = isPrefill ? processedMessages.pop() : null;
+        processedMessages = await ChatCompletionService.formatMessages(processedMessages, customPromptPostProcessing);
+        if (lastPrefillMessage) {
+          if (!lastPrefillMessage.content.startsWith(`${lastPrefillMessage.name}: `)) {
+            lastPrefillMessage.content = `${lastPrefillMessage.name}: ${lastPrefillMessage.content}`;
           }
-
-          if (!samplerSettings?.stop) samplerSettings.stop = [];
-          const characterStore = useCharacterStore();
-          const personaStore = usePersonaStore();
-          const activeCharacters = characterStore.activeCharacters;
-          const persona = personaStore.activePersona;
-          const allNames = [
-            ...activeCharacters.map((c) => c.name),
-            persona ? persona.name : 'User',
-            persona?.name || '',
-          ];
-          samplerSettings.stop.push(...allNames.map((n) => `\n${n}:`));
-          samplerSettings.stop = Array.from(new Set(samplerSettings.stop.filter((s) => s && s.trim().length > 0)));
+          processedMessages.push(lastPrefillMessage);
         }
-      }
-      formatter = options.formatter ?? formatter;
 
-      if (options.instructTemplateName) {
-        instructTemplateName = options.instructTemplateName;
+        // Add stop sequences for character and persona names
+        if (!samplerSettings?.stop) samplerSettings.stop = [];
+        const characterStore = useCharacterStore();
+        const personaStore = usePersonaStore();
+        const activeCharacters = characterStore.activeCharacters;
+        const persona = personaStore.activePersona;
+        const allNames = [...activeCharacters.map((c) => c.name), persona ? persona.name : 'User', persona?.name || ''];
+        samplerSettings.stop.push(...allNames.map((n) => `\n${n}:`));
+        samplerSettings.stop = Array.from(new Set(samplerSettings.stop.filter((s) => s && s.trim().length > 0)));
       }
-
-      const instructTemplate = apiStore.instructTemplates.find((t) => t.name === instructTemplateName);
 
       if (!model) throw new Error('No model specified.');
 
+      const apiStore = useApiStore();
       const payload = buildChatCompletionPayload({
         samplerSettings,
-        messages,
+        messages: processedMessages,
         model,
         provider: provider,
-        providerSpecific: settingsStore.settings.api.providerSpecific,
+        providerSpecific,
         modelList: apiStore.modelList,
-        formatter,
-        instructTemplate,
+        formatter: effectiveFormatter,
+        instructTemplate: effectiveInstructTemplate,
       });
-      return await ChatCompletionService.generate(payload, formatter, options.signal);
+      return await ChatCompletionService.generate(payload, effectiveFormatter, options.signal);
     },
   },
 };

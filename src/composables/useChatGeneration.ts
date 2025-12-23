@@ -1,12 +1,11 @@
 import { computed, nextTick, ref, type Ref } from 'vue';
-import { buildChatCompletionPayload, ChatCompletionService } from '../api/generation';
+import { buildChatCompletionPayload, ChatCompletionService, resolveConnectionProfileSettings } from '../api/generation';
 import { ApiTokenizer } from '../api/tokenizer';
-import { default_user_avatar, GenerationMode, PROVIDER_SECRET_KEYS } from '../constants';
+import { default_user_avatar, GenerationMode } from '../constants';
 import {
   type Character,
   type ChatMessage,
   type ChatMetadata,
-  type ConnectionProfile,
   type GenerationContext,
   type GenerationPayloadBuilderConfig,
   type GenerationResponse,
@@ -24,7 +23,6 @@ import { useApiStore } from '../stores/api.store';
 import { useCharacterStore } from '../stores/character.store';
 import { usePersonaStore } from '../stores/persona.store';
 import { usePromptStore } from '../stores/prompt.store';
-import { useSecretStore } from '../stores/secret.store';
 import { useSettingsStore } from '../stores/settings.store';
 import { useUiStore } from '../stores/ui.store';
 import { useWorldInfoStore } from '../stores/world-info.store';
@@ -302,54 +300,20 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     const settings = settingsStore.settings;
     const chatMetadata = chatContext.metadata;
 
-    // Connection Profile
-    const connectionProfileName = chatMetadata.connection_profile;
-    let profileSettings: ConnectionProfile | null = null;
-    if (connectionProfileName) {
-      profileSettings = apiStore.connectionProfiles.find((p) => p.name === connectionProfileName) || null;
-    }
-
-    const effectiveProvider = profileSettings?.provider || settings.api.provider;
-    let effectiveModel = profileSettings?.model;
-    if (!effectiveModel) {
-      effectiveModel = settings.api.selectedProviderModels[effectiveProvider] || apiStore.activeModel || '';
-    }
+    // Resolve connection profile settings
+    const {
+      provider: effectiveProvider,
+      model: effectiveModel,
+      samplerSettings: effectiveSamplerSettings,
+      formatter: effectiveFormatter,
+      instructTemplate: effectiveTemplate,
+      providerSpecific: effectiveProviderSpecific,
+      customPromptPostProcessing: effectivePostProcessing,
+    } = await resolveConnectionProfileSettings({
+      profileName: chatMetadata.connection_profile,
+    });
 
     if (!effectiveModel) throw new Error(t('chat.generate.noModelError'));
-
-    // Sampler
-    let effectiveSamplerSettings = settings.api.samplers;
-    if (profileSettings?.sampler) {
-      if (apiStore.presets.length === 0) await apiStore.loadPresetsForApi();
-      const preset = apiStore.presets.find((p) => p.name === profileSettings!.sampler);
-      if (preset) effectiveSamplerSettings = preset.preset;
-    }
-
-    const effectiveFormatter = profileSettings?.formatter || settings.api.formatter;
-    const effectiveTemplateName = profileSettings?.instructTemplate || settings.api.instructTemplateName;
-    const effectiveTemplate = apiStore.instructTemplates.find((t) => t.name === effectiveTemplateName);
-
-    // Apply profile-specific API URL if set
-    let effectiveProviderSpecific = settings.api.providerSpecific;
-    if (profileSettings?.apiUrl !== undefined) {
-      effectiveProviderSpecific = JSON.parse(JSON.stringify(settings.api.providerSpecific));
-      if (effectiveProvider === 'custom') {
-        effectiveProviderSpecific.custom.url = profileSettings.apiUrl;
-      } else if (effectiveProvider === 'koboldcpp') {
-        effectiveProviderSpecific.koboldcpp.url = profileSettings.apiUrl;
-      } else if (effectiveProvider === 'ollama') {
-        effectiveProviderSpecific.ollama.url = profileSettings.apiUrl;
-      }
-    }
-
-    // Apply profile-specific secret if set
-    if (profileSettings?.secretId) {
-      const secretStore = useSecretStore();
-      const secretKey = PROVIDER_SECRET_KEYS[effectiveProvider];
-      if (secretKey) {
-        await secretStore.rotateSecret(secretKey, profileSettings.secretId);
-      }
-    }
 
     const tokenizer = new ApiTokenizer({ tokenizerType: settings.api.tokenizer, model: effectiveModel });
 
@@ -393,17 +357,14 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       }
     }
 
-    let effectivePostProcessing = settings.api.customPromptPostProcessing;
-    if (profileSettings?.customPromptPostProcessing) {
-      effectivePostProcessing = profileSettings.customPromptPostProcessing;
-    }
+    const postProcessing = effectivePostProcessing || settings.api.customPromptPostProcessing;
 
     // Name Hijacking Logic
     const stopOnNameHijack = settings.chat.stopOnNameHijack ?? 'all';
     const isMultiCharContext = context.characters.length > 1;
 
     const shouldCheckHijack =
-      effectivePostProcessing ||
+      postProcessing ||
       stopOnNameHijack === 'all' ||
       (stopOnNameHijack === 'group' && isMultiCharContext) ||
       (stopOnNameHijack === 'single' && !isMultiCharContext);
@@ -539,7 +500,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       model: context.settings.model,
       api: context.settings.provider,
       tokenizer: settings.api.tokenizer,
-      presetName: profileSettings?.sampler || settings.api.selectedSampler || 'Default',
+      presetName: chatMetadata.connection_profile || settings.api.selectedSampler || 'Default',
       messages: messages,
       breakdown: breakdown,
       timestamp: Date.now(),
@@ -548,7 +509,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     promptStore.addItemizedPrompt(itemizedPrompt);
 
     let effectiveMessages = [...messages];
-    if (effectivePostProcessing) {
+    if (postProcessing) {
       try {
         // We ensure we operate only on effectiveMessages to avoid duplication.
         const isPrefill =
@@ -559,10 +520,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
 
         const lastPrefillMessage = isPrefill ? effectiveMessages.pop() : null;
 
-        effectiveMessages = await ChatCompletionService.formatMessages(
-          effectiveMessages || [],
-          effectivePostProcessing,
-        );
+        effectiveMessages = await ChatCompletionService.formatMessages(effectiveMessages || [], postProcessing);
 
         if (lastPrefillMessage) {
           if (!lastPrefillMessage.content.startsWith(`${lastPrefillMessage.name}: `)) {

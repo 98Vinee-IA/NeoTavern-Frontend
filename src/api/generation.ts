@@ -1,9 +1,12 @@
 import { aiConfigDefinition } from '../ai-config-definition';
 import { CustomPromptPostProcessing } from '../constants';
-import type { ApiChatMessage, ApiProvider, ChatCompletionPayload, GenerationResponse, StreamedChunk } from '../types';
+import { useApiStore } from '../stores/api.store';
+import { useSettingsStore } from '../stores/settings.store';
+import type { ApiChatMessage, ApiProvider, ChatCompletionPayload, ConnectionProfile, GenerationResponse, StreamedChunk } from '../types';
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
-import type { ApiFormatter, SamplerSettings, SettingsPath } from '../types/settings';
+import type { InstructTemplate } from '../types/instruct';
+import type { ApiFormatter, SamplerSettings, Settings, SettingsPath } from '../types/settings';
 import { getRequestHeaders } from '../utils/client';
 import { convertMessagesToInstructString } from '../utils/instruct';
 import {
@@ -14,6 +17,96 @@ import {
   PROVIDER_INJECTIONS,
   type ParamHandling,
 } from './provider-definitions';
+
+export interface ResolvedConnectionProfileSettings {
+  provider: ApiProvider;
+  model: string;
+  samplerSettings: SamplerSettings;
+  formatter: ApiFormatter;
+  instructTemplate?: InstructTemplate;
+  providerSpecific: Settings['api']['providerSpecific'];
+  customPromptPostProcessing?: CustomPromptPostProcessing;
+}
+
+/**
+ * Resolves connection profile settings by merging profile overrides with global settings.
+ * Handles apiUrl overrides, secret rotation, and sampler preset loading.
+ */
+export async function resolveConnectionProfileSettings(options: {
+  profileName?: string;
+  samplerOverrides?: Partial<SamplerSettings>;
+  effectiveProvider?: ApiProvider;
+}): Promise<ResolvedConnectionProfileSettings> {
+  const settingsStore = useSettingsStore();
+  const apiStore = useApiStore();
+  const { profileName, samplerOverrides, effectiveProvider: providedProvider } = options;
+
+  // Get connection profile if specified
+  let profileSettings: ConnectionProfile | null = null;
+  if (profileName) {
+    profileSettings = apiStore.connectionProfiles.find((p) => p.name === profileName) || null;
+  }
+
+  // Determine effective provider
+  const effectiveProvider = providedProvider || profileSettings?.provider || settingsStore.settings.api.provider;
+
+  // Determine effective model
+  let effectiveModel = profileSettings?.model;
+  if (!effectiveModel) {
+    effectiveModel = settingsStore.settings.api.selectedProviderModels[effectiveProvider] || apiStore.activeModel || '';
+  }
+
+  // Determine effective sampler settings
+  let effectiveSamplerSettings = { ...settingsStore.settings.api.samplers };
+  if (profileSettings?.sampler) {
+    if (apiStore.presets.length === 0) await apiStore.loadPresetsForApi();
+    const preset = apiStore.presets.find((p) => p.name === profileSettings!.sampler);
+    if (preset) effectiveSamplerSettings = { ...preset.preset };
+  }
+
+  // Apply sampler overrides
+  if (samplerOverrides) {
+    effectiveSamplerSettings = { ...effectiveSamplerSettings, ...samplerOverrides };
+  }
+
+  // Determine formatter and instruct template
+  const effectiveFormatter = profileSettings?.formatter || settingsStore.settings.api.formatter;
+  const effectiveTemplateName = profileSettings?.instructTemplate || settingsStore.settings.api.instructTemplateName;
+  const effectiveTemplate = apiStore.instructTemplates.find((t) => t.name === effectiveTemplateName);
+
+  // Apply profile-specific API URL if set
+  const effectiveProviderSpecific = JSON.parse(
+    JSON.stringify(settingsStore.settings.api.providerSpecific),
+  ) as Settings['api']['providerSpecific'];
+  if (profileSettings?.apiUrl !== undefined) {
+    if (effectiveProvider === 'custom') {
+      effectiveProviderSpecific.custom.url = profileSettings.apiUrl;
+    } else if (effectiveProvider === 'koboldcpp') {
+      effectiveProviderSpecific.koboldcpp.url = profileSettings.apiUrl;
+    } else if (effectiveProvider === 'ollama') {
+      effectiveProviderSpecific.ollama.url = profileSettings.apiUrl;
+    }
+  }
+
+  // TODO: /generate endpoint should accept secretId directly, so rotation here is not needed.
+  // if (profileSettings?.secretId) {
+  //   const secretStore = useSecretStore();
+  //   const secretKey = PROVIDER_SECRET_KEYS[effectiveProvider];
+  //   if (secretKey) {
+  //     await secretStore.rotateSecret(secretKey, profileSettings.secretId);
+  //   }
+  // }
+
+  return {
+    provider: effectiveProvider,
+    model: effectiveModel,
+    samplerSettings: effectiveSamplerSettings,
+    formatter: effectiveFormatter,
+    instructTemplate: effectiveTemplate,
+    providerSpecific: effectiveProviderSpecific,
+    customPromptPostProcessing: profileSettings?.customPromptPostProcessing,
+  };
+}
 
 const PARAM_TO_GROUP_MAP: Record<string, string> = {};
 let isMapInitialized = false;
