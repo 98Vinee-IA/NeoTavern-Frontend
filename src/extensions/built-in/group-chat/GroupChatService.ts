@@ -84,6 +84,9 @@ export class GroupChatService {
       return;
     }
 
+    // Validate and clean up member list
+    this.validateMembers();
+
     // Try to load from extra first (new way), or fallback to old way if legacy
     let loadedConfig = meta.extra?.group as GroupChatConfig | undefined;
 
@@ -110,11 +113,50 @@ export class GroupChatService {
       // Ensure decisionContextSize has a default
       if (loadedConfig.config.decisionContextSize === undefined) {
         loadedConfig.config.decisionContextSize = 15;
-        this.saveConfig(loadedConfig);
       }
+
+      // Sync members: add missing, remove stale
+      const currentMembers = new Set(meta.members || []);
+      const configMemberKeys = Object.keys(loadedConfig.members);
+
+      // Add new members not in config
+      meta.members?.forEach((avatar) => {
+        if (!loadedConfig!.members[avatar]) {
+          loadedConfig!.members[avatar] = { muted: false, summary: '' };
+        }
+      });
+
+      // Remove stale members from config
+      configMemberKeys.forEach((avatar) => {
+        if (!currentMembers.has(avatar)) {
+          delete loadedConfig!.members[avatar];
+        }
+      });
+
+      this.saveConfig(loadedConfig);
     }
 
     this.groupConfig.value = loadedConfig;
+  }
+
+  /**
+   * Validates that all members in metadata exist as actual characters.
+   * Removes any stale references.
+   */
+  private validateMembers() {
+    const meta = this.api.chat.metadata.get();
+    if (!meta || !meta.members) return;
+
+    const allChars = this.api.character.getAll();
+    const validAvatars = new Set(allChars.map((c) => c.avatar));
+
+    const validMembers = meta.members.filter((avatar) => validAvatars.has(avatar));
+
+    // Update if members were removed
+    if (validMembers.length !== meta.members.length) {
+      meta.members = validMembers;
+      this.api.chat.metadata.set(meta);
+    }
   }
 
   public saveConfig(config: GroupChatConfig) {
@@ -196,6 +238,13 @@ export class GroupChatService {
     const meta = this.api.chat.metadata.get();
     if (!meta) return;
 
+    // Verify character exists
+    const char = this.api.character.get(avatar);
+    if (!char) {
+      console.warn('[GroupChat] Cannot add member: character does not exist', avatar);
+      return;
+    }
+
     if (!meta.members) meta.members = [];
     if (meta.members.includes(avatar)) return;
 
@@ -205,12 +254,12 @@ export class GroupChatService {
     if (this.groupConfig.value) {
       this.groupConfig.value.members[avatar] = { muted: false, summary: '' };
       this.saveConfig(this.groupConfig.value);
-    } else {
-      // Re-init if missing
-      this.loadConfig();
     }
 
     this.api.chat.metadata.set(meta);
+
+    // Reload config without resetting generation state
+    this.loadConfig();
   }
 
   public async removeMember(avatar: string) {
@@ -220,11 +269,17 @@ export class GroupChatService {
     const idx = meta.members.indexOf(avatar);
     if (idx > -1) {
       meta.members.splice(idx, 1);
+
+      // Remove from config map
       if (this.groupConfig.value?.members[avatar]) {
         delete this.groupConfig.value.members[avatar];
         this.saveConfig(this.groupConfig.value);
       }
+
       this.api.chat.metadata.set(meta);
+
+      // Reload config without resetting generation state
+      this.loadConfig();
     }
   }
 
@@ -257,11 +312,15 @@ export class GroupChatService {
     }
 
     const membersMap = this.groupConfig.value.members;
-    const validMembers = activeMembers.filter((avatar) => !membersMap[avatar]?.muted);
+    const allChars = this.api.character.getAll();
+    const validAvatars = new Set(allChars.map((c) => c.avatar));
+
+    // Filter out non-existent and muted members
+    const validMembers = activeMembers.filter((avatar) => validAvatars.has(avatar) && !membersMap[avatar]?.muted);
 
     if (validMembers.length === 0) return;
 
-    const activeChars = this.api.character.getActives().filter((c) => validMembers.includes(c.avatar));
+    const activeChars = allChars.filter((c) => validMembers.includes(c.avatar));
     const history = this.api.chat.getHistory();
 
     // LLM Decision Strategy
