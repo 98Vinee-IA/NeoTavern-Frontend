@@ -54,8 +54,9 @@ function handleCharacterClick() {
   if (isGroup.value) {
     layoutStore.toggleRightSidebar('chat-management');
   } else if (firstCharacter.value) {
-    characterUiStore.selectedCharacterAvatarForEditing = firstCharacter.value.avatar;
+    characterUiStore.selectCharacterByAvatar(firstCharacter.value.avatar);
     layoutStore.activateNavBarItem('character');
+    layoutStore.autoCloseSidebarsOnMobile();
   }
 }
 </script>
