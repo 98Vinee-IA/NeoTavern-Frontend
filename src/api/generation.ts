@@ -2,7 +2,14 @@ import { aiConfigDefinition } from '../ai-config-definition';
 import { CustomPromptPostProcessing } from '../constants';
 import { useApiStore } from '../stores/api.store';
 import { useSettingsStore } from '../stores/settings.store';
-import type { ApiChatMessage, ApiProvider, ChatCompletionPayload, ConnectionProfile, GenerationResponse, StreamedChunk } from '../types';
+import type {
+  ApiChatMessage,
+  ApiProvider,
+  ChatCompletionPayload,
+  ConnectionProfile,
+  GenerationResponse,
+  StreamedChunk,
+} from '../types';
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
 import type { InstructTemplate } from '../types/instruct';

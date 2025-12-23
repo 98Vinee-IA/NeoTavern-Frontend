@@ -41,8 +41,6 @@ const editingSummaryAvatar = ref<string | null>(null);
 
 const groupConfig = computed(() => service.groupConfig.value);
 
-const isGroup = computed(() => service.isGroupChat);
-
 // Members List
 const groupMembers = computed(() => {
   const meta = api.chat.metadata.get();
@@ -51,6 +49,11 @@ const groupMembers = computed(() => {
   return (meta.members || []).map((avatar) => {
     return chars.find((c) => c.avatar === avatar) || ({ name: avatar, avatar } as Character);
   });
+});
+
+const isGroup = computed(() => {
+  const meta = api.chat.metadata.get();
+  return !!meta && (meta.members?.length ?? 0) > 1;
 });
 
 // Available for adding
