@@ -109,10 +109,10 @@ function saveDebounced() {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function peekCharacter(_avatar: string) {
-  // FIXME: Not exposed in API yet, skipping for now or use workaround
-  // api.ui.openSidebar('character-details');
+function peekCharacter(avatar: string) {
+  api.ui.selectCharacterForEditing(avatar);
+  api.ui.activateNavBarItem('character');
+  api.ui.autoCloseSidebarsOnMobile();
 }
 
 function forceTalk(avatar: string) {

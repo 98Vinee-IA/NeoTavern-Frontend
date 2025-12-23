@@ -523,6 +523,11 @@ const baseExtensionAPI: ExtensionAPI = {
       useComponentRegistryStore().unregisterNavBarItem(id);
     },
     openSidebar: (id) => useLayoutStore().toggleRightSidebar(id),
+    activateNavBarItem: (id) => useLayoutStore().activateNavBarItem(id),
+    autoCloseSidebarsOnMobile: () => useLayoutStore().autoCloseSidebarsOnMobile(),
+    selectCharacterForEditing: (avatar) => {
+      useCharacterUiStore().selectCharacterByAvatar(avatar);
+    },
     registerTextareaTool: (identifier, definition) => {
       useComponentRegistryStore().registerTextareaTool(identifier, definition);
       return () => useComponentRegistryStore().unregisterTextareaTool(identifier, definition.id);

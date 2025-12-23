@@ -488,6 +488,23 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
     openSidebar: (id: string) => void;
 
     /**
+     * Activates a navbar item (switches layout or toggles sidebar).
+     * @param id The ID of the navbar item to activate.
+     */
+    activateNavBarItem: (id: string) => void;
+
+    /**
+     * Automatically closes sidebars on mobile devices.
+     */
+    autoCloseSidebarsOnMobile: () => void;
+
+    /**
+     * Selects a character for editing in the character panel.
+     * @param avatar The avatar ID of the character to edit.
+     */
+    selectCharacterForEditing: (avatar: string) => void;
+
+    /**
      * Registers a tool action for Textareas with specific identifiers.
      * @param identifier The CodeMirrorTarget identifier (e.g. 'character.description').
      * @param definition The tool definition including icon and callback.
