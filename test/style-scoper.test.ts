@@ -60,7 +60,7 @@ describe('Style Scoper', () => {
     test('wraps content in a scoped div', () => {
       const html = '<p>Hello</p>';
       const result = scopeHtml(html);
-      expect(result).toMatch(/^<div class="st-scope-[a-z0-9]+"><p>Hello<\/p><\/div>$/);
+      expect(result).toMatch(/^<div class="nt-scope-[a-z0-9]+"><p>Hello<\/p><\/div>$/);
     });
 
     test('scopes inline styles', () => {
@@ -73,7 +73,7 @@ describe('Style Scoper', () => {
       const result = scopeHtml(html);
 
       // Extract the scope ID from the wrapper
-      const match = result.match(/class="(st-scope-[a-z0-9]+)"/);
+      const match = result.match(/class="(nt-scope-[a-z0-9]+)"/);
       expect(match).not.toBeNull();
       const scopeId = match![1];
 

@@ -10,7 +10,7 @@ function getScopeId(content: string): string {
     hash |= 0; // Convert to 32bit integer
   }
   // Use absolute value and base36 for a short alphanumeric string
-  return 'st-scope-' + Math.abs(hash).toString(36);
+  return 'nt-scope-' + Math.abs(hash).toString(36);
 }
 
 // TODO: What if an extension wanna interrupt this? Disable it via config?
@@ -132,8 +132,9 @@ export function scopeHtml(html: string): string {
     const parser = new DOMParser();
     // Parse as HTML. We wrap in body to ensure top-level elements are captured.
     const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html');
-    const styles = doc.querySelectorAll('style');
 
+    // Scope all styles found in the document (head or body)
+    const styles = doc.querySelectorAll('style');
     styles.forEach((style) => {
       if (style.textContent) {
         style.textContent = scopeCss(style.textContent, `.${scopeId}`);
@@ -142,6 +143,11 @@ export function scopeHtml(html: string): string {
 
     const wrapper = document.createElement('div');
     wrapper.className = scopeId;
+
+    // Append styles that might have ended up in head (quirk of DOMParser/JSDOM with some structures)
+    doc.head.querySelectorAll('style').forEach((style) => {
+      wrapper.appendChild(style);
+    });
 
     // Move all nodes from parsed body to wrapper
     while (doc.body.firstChild) {

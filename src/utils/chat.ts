@@ -74,6 +74,7 @@ marked.use({
 });
 
 const MEDIA_TAGS = ['img', 'video', 'audio', 'iframe', 'embed', 'object', 'picture', 'source', 'track'];
+const PLACEHOLDER_TAG = 'x-style-placeholder';
 
 // Helper to handle DOMPurify in both Browser and Test (Node/JSDOM) environments
 let sanitizerInstance: typeof DOMPurify | null = null;
@@ -93,13 +94,37 @@ function getSanitizer() {
 export function formatText(text: string, forbidExternalMedia: boolean = false): string {
   if (!text) return '';
 
-  const rawHtml = marked.parse(text) as string;
+  let rawHtml: string;
+  const trimmed = text.trim();
+
+  // Heuristic: If text is a self-contained HTML block (starts with <tag and ends with </tag>),
+  // treat it as raw HTML. This preserves structure and <style> tags that Markdown might mangle.
+  //
+  // Regex Breakdown:
+  // ^<([a-z][a-z0-9-]*)\b  : Starts with <tagname (word boundary ensures strict match)
+  // [\s\S]*                : Any content in between
+  // <\/\1>$                : Ends with </tagname> (matching the captured tag name)
+  const isHtmlWrapper = /^<([a-z][a-z0-9-]*)\b[\s\S]*<\/\1>$/i.test(trimmed);
+
+  if (isHtmlWrapper) {
+    rawHtml = text;
+  } else {
+    rawHtml = marked.parse(text) as string;
+  }
+
+  // Mask <style> tags to prevent DOMPurify from stripping them (e.g. due to @keyframes or other complex CSS)
+  // We use a custom placeholder tag to temporarily hold the style content.
+  const styleMatches: string[] = [];
+  const protectedHtml = rawHtml.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, (match) => {
+    styleMatches.push(match);
+    return `<${PLACEHOLDER_TAG} data-index="${styleMatches.length - 1}"></${PLACEHOLDER_TAG}>`;
+  });
 
   const config: Config = {
     RETURN_DOM: false,
     RETURN_DOM_FRAGMENT: false,
-    ADD_TAGS: ['style', 'custom-style', 'q'],
-    ADD_ATTR: ['target', 'class', 'id'],
+    ADD_TAGS: ['style', 'custom-style', 'q', PLACEHOLDER_TAG],
+    ADD_ATTR: ['target', 'class', 'id', 'data-index'],
     FORBID_TAGS: forbidExternalMedia ? MEDIA_TAGS : [],
   };
 
@@ -109,7 +134,16 @@ export function formatText(text: string, forbidExternalMedia: boolean = false): 
     return rawHtml;
   }
 
-  const sanitizedHtml = sanitizer.sanitize(rawHtml, config) as string;
+  let sanitizedHtml = sanitizer.sanitize(protectedHtml, config) as string;
+
+  // Restore <style> tags
+  sanitizedHtml = sanitizedHtml.replace(
+    new RegExp(`<${PLACEHOLDER_TAG} data-index="(\\d+)"><\\/${PLACEHOLDER_TAG}>`, 'gi'),
+    (_, index) => {
+      const i = parseInt(index, 10);
+      return styleMatches[i] || '';
+    },
+  );
 
   return scopeHtml(sanitizedHtml);
 }

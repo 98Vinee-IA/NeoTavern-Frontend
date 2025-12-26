@@ -113,7 +113,7 @@ const mockSamplerSettings: SamplerSettings = {
     { identifier: 'charDescription', name: 'Desc', role: 'system', content: '', marker: true, enabled: true },
     { identifier: 'chatHistory', name: 'History', role: 'system', content: '', marker: true, enabled: true },
   ],
-  providers: { claude: {}, koboldcpp: {}, google: {} },
+  providers: { claude: {}, koboldcpp: {}, google: {}, ollama: {} },
   show_thoughts: false,
   reasoning_effort: ReasoningEffort.MEDIUM,
 };
@@ -257,7 +257,7 @@ describe('PromptBuilder', () => {
 
     const messages = await builder.build();
     const assistantMsg = messages.find((m) => m.role === 'assistant');
-    expect(assistantMsg?.content).toBe('Char1: Hello');
+    expect(assistantMsg?.content).toBe('Hello');
   });
 
   it('substitutes macros in custom prompts', async () => {
