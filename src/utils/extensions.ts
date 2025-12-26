@@ -1,6 +1,6 @@
 import * as Vue from 'vue';
 import { createVNode, render, type App } from 'vue';
-import { EventPriority, GenerationMode, default_avatar } from '../constants';
+import { CustomPromptPostProcessing, EventPriority, GenerationMode, default_avatar } from '../constants';
 import type {
   ChatInfo,
   ChatMessage,
@@ -590,7 +590,7 @@ const baseExtensionAPI: ExtensionAPI = {
 
       // Apply custom prompt post-processing if defined in profile
       let processedMessages = [...messages];
-      if (customPromptPostProcessing) {
+      if (customPromptPostProcessing !== undefined && customPromptPostProcessing !== CustomPromptPostProcessing.NONE) {
         const isPrefill = messages.length > 1 ? messages[messages.length - 1].role === 'assistant' : false;
         const lastPrefillMessage = isPrefill ? processedMessages.pop() : null;
         processedMessages = await ChatCompletionService.formatMessages(processedMessages, customPromptPostProcessing);

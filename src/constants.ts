@@ -11,7 +11,7 @@ import { NamesBehavior, type InstructTemplate } from './types/instruct';
 import { uuidv4 } from './utils/commons';
 
 export enum CustomPromptPostProcessing {
-  NONE = '',
+  NONE = 'none',
   MERGE = 'merge',
   MERGE_TOOLS = 'merge_tools',
   SEMI = 'semi',

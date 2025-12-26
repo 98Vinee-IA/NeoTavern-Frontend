@@ -1,7 +1,7 @@
 import { computed, nextTick, ref, type Ref } from 'vue';
 import { buildChatCompletionPayload, ChatCompletionService, resolveConnectionProfileSettings } from '../api/generation';
 import { ApiTokenizer } from '../api/tokenizer';
-import { default_user_avatar, GenerationMode } from '../constants';
+import { CustomPromptPostProcessing, default_user_avatar, GenerationMode } from '../constants';
 import {
   type Character,
   type ChatMessage,
@@ -509,7 +509,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     promptStore.addItemizedPrompt(itemizedPrompt);
 
     let effectiveMessages = [...messages];
-    if (postProcessing) {
+    if (postProcessing !== CustomPromptPostProcessing.NONE) {
       try {
         // We ensure we operate only on effectiveMessages to avoid duplication.
         const isPrefill =
