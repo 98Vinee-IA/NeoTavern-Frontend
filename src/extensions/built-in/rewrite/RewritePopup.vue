@@ -515,9 +515,6 @@ function handleCopyOutput() {
   position: relative;
   display: flex;
 }
-.input-with-reset :deep(textarea) {
-  flex: 1;
-}
 .reset-btn {
   margin-left: 5px;
   height: auto;
