@@ -275,15 +275,17 @@ async function handleGenerate() {
     const contextMessagesStr = getContextMessagesString();
 
     let inputToProcess = props.originalText;
+    let promptToUse = promptOverride.value;
     if (escapeMacros.value) {
       inputToProcess = `{{#raw}}${props.originalText}{{/raw}}`;
+      promptToUse = `{{#raw}}${promptOverride.value}{{/raw}}`;
     }
 
     const response = await service.generateRewrite(
       inputToProcess,
       selectedTemplateId.value,
       selectedProfile.value,
-      promptOverride.value,
+      promptToUse,
       contextData,
       {
         contextMessages: contextMessagesStr,

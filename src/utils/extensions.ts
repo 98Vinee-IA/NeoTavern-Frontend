@@ -797,7 +797,7 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
   return { ...baseExtensionAPI, meta, settings: scopedSettings, events: scopedEvents, ui: scopedUi };
 }
 
-globalThis.SillyTavern = {
+globalThis.NeoTavern = {
   vue: Vue,
   registerExtension: (extensionId: string, initCallback: (extensionId: string, api: ExtensionAPI) => void) => {
     try {

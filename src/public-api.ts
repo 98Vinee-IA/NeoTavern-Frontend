@@ -20,8 +20,7 @@ import type * as Vue from 'vue';
 import type { ExtensionAPI } from './types';
 
 declare global {
-  // TODO: Rename with NeoTavern?
-  var SillyTavern: {
+  var NeoTavern: {
     /**
      * The instance of Vue being used by the main application.
      * Extensions can use this to create their own components.
