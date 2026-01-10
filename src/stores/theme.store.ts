@@ -122,29 +122,66 @@ export const useThemeStore = defineStore('theme', () => {
       customCss: customCss.value,
     };
 
-    try {
-      await api.saveTheme(name, newTheme);
-      await fetchThemes();
-      activeThemeName.value = name;
-      toast.success(`Theme "${name}" saved`);
-    } catch (error) {
-      console.error(error);
-      toast.error(t('themes.errors.saveFailed'));
+    const previousThemes = [...themes.value];
+    const previousActiveTheme = activeThemeName.value;
+
+    const existingIndex = themes.value.findIndex((t) => t.name === name);
+    if (existingIndex >= 0) {
+      themes.value[existingIndex].preset = newTheme;
+    } else {
+      themes.value.push({ name, preset: newTheme });
     }
+    activeThemeName.value = name;
+    settingsStore.settings.ui.selectedTheme = name; // Update settings to prevent revert on fetch
+    toast.success(`Theme "${name}" saved`);
+
+    api
+      .saveTheme(name, newTheme)
+      .then(() => fetchThemes())
+      .catch((error) => {
+        console.error(error);
+        toast.error(t('themes.errors.saveFailed'));
+
+        themes.value = previousThemes;
+        if (activeThemeName.value === name) {
+          activeThemeName.value = previousActiveTheme;
+          settingsStore.settings.ui.selectedTheme = previousActiveTheme; // Rollback settings
+          if (previousActiveTheme !== 'Default') {
+            loadTheme(previousActiveTheme);
+          }
+        }
+      });
   }
 
   async function deleteTheme(name: string) {
-    try {
-      await api.deleteTheme(name);
-      await fetchThemes();
-      if (activeThemeName.value === name) {
-        await loadTheme('Default');
-      }
-      toast.success('Theme deleted');
-    } catch (error) {
-      console.error(error);
-      toast.error(t('themes.errors.deleteFailed'));
+    const previousThemes = [...themes.value];
+    const previousActiveTheme = activeThemeName.value;
+
+    const index = themes.value.findIndex((t) => t.name === name);
+    if (index !== -1) {
+      themes.value.splice(index, 1);
     }
+
+    if (activeThemeName.value === name) {
+      loadTheme('Default');
+      settingsStore.settings.ui.selectedTheme = 'Default'; // Update settings
+    }
+
+    toast.success('Theme deleted');
+
+    api
+      .deleteTheme(name)
+      .then(() => fetchThemes())
+      .catch((error) => {
+        console.error(error);
+        toast.error(t('themes.errors.deleteFailed'));
+
+        themes.value = previousThemes;
+        if (activeThemeName.value !== previousActiveTheme) {
+          loadTheme(previousActiveTheme);
+          settingsStore.settings.ui.selectedTheme = previousActiveTheme; // Rollback settings
+        }
+      });
   }
 
   function exportTheme() {

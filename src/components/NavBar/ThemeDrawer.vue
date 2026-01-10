@@ -118,7 +118,7 @@ function isNumber(key: keyof ThemeVariables) {
 // CRUD Actions
 async function onCreate() {
   const { result, value } = await popupStore.show<string>({
-    type: POPUP_TYPE.TEXT,
+    type: POPUP_TYPE.INPUT,
     title: t('common.create'),
     okButton: 'common.save',
     cancelButton: 'common.cancel',
