@@ -14,6 +14,7 @@ export const useCharacterUiStore = defineStore('character-ui', () => {
   const itemsPerPage = ref(25);
   const highlightedAvatar = ref<string | null>(null);
   const searchTerm = ref('');
+  const filterTags = ref<string[]>([]);
   const isCreating = ref(false);
   const draftCharacter = ref<Character>(DEFAULT_CHARACTER);
   const selectedCharacterAvatarForEditing = ref<string | null>(null);
@@ -23,8 +24,16 @@ export const useCharacterUiStore = defineStore('character-ui', () => {
     set: (value) => (settingsStore.settings.account.characterSortOrder = value),
   });
 
+  const availableTags = computed<string[]>(() => {
+    const tags = new Set<string>();
+    characterStore.characters.forEach((char) => {
+      char.tags?.forEach((tag) => tags.add(tag));
+    });
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  });
+
   const displayableCharacters = computed<Character[]>(() => {
-    return filterAndSortCharacters(characterStore.characters, searchTerm.value, sortOrder.value);
+    return filterAndSortCharacters(characterStore.characters, searchTerm.value, filterTags.value, sortOrder.value);
   });
 
   const paginatedCharacters = computed<Character[]>(() => {
@@ -96,6 +105,8 @@ export const useCharacterUiStore = defineStore('character-ui', () => {
     itemsPerPage,
     highlightedAvatar,
     searchTerm,
+    filterTags,
+    availableTags,
     isCreating,
     draftCharacter,
     selectedCharacterAvatarForEditing,

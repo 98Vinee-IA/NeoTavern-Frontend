@@ -680,6 +680,7 @@
     "importFile": "Import Character from File",
     "searchToggle": "Toggle search bar",
     "searchPlaceholder": "Search...",
+    "filterTags": "Filter Tags",
     "sorting": {
       "title": "Characters sorting order",
       "nameAsc": "A-Z",

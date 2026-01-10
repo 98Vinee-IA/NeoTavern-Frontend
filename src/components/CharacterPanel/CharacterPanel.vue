@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
 import { useCharacterUiStore } from '../../stores/character-ui.store';
@@ -94,6 +94,13 @@ const sortOptions = [
   { value: 'random:asc', label: t('characterPanel.sorting.random') },
 ];
 
+const tagOptions = computed(() => {
+  return characterUiStore.availableTags.map((tag) => ({
+    label: tag,
+    value: tag,
+  }));
+});
+
 function handleClose() {
   layoutStore.activateNavBarItem('chat');
   layoutStore.autoCloseSidebarsOnMobile();
@@ -154,7 +161,15 @@ onMounted(async () => {
         <div v-show="isSearchActive" class="sidebar-controls-row character-panel-search-row">
           <Search v-model="characterUiStore.searchTerm" :placeholder="t('characterPanel.searchPlaceholder')">
             <template #actions>
-              <div style="min-width: 140px">
+              <div class="character-panel-search-actions">
+                <Select
+                  v-model="characterUiStore.filterTags"
+                  :options="tagOptions"
+                  :title="t('characterPanel.filterTags')"
+                  :placeholder="t('characterPanel.filterTags')"
+                  multiple
+                  searchable
+                />
                 <Select
                   v-model="characterUiStore.sortOrder"
                   :options="sortOptions"

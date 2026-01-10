@@ -683,6 +683,7 @@ export interface MessageSchema {
     importFile: string;
     searchToggle: string;
     searchPlaceholder: string;
+    filterTags: string;
     sorting: {
       title: string;
       nameAsc: string;

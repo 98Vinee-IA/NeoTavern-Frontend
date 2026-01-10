@@ -89,18 +89,29 @@ export function createCharacterFormData(character: Character, fileToSend: File |
   return formData;
 }
 
-export function filterAndSortCharacters(characters: Character[], searchTerm: string, sortOrder: string): Character[] {
+export function filterAndSortCharacters(
+  characters: Character[],
+  searchTerm: string,
+  filterTags: string[],
+  sortOrder: string,
+): Character[] {
   const lowerSearchTerm = searchTerm.toLowerCase();
-  const filteredCharacters =
-    lowerSearchTerm.length > 0
-      ? characters.filter((char) => {
-          return (
-            char.name.toLowerCase().includes(lowerSearchTerm) ||
-            char.description?.toLowerCase().includes(lowerSearchTerm) ||
-            char.tags?.join(',').toLowerCase().includes(lowerSearchTerm)
-          );
-        })
-      : characters;
+  const searchFilter = (char: Character) => {
+    if (lowerSearchTerm.length === 0) return true;
+    return (
+      char.name.toLowerCase().includes(lowerSearchTerm) ||
+      char.description?.toLowerCase().includes(lowerSearchTerm) ||
+      char.tags?.join(',').toLowerCase().includes(lowerSearchTerm)
+    );
+  };
+
+  const tagFilter = (char: Character) => {
+    if (filterTags.length === 0) return true;
+    // OR Logic: Character must have at least one of the selected tags (Union)
+    return char.tags?.some((tag) => filterTags.includes(tag));
+  };
+
+  const filteredCharacters = characters.filter((char) => searchFilter(char) && tagFilter(char));
 
   const [sortKey, sortDir] = sortOrder.split(':') as ['name' | 'create_date' | 'fav' | 'random', 'asc' | 'desc'];
 

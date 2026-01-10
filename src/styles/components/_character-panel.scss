@@ -17,6 +17,11 @@
     @include flex-container(row, flex-start, flex-start);
   }
 
+  &-search-actions {
+    min-width: 140px;
+    display: flex;
+    gap: 4px;
+  }
   &-character-list {
     flex-grow: 1;
     overflow-y: auto;
