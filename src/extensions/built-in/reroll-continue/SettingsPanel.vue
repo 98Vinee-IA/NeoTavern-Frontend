@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
-import { Button, CollapsibleSection, FormItem, Textarea, Toggle } from '../../../components/UI';
+import { CollapsibleSection, FormItem, Textarea, Toggle } from '../../../components/UI';
 import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../types';
+import type { TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import { DEFAULT_IMPERSONATE_PROMPT, type ExtensionSettings } from './types';
 
 const props = defineProps<{
@@ -35,9 +36,16 @@ watch(
   { deep: true },
 );
 
-function resetPrompt() {
-  settings.value.impersonatePrompt = DEFAULT_IMPERSONATE_PROMPT;
-}
+const promptTools = computed<TextareaToolDefinition[]>(() => [
+  {
+    id: 'reset',
+    icon: 'fa-rotate-left',
+    title: t('extensionsBuiltin.rerollContinue.settings.reset'),
+    onClick: ({ setValue }) => {
+      setValue(DEFAULT_IMPERSONATE_PROMPT);
+    },
+  },
+]);
 </script>
 
 <template>
@@ -58,16 +66,18 @@ function resetPrompt() {
         <ConnectionProfileSelector v-model="settings.impersonateConnectionProfile" />
       </FormItem>
 
-      <FormItem :description="t('extensionsBuiltin.rerollContinue.settings.promptDesc')">
-        <template #default>
-          <div class="header-row">
-            <div class="form-item-label">{{ t('extensionsBuiltin.rerollContinue.settings.promptLabel') }}</div>
-            <Button icon="fa-rotate-left" @click="resetPrompt">
-              {{ t('extensionsBuiltin.rerollContinue.settings.reset') }}
-            </Button>
-          </div>
-          <Textarea v-model="settings.impersonatePrompt" allow-maximize class="prompt-area" :rows="8" />
-        </template>
+      <FormItem
+        :label="t('extensionsBuiltin.rerollContinue.settings.promptLabel')"
+        :description="t('extensionsBuiltin.rerollContinue.settings.promptDesc')"
+      >
+        <Textarea
+          v-model="settings.impersonatePrompt"
+          allow-maximize
+          class="prompt-area"
+          :rows="8"
+          identifier="extension.reroll-continue.prompt"
+          :tools="promptTools"
+        />
       </FormItem>
     </CollapsibleSection>
   </div>
@@ -79,13 +89,6 @@ function resetPrompt() {
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
-}
-
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
 }
 
 .prompt-area {

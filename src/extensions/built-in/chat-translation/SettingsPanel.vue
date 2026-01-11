@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
-import { Button, FormItem, Input, Select, Textarea } from '../../../components/UI';
+import { FormItem, Input, Select, Textarea } from '../../../components/UI';
 import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../types';
+import type { TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import { AutoTranslateMode, type ChatTranslationSettings, DEFAULT_PROMPT } from './types';
 
 const props = defineProps<{
@@ -43,9 +44,16 @@ watch(
   { deep: true },
 );
 
-function resetPrompt() {
-  settings.value.prompt = DEFAULT_PROMPT;
-}
+const promptTools = computed<TextareaToolDefinition[]>(() => [
+  {
+    id: 'reset',
+    icon: 'fa-rotate-left',
+    title: t('common.reset'),
+    onClick: ({ setValue }) => {
+      setValue(DEFAULT_PROMPT);
+    },
+  },
+]);
 </script>
 
 <template>
@@ -74,16 +82,18 @@ function resetPrompt() {
       <Select v-model="settings.autoMode" :options="autoModeOptions" />
     </FormItem>
 
-    <FormItem :description="t('extensionsBuiltin.chatTranslation.promptHint')">
-      <template #default>
-        <div class="header-row">
-          <div class="form-item-label">{{ t('extensionsBuiltin.chatTranslation.promptTemplate') }}</div>
-          <Button icon="fa-rotate-left" @click="resetPrompt">
-            {{ t('common.reset') }}
-          </Button>
-        </div>
-        <Textarea v-model="settings.prompt" allow-maximize class="prompt-area" :rows="10" />
-      </template>
+    <FormItem
+      :label="t('extensionsBuiltin.chatTranslation.promptTemplate')"
+      :description="t('extensionsBuiltin.chatTranslation.promptHint')"
+    >
+      <Textarea
+        v-model="settings.prompt"
+        allow-maximize
+        class="prompt-area"
+        :rows="10"
+        identifier="extension.chat-translation.prompt"
+        :tools="promptTools"
+      />
     </FormItem>
   </div>
 </template>
@@ -98,13 +108,6 @@ function resetPrompt() {
 .setting-row {
   display: flex;
   gap: 8px;
-}
-
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
 }
 
 .prompt-area {

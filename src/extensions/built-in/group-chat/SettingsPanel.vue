@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
-import { Button, FormItem, Textarea } from '../../../components/UI';
+import { FormItem, Textarea } from '../../../components/UI';
 import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../types';
+import type { TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import {
   DEFAULT_DECISION_TEMPLATE,
   DEFAULT_SUMMARY_INJECTION_TEMPLATE,
@@ -47,17 +48,38 @@ watch(
   { deep: true },
 );
 
-function resetDecisionPrompt() {
-  settings.value.defaultDecisionPromptTemplate = DEFAULT_DECISION_TEMPLATE;
-}
+const decisionPromptTools = computed<TextareaToolDefinition[]>(() => [
+  {
+    id: 'reset',
+    icon: 'fa-rotate-left',
+    title: 'Reset to default',
+    onClick: ({ setValue }) => {
+      setValue(DEFAULT_DECISION_TEMPLATE);
+    },
+  },
+]);
 
-function resetSummaryPrompt() {
-  settings.value.defaultSummaryPromptTemplate = DEFAULT_SUMMARY_TEMPLATE;
-}
+const summaryPromptTools = computed<TextareaToolDefinition[]>(() => [
+  {
+    id: 'reset',
+    icon: 'fa-rotate-left',
+    title: 'Reset to default',
+    onClick: ({ setValue }) => {
+      setValue(DEFAULT_SUMMARY_TEMPLATE);
+    },
+  },
+]);
 
-function resetSummaryInjection() {
-  settings.value.summaryInjectionTemplate = DEFAULT_SUMMARY_INJECTION_TEMPLATE;
-}
+const summaryInjectionTools = computed<TextareaToolDefinition[]>(() => [
+  {
+    id: 'reset',
+    icon: 'fa-rotate-left',
+    title: 'Reset to default',
+    onClick: ({ setValue }) => {
+      setValue(DEFAULT_SUMMARY_INJECTION_TEMPLATE);
+    },
+  },
+]);
 </script>
 
 <template>
@@ -80,13 +102,12 @@ function resetSummaryInjection() {
         description="Template for AI to decide who speaks next in LLM Decision mode."
       >
         <div class="textarea-container">
-          <Textarea v-model="settings.defaultDecisionPromptTemplate" :rows="8" allow-maximize />
-          <Button
-            class="reset-prompt-btn"
-            icon="fa-rotate-left"
-            title="Reset to default"
-            variant="ghost"
-            @click="resetDecisionPrompt"
+          <Textarea
+            v-model="settings.defaultDecisionPromptTemplate"
+            :rows="8"
+            allow-maximize
+            identifier="extension.group-chat.decision"
+            :tools="decisionPromptTools"
           />
         </div>
         <div class="help-text">
@@ -102,13 +123,12 @@ function resetSummaryInjection() {
         description="Template for generating character summaries used in Swap+Summaries mode."
       >
         <div class="textarea-container">
-          <Textarea v-model="settings.defaultSummaryPromptTemplate" :rows="6" allow-maximize />
-          <Button
-            class="reset-prompt-btn"
-            icon="fa-rotate-left"
-            title="Reset to default"
-            variant="ghost"
-            @click="resetSummaryPrompt"
+          <Textarea
+            v-model="settings.defaultSummaryPromptTemplate"
+            :rows="6"
+            allow-maximize
+            identifier="extension.group-chat.summary"
+            :tools="summaryPromptTools"
           />
         </div>
         <div class="help-text">
@@ -123,13 +143,12 @@ function resetSummaryInjection() {
         description="Template for the complete description with summaries. Controls where and how summaries appear. Note: This modifies the character description during generation in Swap+Summaries mode."
       >
         <div class="textarea-container">
-          <Textarea v-model="settings.summaryInjectionTemplate" :rows="4" allow-maximize />
-          <Button
-            class="reset-prompt-btn"
-            icon="fa-rotate-left"
-            title="Reset to default"
-            variant="ghost"
-            @click="resetSummaryInjection"
+          <Textarea
+            v-model="settings.summaryInjectionTemplate"
+            :rows="4"
+            allow-maximize
+            identifier="extension.group-chat.injection"
+            :tools="summaryInjectionTools"
           />
         </div>
         <div class="help-text">
@@ -176,18 +195,6 @@ function resetSummaryInjection() {
 
 .textarea-container {
   position: relative;
-}
-
-.reset-prompt-btn {
-  position: absolute;
-  top: 5px;
-  right: 20px;
-  opacity: 0.5;
-  background-color: var(--black-50a);
-
-  &:hover {
-    opacity: 1;
-  }
 }
 
 .help-text {

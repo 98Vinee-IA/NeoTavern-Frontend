@@ -473,11 +473,10 @@ const baseExtensionAPI: ExtensionAPI = {
       const store = useWorldInfoStore();
       const book = await store.getBookFromCache(bookName, true);
       if (!book) return;
-      const index = book.entries.findIndex((e) => e.uid === entry.uid);
-      if (index > -1) {
-        book.entries[index] = { ...entry };
-        store.saveBookDebounced(book);
-      }
+      await store.updateEntry(book, entry);
+    },
+    deleteEntry: async (bookName, uid) => {
+      await useWorldInfoStore().deleteEntry(bookName, uid);
     },
   },
   macro: {

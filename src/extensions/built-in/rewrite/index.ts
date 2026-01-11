@@ -1,6 +1,6 @@
 import { markRaw } from 'vue';
 import type { ExtensionAPI } from '../../../types';
-import { MountableComponent } from '../../../types/ExtensionAPI';
+import { MountableComponent, type TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import type { CodeMirrorTarget } from '../../../types/settings';
 import { manifest } from './manifest';
 import RewritePopup from './RewritePopup.vue';
@@ -49,7 +49,8 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
   };
 
   // 1. Register Tools for Textareas
-  const targets: CodeMirrorTarget[] = [
+  // Cast string literals to CodeMirrorTarget/string union to allow custom identifiers
+  const targets: (CodeMirrorTarget | string)[] = [
     'character.description',
     'character.first_mes',
     'character.personality',
@@ -62,16 +63,27 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     'persona.description',
     'world_info.content',
     'prompt.content',
+    // Extension specific targets
+    'extension.group-chat.decision',
+    'extension.group-chat.summary',
+    'extension.group-chat.injection',
+    'extension.reroll-continue.prompt',
+    'extension.chat-translation.prompt',
   ];
 
   const unbinds: Array<() => void> = [];
 
+  const toolDefinition: TextareaToolDefinition = {
+    id: 'rewrite-wand',
+    icon: 'fa-solid fa-wand-magic-sparkles',
+    title: 'Magic Rewrite',
+    onClick: () => {},
+  };
+
   targets.forEach((target) => {
     unbinds.push(
-      api.ui.registerTextareaTool(target, {
-        id: 'rewrite-wand',
-        icon: 'fa-solid fa-wand-magic-sparkles',
-        title: 'Magic Rewrite',
+      api.ui.registerTextareaTool(target as CodeMirrorTarget, {
+        ...toolDefinition,
         onClick: ({ value, setValue }) => {
           handleRewrite(value, setValue, target);
         },

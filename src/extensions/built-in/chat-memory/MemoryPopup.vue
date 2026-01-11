@@ -5,6 +5,7 @@ import { Button, FormItem, Input, Select, Textarea, Toggle } from '../../../comp
 import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ApiChatMessage, ChatMessage, ExtensionAPI } from '../../../types';
 import { POPUP_RESULT, POPUP_TYPE } from '../../../types';
+import type { TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import type { WorldInfoEntry } from '../../../types/world-info';
 import {
   type ChatMemoryMetadata,
@@ -50,8 +51,32 @@ const maxIndex = computed(() => {
   return history.length > 0 ? history.length - 1 : 0;
 });
 
+const hasMessages = computed(() => chatHistory.value.length > 0);
+
+const startIndexError = computed(() => {
+  if (!hasMessages.value) return 'No messages available';
+  if (startIndex.value === undefined || startIndex.value === null || startIndex.value === ('' as unknown as number))
+    return 'Value is required';
+  if (!Number.isInteger(Number(startIndex.value))) return 'Must be an integer';
+  if (startIndex.value < 0) return 'Cannot be negative';
+  if (startIndex.value > maxIndex.value) return 'Index out of bounds';
+  if (startIndex.value > endIndex.value) return 'Start cannot be greater than End';
+  return undefined;
+});
+
+const endIndexError = computed(() => {
+  if (!hasMessages.value) return 'No messages available';
+  if (endIndex.value === undefined || endIndex.value === null || endIndex.value === ('' as unknown as number))
+    return 'Value is required';
+  if (!Number.isInteger(Number(endIndex.value))) return 'Must be an integer';
+  if (endIndex.value < 0) return 'Cannot be negative';
+  if (endIndex.value > maxIndex.value) return 'Cannot exceed total messages';
+  if (endIndex.value < startIndex.value) return 'End cannot be less than Start';
+  return undefined;
+});
+
 const isValidRange = computed(() => {
-  return startIndex.value >= 0 && endIndex.value <= maxIndex.value && startIndex.value <= endIndex.value;
+  return hasMessages.value && !startIndexError.value && !endIndexError.value;
 });
 
 // Existing memories retrieved from Chat Metadata
@@ -61,6 +86,8 @@ const existingMemories = computed(() => {
   const memoryExtra = (currentMetadata.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
   return memoryExtra.memories || [];
 });
+
+const hasMemories = computed(() => existingMemories.value.length > 0);
 
 // Check for overlaps
 const overlapWarning = computed(() => {
@@ -128,6 +155,17 @@ const timelineSegments = computed(() => {
   return segments;
 });
 
+const promptTools = computed<TextareaToolDefinition[]>(() => [
+  {
+    id: 'reset',
+    icon: 'fa-rotate-left',
+    title: t('common.reset'),
+    onClick: ({ setValue }) => {
+      setValue(DEFAULT_PROMPT);
+    },
+  },
+]);
+
 // --- Lifecycle ---
 
 onMounted(async () => {
@@ -157,7 +195,7 @@ onUnmounted(() => {
 
 // Auto-save settings
 watch(
-  [connectionProfile, prompt, autoHideMessages, selectedLorebook],
+  [connectionProfile, prompt, autoHideMessages, selectedLorebook, startIndex, endIndex],
   () => {
     saveSettings();
   },
@@ -214,10 +252,6 @@ function refreshLorebooks() {
       selectedLorebook.value = availableLorebooks.value[0].value;
     }
   }
-}
-
-function resetPrompt() {
-  prompt.value = DEFAULT_PROMPT;
 }
 
 function cancelGeneration() {
@@ -413,19 +447,8 @@ async function handleReset() {
     if (memoryExtra && Array.isArray(memoryExtra.memories)) {
       for (const record of memoryExtra.memories) {
         try {
-          const book = await props.api.worldInfo.getBook(record.bookName);
-          if (book) {
-            const entryIndex = book.entries.findIndex((e) => e.uid === record.entryUid);
-            if (entryIndex !== -1) {
-              const entry = book.entries[entryIndex];
-              // Disable instead of delete for safety
-              if (!entry.disable) {
-                const updatedEntry = { ...entry, disable: true, comment: entry.comment + ' (Archived)' };
-                await props.api.worldInfo.updateEntry(record.bookName, updatedEntry);
-                entriesRemoved++;
-              }
-            }
-          }
+          await props.api.worldInfo.deleteEntry(record.bookName, record.entryUid);
+          entriesRemoved++;
         } catch (err) {
           console.warn('Failed to cleanup memory entry', record, err);
         }
@@ -456,7 +479,7 @@ async function handleReset() {
     }
 
     props.api.ui.showToast(
-      `Reset complete. Restored ${restoredCount} messages, disabled ${entriesRemoved} entries.`,
+      `Reset complete. Restored ${restoredCount} messages, deleted ${entriesRemoved} entries.`,
       'success',
     );
   } catch (error) {
@@ -491,10 +514,10 @@ async function handleReset() {
       </div>
 
       <div class="row">
-        <FormItem label="Start Index" style="flex: 1">
+        <FormItem label="Start Index" style="flex: 1" :error="startIndexError">
           <Input v-model.number="startIndex" type="number" :min="0" :max="endIndex" />
         </FormItem>
-        <FormItem label="End Index" style="flex: 1">
+        <FormItem label="End Index" style="flex: 1" :error="endIndexError">
           <Input v-model.number="endIndex" type="number" :min="startIndex" :max="maxIndex" />
         </FormItem>
       </div>
@@ -511,16 +534,8 @@ async function handleReset() {
         <ConnectionProfileSelector v-model="connectionProfile" />
       </FormItem>
 
-      <FormItem>
-        <template #default>
-          <div class="header-row">
-            <div class="form-item-label">Summarization Prompt</div>
-            <Button icon="fa-rotate-left" size="small" variant="ghost" @click="resetPrompt">
-              {{ t('common.reset') }}
-            </Button>
-          </div>
-          <Textarea v-model="prompt" :rows="4" />
-        </template>
+      <FormItem label="Summarization Prompt">
+        <Textarea v-model="prompt" :rows="4" allow-maximize :tools="promptTools" />
       </FormItem>
 
       <div class="actions">
@@ -539,7 +554,12 @@ async function handleReset() {
       </div>
 
       <FormItem label="Result">
-        <Textarea v-model="summaryResult" :rows="6" placeholder="Generated summary will appear here..." />
+        <Textarea
+          v-model="summaryResult"
+          :rows="6"
+          placeholder="Generated summary will appear here..."
+          allow-maximize
+        />
       </FormItem>
     </div>
 
@@ -552,8 +572,8 @@ async function handleReset() {
         </FormItem>
       </div>
 
-      <FormItem>
-        <Toggle v-model="autoHideMessages" label="Auto-hide messages (Set as System)" />
+      <FormItem label="Auto-hide messages">
+        <Toggle v-model="autoHideMessages" label="Auto-hide messages" />
       </FormItem>
 
       <div class="actions">
@@ -572,7 +592,15 @@ async function handleReset() {
     <div class="section danger-zone">
       <div class="section-title">Manage</div>
       <div class="actions">
-        <Button variant="danger" icon="fa-rotate-left" @click="handleReset"> Reset Memories for Current Chat </Button>
+        <Button
+          variant="danger"
+          icon="fa-rotate-left"
+          :disabled="!hasMemories"
+          :title="!hasMemories ? 'No memories to reset for this chat' : ''"
+          @click="handleReset"
+        >
+          Reset Memories for Current Chat
+        </Button>
       </div>
     </div>
   </div>
@@ -634,17 +662,6 @@ async function handleReset() {
   justify-content: flex-end;
   gap: 10px;
   margin: 5px 0;
-}
-
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
-
-  .form-item-label {
-    font-weight: 600;
-  }
 }
 
 /* Timeline Visualization */
