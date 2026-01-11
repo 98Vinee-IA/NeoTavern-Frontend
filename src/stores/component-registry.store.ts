@@ -10,11 +10,21 @@ export interface ChatSettingsTabDefinition {
   component: Component;
 }
 
+interface RegexToolRegistration {
+  regex: RegExp;
+  tools: TextareaToolDefinition[];
+}
+
 export const useComponentRegistryStore = defineStore('component-registry', () => {
   const leftSidebarRegistry = ref<Map<string, SidebarDefinition>>(new Map());
   const rightSidebarRegistry = ref<Map<string, SidebarDefinition>>(new Map());
   const navBarRegistry = ref<Map<string, NavBarItemDefinition>>(new Map());
+
+  // Exact match registry
   const textareaToolRegistry = ref<Map<string, TextareaToolDefinition[]>>(new Map());
+  // Regex match registry
+  const textareaToolRegexRegistry = ref<RegexToolRegistration[]>([]);
+
   const chatSettingsTabRegistry = ref<Map<string, ChatSettingsTabDefinition>>(new Map());
 
   function registerSidebar(id: string, definition: Omit<SidebarDefinition, 'id'>, side: 'left' | 'right') {
@@ -42,24 +52,81 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
     navBarRegistry.value.delete(id);
   }
 
-  function registerTextareaTool(identifier: CodeMirrorTarget | string, definition: TextareaToolDefinition) {
-    const list = textareaToolRegistry.value.get(identifier) || [];
-    // Prevent duplicates by ID
-    const exists = list.find((t) => t.id === definition.id);
-    if (exists) return;
-    list.push(definition);
-    textareaToolRegistry.value.set(identifier, list);
+  function registerTextareaTool(identifier: CodeMirrorTarget | string | RegExp, definition: TextareaToolDefinition) {
+    if (identifier instanceof RegExp) {
+      // Handle Regex registration
+      const existingEntry = textareaToolRegexRegistry.value.find((entry) => {
+        return entry.regex.toString() === identifier.toString();
+      });
+
+      if (existingEntry) {
+        // Prevent duplicates by ID
+        const exists = existingEntry.tools.find((t) => t.id === definition.id);
+        if (exists) return;
+        existingEntry.tools.push(definition);
+      } else {
+        textareaToolRegexRegistry.value.push({
+          regex: identifier,
+          tools: [definition],
+        });
+      }
+    } else {
+      // Handle Exact String registration
+      const list = textareaToolRegistry.value.get(identifier) || [];
+      // Prevent duplicates by ID
+      const exists = list.find((t) => t.id === definition.id);
+      if (exists) return;
+      list.push(definition);
+      textareaToolRegistry.value.set(identifier, list);
+    }
   }
 
-  function unregisterTextareaTool(identifier: CodeMirrorTarget | string, toolId: string) {
-    const list = textareaToolRegistry.value.get(identifier);
-    if (!list) return;
-    const newList = list.filter((t) => t.id !== toolId);
-    if (newList.length === 0) {
-      textareaToolRegistry.value.delete(identifier);
+  function unregisterTextareaTool(identifier: CodeMirrorTarget | string | RegExp, toolId: string) {
+    if (identifier instanceof RegExp) {
+      const entryIndex = textareaToolRegexRegistry.value.findIndex(
+        (entry) => entry.regex.toString() === identifier.toString(),
+      );
+      if (entryIndex === -1) return;
+
+      const entry = textareaToolRegexRegistry.value[entryIndex];
+      const newTools = entry.tools.filter((t) => t.id !== toolId);
+
+      if (newTools.length === 0) {
+        textareaToolRegexRegistry.value.splice(entryIndex, 1);
+      } else {
+        entry.tools = newTools;
+      }
     } else {
-      textareaToolRegistry.value.set(identifier, newList);
+      const list = textareaToolRegistry.value.get(identifier);
+      if (!list) return;
+      const newList = list.filter((t) => t.id !== toolId);
+      if (newList.length === 0) {
+        textareaToolRegistry.value.delete(identifier);
+      } else {
+        textareaToolRegistry.value.set(identifier, newList);
+      }
     }
+  }
+
+  function getTextareaTools(identifier: string): TextareaToolDefinition[] {
+    const exactTools = textareaToolRegistry.value.get(identifier) || [];
+
+    // Collect tools from all matching regexes
+    const regexTools = textareaToolRegexRegistry.value
+      .filter((entry) => entry.regex.test(identifier))
+      .flatMap((entry) => entry.tools);
+
+    // Combine and deduplicate by ID
+    const allTools = [...exactTools, ...regexTools];
+    const uniqueTools = new Map<string, TextareaToolDefinition>();
+
+    for (const tool of allTools) {
+      if (!uniqueTools.has(tool.id)) {
+        uniqueTools.set(tool.id, tool);
+      }
+    }
+
+    return Array.from(uniqueTools.values());
   }
 
   function registerChatSettingsTab(id: string, title: string, component: Component) {
@@ -79,6 +146,7 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
     rightSidebarRegistry,
     navBarRegistry,
     textareaToolRegistry,
+    textareaToolRegexRegistry,
     chatSettingsTabRegistry,
     registerSidebar,
     unregisterSidebar,
@@ -86,6 +154,7 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
     unregisterNavBarItem,
     registerTextareaTool,
     unregisterTextareaTool,
+    getTextareaTools,
     registerChatSettingsTab,
     unregisterChatSettingsTab,
     getNavBarItem: (id: string) => navBarRegistry.value.get(id),

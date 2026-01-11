@@ -66,9 +66,7 @@ const isCodeMirrorActive = computed(() => {
 
 const activeTools = computed(() => {
   const registryTools =
-    props.identifier && typeof props.identifier === 'string'
-      ? registryStore.textareaToolRegistry.get(props.identifier as CodeMirrorTarget) || []
-      : [];
+    props.identifier && typeof props.identifier === 'string' ? registryStore.getTextareaTools(props.identifier) : [];
   return [...registryTools, ...(props.tools || [])];
 });
 

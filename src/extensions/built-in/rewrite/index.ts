@@ -49,8 +49,8 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
   };
 
   // 1. Register Tools for Textareas
-  // Cast string literals to CodeMirrorTarget/string union to allow custom identifiers
-  const targets: (CodeMirrorTarget | string)[] = [
+  // Explicitly keep core field names as requested, to ensure they are covered.
+  const coreTargets: (CodeMirrorTarget | string)[] = [
     'character.description',
     'character.first_mes',
     'character.personality',
@@ -63,13 +63,12 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     'persona.description',
     'world_info.content',
     'prompt.content',
-    // Extension specific targets
-    'extension.group-chat.decision',
-    'extension.group-chat.summary',
-    'extension.group-chat.injection',
-    'extension.reroll-continue.prompt',
-    'extension.chat-translation.prompt',
   ];
+
+  // Regex pattern to match any extension settings fields automatically.
+  // This allows other extensions to use the rewrite tool without modifying this file.
+  // Matches "extension.<anything>.<anything>"
+  const extensionPattern = /^extension\..+/;
 
   const unbinds: Array<() => void> = [];
 
@@ -80,16 +79,27 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     onClick: () => {},
   };
 
-  targets.forEach((target) => {
+  // Register Core Targets
+  coreTargets.forEach((target) => {
     unbinds.push(
       api.ui.registerTextareaTool(target as CodeMirrorTarget, {
         ...toolDefinition,
         onClick: ({ value, setValue }) => {
-          handleRewrite(value, setValue, target);
+          handleRewrite(value, setValue, target as string);
         },
       }),
     );
   });
+
+  // Register Pattern for Extension settings
+  unbinds.push(
+    api.ui.registerTextareaTool(extensionPattern, {
+      ...toolDefinition,
+      onClick: ({ value, setValue }) => {
+        handleRewrite(value, setValue, 'extension.generic');
+      },
+    }),
+  );
 
   // 2. Chat Message Toolbar Injection
   const injectSingleButton = async (messageElement: HTMLElement, messageIndex: number) => {

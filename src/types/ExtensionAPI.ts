@@ -510,11 +510,14 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
 
     /**
      * Registers a tool action for Textareas with specific identifiers.
-     * @param identifier The CodeMirrorTarget identifier (e.g. 'character.description').
+     * @param identifier The CodeMirrorTarget identifier (e.g. 'character.description') or a RegExp pattern.
      * @param definition The tool definition including icon and callback.
      * @returns A cleanup function to unregister the tool.
      */
-    registerTextareaTool: (identifier: CodeMirrorTarget, definition: TextareaToolDefinition) => () => void;
+    registerTextareaTool: (
+      identifier: CodeMirrorTarget | string | RegExp,
+      definition: TextareaToolDefinition,
+    ) => () => void;
 
     /**
      * Registers a custom tab in the Chat Management sidebar.

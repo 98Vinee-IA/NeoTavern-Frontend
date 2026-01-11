@@ -535,7 +535,13 @@ async function handleReset() {
       </FormItem>
 
       <FormItem label="Summarization Prompt">
-        <Textarea v-model="prompt" :rows="4" allow-maximize :tools="promptTools" />
+        <Textarea
+          v-model="prompt"
+          :rows="4"
+          allow-maximize
+          :tools="promptTools"
+          identifier="extension.chat-memory.prompt"
+        />
       </FormItem>
 
       <div class="actions">
