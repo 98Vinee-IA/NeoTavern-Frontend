@@ -258,6 +258,7 @@ export const useWorldInfoStore = defineStore('world-info', () => {
     fetchBook,
     importBook,
     exportBook,
+    getNewUid,
     saveBookDebounced,
   };
 });

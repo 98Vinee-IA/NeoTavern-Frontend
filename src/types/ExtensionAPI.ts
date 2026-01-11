@@ -412,12 +412,14 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
   };
   worldInfo: {
     createDefaultEntry(uid: number): WorldInfoEntry;
+    getNewUid(book: WorldInfoBook): number;
     getSettings: () => WorldInfoSettings;
     updateSettings: (settings: Partial<WorldInfoSettings>) => void;
     getAllBookNames: () => WorldInfoHeader[];
     getBook: (name: string) => Promise<WorldInfoBook | null>;
     getActiveBookNames: () => string[];
     setGlobalBookNames: (names: string[]) => void;
+    createEntry: (bookName: string, entry: WorldInfoEntry) => Promise<void>;
     updateEntry: (bookName: string, entry: WorldInfoEntry) => Promise<void>;
   };
   macro: {

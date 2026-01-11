@@ -7,10 +7,11 @@ import type { ApiChatMessage, ChatMessage, ExtensionAPI } from '../../../types';
 import { POPUP_RESULT, POPUP_TYPE } from '../../../types';
 import type { WorldInfoEntry } from '../../../types/world-info';
 import {
+  type ChatMemoryMetadata,
+  type ChatMemoryRecord,
   DEFAULT_PROMPT,
   EXTENSION_KEY,
   type ExtensionSettings,
-  type MemoryExtensionData,
   type MemoryMessageExtra,
 } from './types';
 
@@ -126,6 +127,10 @@ function refreshLorebooks() {
   }
 }
 
+function resetPrompt() {
+  prompt.value = DEFAULT_PROMPT;
+}
+
 async function handleSummarize() {
   if (!connectionProfile.value) {
     props.api.ui.showToast(t('extensionsBuiltin.chatMemory.noProfile'), 'error');
@@ -154,13 +159,24 @@ async function handleSummarize() {
       connectionProfileName: connectionProfile.value,
     });
 
+    let fullContent = '';
     if (typeof response === 'function') {
       const generator = response();
       for await (const chunk of generator) {
-        summaryResult.value += chunk.delta;
+        fullContent += chunk.delta;
+        summaryResult.value = fullContent;
       }
     } else {
-      summaryResult.value = response.content;
+      fullContent = response.content;
+    }
+
+    // Extract code block if present
+    const codeBlockRegex = /```(?:[\w]*\n)?([\s\S]*?)```/i;
+    const match = fullContent.match(codeBlockRegex);
+    if (match && match[1]) {
+      summaryResult.value = match[1].trim();
+    } else {
+      summaryResult.value = fullContent.trim();
     }
   } catch (error) {
     console.error('Summarization failed', error);
@@ -188,26 +204,45 @@ async function createEntry() {
   }
 
   try {
-    // 1. Create Entry
-    const extensionData: MemoryExtensionData = {
-      chatId: currentChatId,
-      range: [startIndex.value, endIndex.value],
-      timestamp: Date.now(),
-    };
+    const book = await props.api.worldInfo.getBook(selectedLorebook.value);
+    if (!book) {
+      props.api.ui.showToast('Selected Lorebook not found', 'error');
+      return;
+    }
 
+    const newUid = props.api.worldInfo.getNewUid(book);
     const newEntry: WorldInfoEntry = {
-      ...props.api.worldInfo.createDefaultEntry(
-        parseInt(props.api.uuid().replace(/\D/g, '').slice(0, 8)), // quick UID hack
-      ),
+      ...props.api.worldInfo.createDefaultEntry(newUid),
       comment: `Memory: Msg ${startIndex.value}-${endIndex.value}`,
       content: summaryResult.value,
       constant: true,
-      extensions: {
-        [EXTENSION_KEY]: extensionData,
-      },
+      order: endIndex.value,
     };
 
-    await props.api.worldInfo.updateEntry(selectedLorebook.value, newEntry);
+    await props.api.worldInfo.createEntry(selectedLorebook.value, newEntry);
+
+    // 1. Update Chat Metadata
+    const currentMetadata = props.api.chat.metadata.get();
+    if (currentMetadata) {
+      const memoryExtra = (currentMetadata.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
+
+      const memoryRecord: ChatMemoryRecord = {
+        bookName: selectedLorebook.value,
+        entryUid: newEntry.uid,
+        range: [startIndex.value, endIndex.value],
+        timestamp: Date.now(),
+      };
+
+      const updatedExtra = {
+        ...currentMetadata.extra,
+        [EXTENSION_KEY]: {
+          ...memoryExtra,
+          memories: [...memoryExtra.memories, memoryRecord],
+        },
+      };
+
+      props.api.chat.metadata.update({ extra: updatedExtra });
+    }
 
     // 2. Hide Messages / Mark Messages
     for (let i = startIndex.value; i <= endIndex.value; i++) {
@@ -250,14 +285,47 @@ async function handleReset() {
 
   if (result !== POPUP_RESULT.AFFIRMATIVE) return;
 
-  const currentChatId = chatInfo.value?.file_id;
-  if (!currentChatId) return;
+  const currentMetadata = props.api.chat.metadata.get();
+  if (!currentMetadata) {
+    props.api.ui.showToast('No chat metadata found', 'error');
+    return;
+  }
 
   let restoredCount = 0;
   let entriesRemoved = 0;
 
   try {
-    // 1. Restore Messages
+    // 1. Remove Entries based on Chat Metadata
+    const memoryExtra = currentMetadata.extra?.[EXTENSION_KEY] as ChatMemoryMetadata | undefined;
+
+    if (memoryExtra && Array.isArray(memoryExtra.memories)) {
+      for (const record of memoryExtra.memories) {
+        try {
+          const book = await props.api.worldInfo.getBook(record.bookName);
+          if (book) {
+            const entryIndex = book.entries.findIndex((e) => e.uid === record.entryUid);
+            if (entryIndex !== -1) {
+              const entry = book.entries[entryIndex];
+              // Disable instead of delete for safety
+              if (!entry.disable) {
+                const updatedEntry = { ...entry, disable: true, comment: entry.comment + ' (Archived)' };
+                await props.api.worldInfo.updateEntry(record.bookName, updatedEntry);
+                entriesRemoved++;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to cleanup memory entry', record, err);
+        }
+      }
+
+      // Clear metadata
+      const updatedExtra = { ...currentMetadata.extra };
+      delete updatedExtra[EXTENSION_KEY];
+      props.api.chat.metadata.update({ extra: updatedExtra });
+    }
+
+    // 2. Restore Messages
     const history = chatHistory.value;
     for (let i = 0; i < history.length; i++) {
       const msg = history[i];
@@ -272,39 +340,6 @@ async function handleReset() {
           },
         });
         restoredCount++;
-      }
-    }
-
-    // 2. Remove Entries
-    // Note: The API currently only exposes getting specific books or all book names.
-    // We have to iterate books to find entries linked to this chat.
-    // This is O(Books * Entries), which might be heavy, but necessary without an index.
-    const bookNames = props.api.worldInfo.getAllBookNames();
-
-    for (const header of bookNames) {
-      const book = await props.api.worldInfo.getBook(header.name);
-      if (!book) continue;
-
-      let modified = false;
-      const entriesToDisable: WorldInfoEntry[] = [];
-
-      for (const entry of book.entries) {
-        const extData = entry.extensions?.[EXTENSION_KEY] as MemoryExtensionData | undefined;
-        if (extData && extData.chatId === currentChatId) {
-          // We disable instead of deleting hard, as API support for delete might be varying or safer to archive
-          if (!entry.disable) {
-            const updatedEntry = { ...entry, disable: true, comment: entry.comment + ' (Archived)' };
-            entriesToDisable.push(updatedEntry);
-            modified = true;
-          }
-        }
-      }
-
-      if (modified) {
-        for (const entry of entriesToDisable) {
-          await props.api.worldInfo.updateEntry(header.name, entry);
-          entriesRemoved++;
-        }
       }
     }
 
@@ -340,8 +375,16 @@ async function handleReset() {
         <ConnectionProfileSelector v-model="connectionProfile" />
       </FormItem>
 
-      <FormItem label="Summarization Prompt">
-        <Textarea v-model="prompt" :rows="4" />
+      <FormItem>
+        <template #default>
+          <div class="header-row">
+            <div class="form-item-label">Summarization Prompt</div>
+            <Button icon="fa-rotate-left" size="small" variant="ghost" @click="resetPrompt">
+              {{ t('common.reset') }}
+            </Button>
+          </div>
+          <Textarea v-model="prompt" :rows="4" />
+        </template>
       </FormItem>
 
       <div class="actions">
@@ -450,5 +493,16 @@ async function handleReset() {
   font-size: 0.9em;
   color: var(--theme-emphasis-color);
   text-align: right;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+
+  .form-item-label {
+    font-weight: 600;
+  }
 }
 </style>

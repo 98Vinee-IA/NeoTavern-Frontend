@@ -441,6 +441,9 @@ const baseExtensionAPI: ExtensionAPI = {
     createDefaultEntry(uid) {
       return createDefaultEntry(uid);
     },
+    getNewUid(book) {
+      return useWorldInfoStore().getNewUid(book);
+    },
     getSettings: () => deepClone(useSettingsStore().settings.worldInfo),
     updateSettings: (settings) => {
       const store = useSettingsStore();
@@ -454,6 +457,17 @@ const baseExtensionAPI: ExtensionAPI = {
     getActiveBookNames: () => deepClone(useWorldInfoStore().activeBookNames),
     setGlobalBookNames: (names) => {
       useWorldInfoStore().globalBookNames = names;
+    },
+    createEntry: async (bookName, entry) => {
+      const store = useWorldInfoStore();
+      store.getBookFromCache(bookName, true).then((book) => {
+        if (!book) return;
+        const index = book.entries.findIndex((e) => e.uid === entry.uid);
+        if (index === -1) {
+          book.entries.push({ ...entry });
+          store.saveBookDebounced(book);
+        }
+      });
     },
     updateEntry: async (bookName, entry) => {
       const store = useWorldInfoStore();
