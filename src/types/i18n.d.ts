@@ -974,6 +974,18 @@ export interface MessageSchema {
       deleteTitle: string;
       deleteContent: string;
     };
+    reasoning: {
+      title: string;
+      create: string;
+      edit: string;
+      delete: string;
+      import: string;
+      export: string;
+      deleteContent: string;
+      prefix: string;
+      suffix: string;
+      separator: string;
+    };
     middleout: {
       on: string;
       off: string;

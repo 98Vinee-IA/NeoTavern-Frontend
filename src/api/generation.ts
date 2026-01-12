@@ -14,7 +14,7 @@ import type {
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
 import type { InstructTemplate } from '../types/instruct';
-import type { ApiFormatter, SamplerSettings, Settings, SettingsPath } from '../types/settings';
+import type { ApiFormatter, ReasoningTemplate, SamplerSettings, Settings, SettingsPath } from '../types/settings';
 import { getRequestHeaders } from '../utils/client';
 import { eventEmitter } from '../utils/extensions';
 import { convertMessagesToInstructString } from '../utils/instruct';
@@ -34,6 +34,7 @@ export interface ResolvedConnectionProfileSettings {
   samplerSettings: SamplerSettings;
   formatter: ApiFormatter;
   instructTemplate?: InstructTemplate;
+  reasoningTemplate?: ReasoningTemplate;
   providerSpecific: Settings['api']['providerSpecific'];
   customPromptPostProcessing?: CustomPromptPostProcessing;
 }
