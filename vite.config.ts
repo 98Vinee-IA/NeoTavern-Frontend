@@ -109,8 +109,8 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          skipWaiting: true,
-          clientsClaim: true,
+          skipWaiting: false,
+          clientsClaim: false,
           navigateFallbackDenylist: [/^\/api/, /^\/characters/, /^\/backgrounds/, /^\/personas/, /^\/login-check/],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
           cleanupOutdatedCaches: true,
