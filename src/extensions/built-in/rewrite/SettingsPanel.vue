@@ -127,6 +127,14 @@ async function resetTemplates() {
         }
       }
     });
+    // Add any missing default templates
+    DEFAULT_TEMPLATES.forEach((defaultTemplate) => {
+      const exists = settings.value.templates.some((t) => t.id === defaultTemplate.id);
+      if (!exists) {
+        const newTemplate = JSON.parse(JSON.stringify(defaultTemplate));
+        settings.value.templates.push(newTemplate);
+      }
+    });
     editingTemplateId.value = null;
   }
 }
