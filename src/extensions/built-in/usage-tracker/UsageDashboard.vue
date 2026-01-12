@@ -599,6 +599,7 @@ const chartYLabels = computed(() => {
   padding: 20px;
   height: 100%;
   overflow-y: auto;
+  container-type: inline-size;
 }
 
 .dashboard-header {
@@ -617,6 +618,15 @@ const chartYLabels = computed(() => {
   .header-right {
     display: flex;
     gap: 10px;
+  }
+
+  @container (max-width: 600px) {
+    justify-content: center;
+
+    .header-left,
+    .header-right {
+      justify-content: center;
+    }
   }
 }
 
