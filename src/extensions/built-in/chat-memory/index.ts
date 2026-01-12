@@ -325,6 +325,14 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       const settings = api.settings.get();
       if (!settings?.enableMessageSummarization) return;
 
+      const ignoreCount = settings.ignoreSummaryCount || 100;
+
+      if (ignoreCount > 0) {
+        if (context.index >= context.chatLength - ignoreCount) {
+          return;
+        }
+      }
+
       const extra = context.originalMessage.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
       if (extra?.summary && extra.summary.trim().length > 0) {
         apiMessage.content = extra.summary;

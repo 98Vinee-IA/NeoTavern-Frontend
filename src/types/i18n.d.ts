@@ -1364,6 +1364,8 @@ export interface MessageSchema {
         autoDesc: string;
         promptLabel: string;
         promptDesc: string;
+        ignoreCountLabel: string;
+        ignoreCountDesc: string;
       };
       stats: {
         total: string;

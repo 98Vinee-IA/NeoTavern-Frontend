@@ -24,6 +24,7 @@ const t = props.api.i18n.t;
 const messageSummaryPrompt = ref<string>(DEFAULT_MESSAGE_SUMMARY_PROMPT);
 const enableMessageSummarization = ref(false);
 const autoMessageSummarize = ref(false);
+const ignoreSummaryCount = ref(100);
 const bulkProgress = ref<{ current: number; total: number } | null>(null);
 const isGenerating = ref(false);
 const abortController = ref<AbortController | null>(null);
@@ -159,6 +160,7 @@ function loadSettings() {
       enableMessageSummarization.value = settings.enableMessageSummarization;
     if (settings.autoMessageSummarize !== undefined) autoMessageSummarize.value = settings.autoMessageSummarize;
     if (settings.messageSummaryPrompt) messageSummaryPrompt.value = settings.messageSummaryPrompt;
+    if (settings.ignoreSummaryCount !== undefined) ignoreSummaryCount.value = settings.ignoreSummaryCount;
   }
 
   // Load Chat Metadata for Range
@@ -180,6 +182,7 @@ async function saveSettings() {
   props.api.settings.set('enableMessageSummarization', enableMessageSummarization.value);
   props.api.settings.set('autoMessageSummarize', autoMessageSummarize.value);
   props.api.settings.set('messageSummaryPrompt', messageSummaryPrompt.value);
+  props.api.settings.set('ignoreSummaryCount', ignoreSummaryCount.value);
   props.api.settings.save();
   // @ts-expect-error extension event
   await props.api.events.emit('chat-memory:refresh-ui');
@@ -381,7 +384,7 @@ onUnmounted(() => {
 });
 
 watch(
-  [enableMessageSummarization, autoMessageSummarize, messageSummaryPrompt, startIndex, endIndex],
+  [enableMessageSummarization, autoMessageSummarize, messageSummaryPrompt, ignoreSummaryCount, startIndex, endIndex],
   () => {
     saveSettings();
   },
@@ -405,6 +408,12 @@ watch(
           :disabled="!enableMessageSummarization"
           :label="t('extensionsBuiltin.chatMemory.labels.autoTrigger')"
         />
+      </FormItem>
+      <FormItem
+        :label="t('extensionsBuiltin.chatMemory.settings.ignoreCountLabel')"
+        :description="t('extensionsBuiltin.chatMemory.settings.ignoreCountDesc')"
+      >
+        <Input v-model.number="ignoreSummaryCount" type="number" :min="0" />
       </FormItem>
       <FormItem
         :label="t('extensionsBuiltin.chatMemory.settings.promptLabel')"

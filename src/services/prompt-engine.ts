@@ -286,6 +286,8 @@ export class PromptBuilder {
         isGroupContext,
         characters: this.characters,
         persona: this.persona,
+        index: i,
+        chatLength: this.chatHistory.length,
       });
 
       const msgTokenCount = await this.tokenizer.getTokenCount(apiMsg.content);

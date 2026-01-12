@@ -88,6 +88,8 @@ export interface ExtensionEventMap {
       isGroupContext: boolean;
       characters: Character[];
       persona: Persona;
+      index: number;
+      chatLength: number;
     },
   ];
   'prompt:built': [messages: ApiChatMessage[], context: { generationId: string }];

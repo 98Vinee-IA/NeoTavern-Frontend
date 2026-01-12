@@ -28,6 +28,7 @@ export interface ExtensionSettings {
   enableMessageSummarization: boolean;
   autoMessageSummarize: boolean;
   messageSummaryPrompt: string;
+  ignoreSummaryCount: number;
 }
 
 export const EXTENSION_KEY = 'core.chat-memory';

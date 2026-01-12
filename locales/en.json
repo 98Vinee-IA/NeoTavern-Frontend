@@ -1360,7 +1360,9 @@
         "autoLabel": "Auto-summarize new messages",
         "autoDesc": "Automatically generate summaries for new messages as they arrive.",
         "promptLabel": "Message Summary Prompt",
-        "promptDesc": "Prompt used to summarize a single message."
+        "promptDesc": "Prompt used to summarize a single message.",
+        "ignoreCountLabel": "Ignore Recent Summaries Count",
+        "ignoreCountDesc": "The number of most recent messages where the summary should be ignored in favor of the full original text during prompt generation."
       },
       "stats": {
         "total": "Total: {count}",
