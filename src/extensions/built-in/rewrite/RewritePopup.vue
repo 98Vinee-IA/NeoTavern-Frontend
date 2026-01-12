@@ -3,7 +3,7 @@ import * as Diff from 'diff';
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
 import { Button, Checkbox, CollapsibleSection, FormItem, Input, Select, Textarea } from '../../../components/UI';
-import type { Character, ExtensionAPI, Persona } from '../../../types';
+import type { Character, ExtensionAPI, Persona, WorldInfoBook, WorldInfoHeader } from '../../../types';
 import { RewriteService } from './RewriteService';
 import { DEFAULT_TEMPLATES, type RewriteSettings, type RewriteTemplateOverride } from './types';
 
@@ -16,6 +16,8 @@ const props = defineProps<{
   onCancel: () => void;
   closePopup?: () => void;
 }>();
+
+// TODO: i18n
 
 const t = props.api.i18n.t;
 const service = new RewriteService(props.api);
@@ -37,6 +39,13 @@ const contextMessageCount = ref<number>(0);
 const escapeMacros = ref<boolean>(true);
 const argOverrides = ref<Record<string, boolean | number | string>>({});
 
+const selectedContextLorebooks = ref<string[]>([]);
+const selectedContextEntries = ref<Record<string, number[]>>({});
+
+// World Info Data
+const allBookHeaders = ref<WorldInfoHeader[]>([]);
+const bookCache = ref<Record<string, WorldInfoBook>>({});
+
 // Generation State
 const generatedText = ref<string>('');
 const isGenerating = ref<boolean>(false);
@@ -50,22 +59,84 @@ const rightPaneRef = ref<HTMLElement | null>(null);
 
 // Constants
 const IS_CHARACTER_FIELD = computed(() => props.identifier.startsWith('character.'));
+const IS_WORLD_INFO_FIELD = computed(() => props.identifier.startsWith('world_info.'));
 const IGNORE_INPUT = computed(() => currentTemplate.value?.ignoreInput === true);
 
-onMounted(() => {
+// Derived UI State for World Info
+const selectedEntryContext = ref<{ bookName: string; entry: { uid: number; comment: string } } | null>(null);
+
+onMounted(async () => {
   if (!settings.value.lastUsedTemplates) settings.value.lastUsedTemplates = {};
   if (!settings.value.templateOverrides) settings.value.templateOverrides = {};
 
+  // Auto-select template based on field type if no history
   const lastUsedTpl = settings.value.lastUsedTemplates[props.identifier];
   if (lastUsedTpl && settings.value.templates.find((t) => t.id === lastUsedTpl)) {
     selectedTemplateId.value = lastUsedTpl;
-  } else if (settings.value.templates.length > 0) {
-    selectedTemplateId.value = settings.value.templates[0].id;
+  } else {
+    // Smart defaults
+    if (IS_WORLD_INFO_FIELD.value) {
+      const wiTpl = settings.value.templates.find((t) => t.id === 'world-info-refiner');
+      if (wiTpl) selectedTemplateId.value = wiTpl.id;
+    } else if (IS_CHARACTER_FIELD.value) {
+      const charTpl = settings.value.templates.find((t) => t.id === 'character-polisher');
+      if (charTpl) selectedTemplateId.value = charTpl.id;
+    } else {
+      if (settings.value.templates.length > 0) {
+        selectedTemplateId.value = settings.value.templates[0].id;
+      }
+    }
   }
 
   loadTemplateOverrides();
-  updateDiff(); // Initialize diff (likely just original text on left)
+  updateDiff();
+
+  // Load world info data if needed
+  allBookHeaders.value = props.api.worldInfo.getAllBookNames();
+
+  // Get current context if available
+  const currentCtx = props.api.worldInfo.getSelectedEntry();
+  if (currentCtx) {
+    selectedEntryContext.value = {
+      bookName: currentCtx.bookName,
+      entry: {
+        uid: currentCtx.entry.uid,
+        comment: currentCtx.entry.comment,
+      },
+    };
+  }
+
+  // Ensure selected books are loaded for entry options
+  for (const book of selectedContextLorebooks.value) {
+    await ensureBookLoaded(book);
+  }
 });
+
+watch(selectedContextLorebooks, async (newBooks) => {
+  // Fetch newly selected books for entry options
+  for (const book of newBooks) {
+    await ensureBookLoaded(book);
+  }
+  // Cleanup entries for deselected books
+  for (const key of Object.keys(selectedContextEntries.value)) {
+    if (!newBooks.includes(key)) {
+      delete selectedContextEntries.value[key];
+    }
+  }
+});
+
+async function ensureBookLoaded(bookName: string) {
+  if (!bookCache.value[bookName]) {
+    try {
+      const book = await props.api.worldInfo.getBook(bookName);
+      if (book) {
+        bookCache.value[bookName] = book;
+      }
+    } catch (error) {
+      console.error(`Failed to load book ${bookName}`, error);
+    }
+  }
+}
 
 const templateOptions = computed(() => {
   return settings.value.templates.map((t) => ({ label: t.name, value: t.id }));
@@ -73,10 +144,29 @@ const templateOptions = computed(() => {
 
 const currentTemplate = computed(() => settings.value.templates.find((t) => t.id === selectedTemplateId.value));
 
+const showWorldInfoContextSection = computed(() => {
+  const arg = currentTemplate.value?.args?.find((a) => a.key === 'includeSelectedBookContext');
+  if (!arg) return false;
+  return !!argOverrides.value['includeSelectedBookContext'];
+});
+
 const canResetPrompt = computed(() => {
   if (!currentTemplate.value) return false;
   return promptOverride.value !== currentTemplate.value.prompt;
 });
+
+const availableLorebooks = computed(() => {
+  return allBookHeaders.value.map((b) => ({ label: b.name, value: b.name }));
+});
+
+function getEntriesForBook(bookName: string) {
+  const book = bookCache.value[bookName];
+  if (!book) return [];
+  return book.entries.map((e) => ({
+    label: `${e.uid}: ${e.comment || '(No Title)'}`,
+    value: e.uid,
+  }));
+}
 
 function loadTemplateOverrides() {
   const tplId = selectedTemplateId.value;
@@ -94,6 +184,8 @@ function loadTemplateOverrides() {
   promptOverride.value = overrides.prompt ?? tpl?.prompt ?? '';
   contextMessageCount.value = overrides.lastUsedXMessages ?? 0;
   escapeMacros.value = overrides.escapeInputMacros ?? true;
+  selectedContextLorebooks.value = overrides.selectedContextLorebooks || [];
+  selectedContextEntries.value = overrides.selectedContextEntries ? { ...overrides.selectedContextEntries } : {};
 
   // Load args
   const args: Record<string, boolean | number | string> = {};
@@ -128,6 +220,8 @@ function saveState() {
     lastUsedXMessages: Number(contextMessageCount.value),
     escapeInputMacros: escapeMacros.value,
     args: argOverrides.value,
+    selectedContextLorebooks: selectedContextLorebooks.value,
+    selectedContextEntries: { ...selectedContextEntries.value },
   };
 
   settings.value.templateOverrides[tplId] = overrides;
@@ -153,13 +247,11 @@ function escapeHtml(text: string): string {
 
 function updateDiff() {
   if (!generatedText.value) {
-    // If no generation yet, just show original on left, empty right
     leftHtml.value = escapeHtml(props.originalText);
     rightHtml.value = '';
     return;
   }
 
-  // If ignoreInput, just show the output without diff
   if (IGNORE_INPUT.value) {
     rightHtml.value = escapeHtml(generatedText.value);
     return;
@@ -174,13 +266,10 @@ function updateDiff() {
     const escapedVal = escapeHtml(part.value);
 
     if (part.removed) {
-      // Exist in original, removed in new -> Show on Left (Red)
       lHtml += `<span class="diff-del">${escapedVal}</span>`;
     } else if (part.added) {
-      // Not in original, added in new -> Show on Right (Green)
       rHtml += `<span class="diff-ins">${escapedVal}</span>`;
     } else {
-      // Common -> Show on both
       lHtml += escapedVal;
       rHtml += escapedVal;
     }
@@ -246,6 +335,72 @@ function getContextMessagesString(): string {
   return slice.map((m) => `${m.name}: ${m.mes}`).join('\n');
 }
 
+async function getWorldInfoContext() {
+  const macros: Record<string, unknown> = {};
+
+  // 1. Current Selected Book & Entry
+  const currentFilename = props.api.worldInfo.getSelectedBookName();
+  let currentBookUid: number | null = null;
+  let currentBookName: string | null = null;
+
+  if (currentFilename) {
+    // We try to get book info, might need to fetch if not in cache (though getSelectedBookName implies we know it)
+    // We don't necessarily need the whole book content just for the name, but for consistency:
+    macros.selectedBook = {
+      name: currentFilename,
+    };
+    currentBookName = currentFilename;
+  }
+
+  const currentEntryCtx = props.api.worldInfo.getSelectedEntry();
+  if (currentEntryCtx) {
+    macros.selectedEntry = {
+      uid: currentEntryCtx.entry.uid,
+      key: currentEntryCtx.entry.key.join(', '),
+      comment: currentEntryCtx.entry.comment,
+      content: currentEntryCtx.entry.content,
+    };
+    currentBookUid = currentEntryCtx.entry.uid;
+    currentBookName = currentEntryCtx.bookName;
+  }
+
+  // 2. Additional Selected Lorebooks
+  if (selectedContextLorebooks.value.length > 0) {
+    const otherBooksContent: string[] = [];
+
+    for (const bookName of selectedContextLorebooks.value) {
+      // Ensure book is loaded (should be from mount/watch)
+      await ensureBookLoaded(bookName);
+      const book = bookCache.value[bookName];
+
+      if (book) {
+        const entryIds = selectedContextEntries.value[bookName] || [];
+        let entriesToInclude = book.entries;
+
+        if (entryIds.length > 0) {
+          // Include only specifically selected entries
+          entriesToInclude = book.entries.filter((e) => entryIds.includes(e.uid));
+        }
+
+        // If this is the book containing the currently edited entry, exclude that entry from "otherWorldInfo"
+        if (currentBookName === bookName && currentBookUid !== null) {
+          entriesToInclude = entriesToInclude.filter((e) => e.uid !== currentBookUid);
+        }
+
+        if (entriesToInclude.length > 0) {
+          const entriesSummary = entriesToInclude
+            .map((e) => `- [${e.uid}] Keys: ${e.key.join(', ')} | Comment: ${e.comment}\n  Content: ${e.content}`)
+            .join('\n');
+          otherBooksContent.push(`Book: ${book.name}\n${entriesSummary}`);
+        }
+      }
+    }
+    macros.otherWorldInfo = otherBooksContent.join('\n\n');
+  }
+
+  return macros;
+}
+
 function handleAbort() {
   if (abortController.value) {
     abortController.value.abort();
@@ -272,6 +427,7 @@ async function handleGenerate() {
   try {
     const contextData = getContextData();
     const contextMessagesStr = getContextMessagesString();
+    const worldInfoMacros = await getWorldInfoContext();
 
     let inputToProcess = props.originalText;
     let promptToUse = promptOverride.value;
@@ -289,6 +445,7 @@ async function handleGenerate() {
       {
         contextMessages: contextMessagesStr,
         fieldName: props.identifier,
+        ...worldInfoMacros,
       },
       argOverrides.value,
       abortController.value?.signal,
@@ -301,8 +458,6 @@ async function handleGenerate() {
         rawAcc += chunk.delta;
         generatedText.value = service.extractCodeBlock(rawAcc);
         updateDiff();
-        // Auto scroll to bottom during generation if desired, but for diff view usually top is better.
-        // We'll leave scroll as is.
       }
     } else {
       generatedText.value = service.extractCodeBlock(response.content);
@@ -390,6 +545,47 @@ function handleCopyOutput() {
           <Input v-model="contextMessageCount" type="number" :min="0" />
         </div>
       </div>
+
+      <!-- World Info Context Section -->
+      <CollapsibleSection
+        v-if="showWorldInfoContextSection"
+        class="inner-collapsible"
+        title="World Info Context"
+        :is-open="false"
+      >
+        <div v-if="selectedEntryContext && IS_WORLD_INFO_FIELD" class="current-context-info">
+          Current Entry: <strong>{{ selectedEntryContext.entry.comment }}</strong> (ID:
+          {{ selectedEntryContext.entry.uid }})
+        </div>
+
+        <FormItem
+          label="Context Lorebooks"
+          description="Select additional lorebooks to include in the context."
+          class="lorebook-select"
+        >
+          <Select
+            v-model="selectedContextLorebooks"
+            :options="availableLorebooks"
+            multiple
+            placeholder="Select books..."
+          />
+        </FormItem>
+
+        <div v-if="selectedContextLorebooks.length > 0" class="book-entries-selection">
+          <div v-for="bookName in selectedContextLorebooks" :key="bookName" class="book-entry-row">
+            <div class="book-label">{{ bookName }}</div>
+            <div class="entries-select">
+              <Select
+                v-model="selectedContextEntries[bookName]"
+                :options="getEntriesForBook(bookName)"
+                multiple
+                placeholder="All entries (select to restrict)"
+              />
+            </div>
+          </div>
+        </div>
+      </CollapsibleSection>
+
       <FormItem :label="t('extensionsBuiltin.rewrite.popup.instruction')">
         <div class="input-with-reset">
           <Textarea v-model="promptOverride" :rows="2" allow-maximize />
@@ -520,6 +716,54 @@ function handleCopyOutput() {
   margin-left: 5px;
   height: auto;
   align-self: flex-start;
+}
+
+.inner-collapsible {
+  margin-bottom: 15px;
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--base-border-radius);
+  padding: 5px;
+  background-color: var(--black-20a);
+}
+
+.current-context-info {
+  font-size: 0.85em;
+  opacity: 0.8;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  padding: 5px;
+  border-bottom: 1px solid var(--theme-border-color);
+}
+
+.lorebook-select {
+  margin-bottom: 10px;
+}
+
+.book-entries-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 5px;
+  border-top: 1px dashed var(--theme-border-color);
+}
+
+.book-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.book-label {
+  width: 120px;
+  font-size: 0.9em;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entries-select {
+  flex: 1;
 }
 
 .split-view {

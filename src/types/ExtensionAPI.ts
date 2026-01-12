@@ -431,6 +431,8 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
     createEntry: (bookName: string, entry: WorldInfoEntry) => Promise<void>;
     updateEntry: (bookName: string, entry: WorldInfoEntry) => Promise<void>;
     deleteEntry: (bookName: string, uid: number) => Promise<void>;
+    getSelectedBookName: () => string | null;
+    getSelectedEntry: () => { bookName: string; entry: WorldInfoEntry } | null;
   };
   macro: {
     /**

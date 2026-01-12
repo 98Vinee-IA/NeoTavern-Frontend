@@ -40,6 +40,7 @@ import { WorldInfoProcessor, createDefaultEntry } from '../services/world-info';
 import { useCharacterUiStore } from '../stores/character-ui.store';
 import { useComponentRegistryStore } from '../stores/component-registry.store';
 import { useLayoutStore } from '../stores/layout.store';
+import { useWorldInfoUiStore } from '../stores/world-info-ui.store';
 import type { LlmGenerationOptions, TextareaToolDefinition } from '../types/ExtensionAPI';
 import type { CodeMirrorTarget } from '../types/settings';
 
@@ -479,6 +480,18 @@ const baseExtensionAPI: ExtensionAPI = {
     },
     deleteEntry: async (bookName, uid) => {
       await useWorldInfoStore().deleteEntry(bookName, uid);
+    },
+    getSelectedBookName() {
+      return useWorldInfoUiStore().selectedFilename;
+    },
+    getSelectedEntry() {
+      const uiStore = useWorldInfoUiStore();
+      return uiStore.selectedFilename && uiStore.selectedEntry
+        ? {
+            bookName: uiStore.selectedFilename,
+            entry: uiStore.selectedEntry,
+          }
+        : null;
     },
   },
   macro: {

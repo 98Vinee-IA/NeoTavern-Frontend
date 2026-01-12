@@ -87,6 +87,7 @@ export const slideTransitionHooks = {
   afterEnter(el: Element) {
     if (!(el instanceof HTMLElement)) return;
     el.style.height = '';
+    el.style.overflow = '';
   },
   beforeLeave(el: Element) {
     if (!(el instanceof HTMLElement)) return;
@@ -105,5 +106,6 @@ export const slideTransitionHooks = {
     if (!(el instanceof HTMLElement)) return;
     el.style.height = '';
     el.style.opacity = '0';
+    el.style.overflow = '';
   },
 };

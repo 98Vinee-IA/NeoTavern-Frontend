@@ -20,6 +20,8 @@ export interface RewriteTemplateOverride {
   lastUsedXMessages?: number; // How many context messages to include
   escapeInputMacros?: boolean;
   args?: Record<string, boolean | number | string>;
+  selectedContextLorebooks?: string[];
+  selectedContextEntries?: Record<string, number[]>; // Map bookName -> list of entry UIDs
 }
 
 export interface RewriteSettings {
@@ -68,6 +70,20 @@ Response:
     id: 'character-polisher',
     name: 'Character Card Polisher',
     prompt: 'Refine the text to be more evocative, show-dont-tell, and consistent with the character definition.',
+    args: [
+      {
+        key: 'includePersona',
+        label: 'Include Active Persona',
+        type: 'boolean',
+        defaultValue: true,
+      },
+      {
+        key: 'includeSelectedBookContext',
+        label: 'Include Selected Lorebooks',
+        type: 'boolean',
+        defaultValue: true,
+      },
+    ],
     template: `You are an expert character creator for LLM roleplay.
 You are refining a specific field of a Character Card (V2 spec).
 
@@ -98,8 +114,26 @@ First Message: {{first_mes}}
 {{/unless}}{{else}}
 First Message: {{first_mes}}
 {{/if}}
+{{/if}}
 {{#if mes_example}}
 Dialogue Examples: {{mes_example}}
+{{/if}}
+
+{{#if includePersona}}
+{{#if user}}
+[User Context]
+Name: {{user}}
+{{#if persona}}
+Description: {{persona}}
+{{/if}}
+{{/if}}
+{{/if}}
+
+{{#if includeSelectedBookContext}}
+{{#if otherWorldInfo}}
+[World Info Context]
+{{otherWorldInfo}}
+{{/if}}
 {{/if}}
 
 [Task]
@@ -122,6 +156,79 @@ Response:
 \`\`\`
 (New Text)
 \`\`\``,
+  },
+  {
+    id: 'world-info-refiner',
+    name: 'World Info Refiner',
+    prompt: 'Improve clarity, conciseness, and formatting of the World Info entry.',
+    template: `You are an expert database manager for LLM roleplay.
+You are refining a World Info entry.
+
+{{#if selectedBook}}
+[Book Context]
+Book Name: {{selectedBook.name}}
+{{/if}}
+
+{{#if selectedEntry}}
+[Entry Metadata]
+Keys: {{selectedEntry.key}}
+Comment: {{selectedEntry.comment}}
+{{/if}}
+
+{{#if includeSelectedBookContext}}
+{{#if otherWorldInfo}}
+[Related World Info]
+{{otherWorldInfo}}
+{{/if}}
+{{/if}}
+
+{{#if includePersona}}
+{{#if user}}
+[User Context]
+Name: {{user}}
+{{#if persona}}
+Description: {{persona}}
+{{/if}}
+{{/if}}
+{{/if}}
+
+{{#if contextMessages}}
+[Chat Context]
+{{contextMessages}}
+{{/if}}
+
+[Instruction]
+{{prompt}}
+
+[Input Text]
+\`\`\`
+{{input}}
+\`\`\`
+
+[Output Rules]
+1. Fix grammar and phrasing.
+2. Ensure the content matches the keys and comment.
+3. Keep the format (e.g. if it is a list or prose).
+4. Output **only** the new content inside a code block.
+
+Response:
+\`\`\`
+(New Content)
+\`\`\``,
+    args: [
+      {
+        key: 'includeSelectedBookContext',
+        label: 'Include Selected Lorebooks',
+        type: 'boolean',
+        defaultValue: true,
+      },
+      {
+        key: 'includePersona',
+        label: 'Include Active Persona',
+        type: 'boolean',
+        defaultValue: true,
+      },
+    ],
   },
   {
     id: 'generic',

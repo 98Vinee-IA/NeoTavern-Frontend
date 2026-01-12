@@ -116,7 +116,17 @@ async function resetTemplates() {
   });
 
   if (result === POPUP_RESULT.AFFIRMATIVE) {
-    settings.value.templates = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    // Reset only default templates, preserving user-created ones
+    settings.value.templates.forEach((template) => {
+      if (isDefaultTemplate(template.id)) {
+        const defaultTemplate = DEFAULT_TEMPLATES.find((dt) => dt.id === template.id);
+        if (defaultTemplate) {
+          const resetTemplate = JSON.parse(JSON.stringify(defaultTemplate));
+          resetTemplate.id = template.id;
+          Object.assign(template, resetTemplate);
+        }
+      }
+    });
     editingTemplateId.value = null;
   }
 }
