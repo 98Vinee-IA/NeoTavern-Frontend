@@ -2,18 +2,15 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector, SplitPane } from '../../../components/common';
 import { Button, Checkbox, FormItem, Input, Select, Textarea } from '../../../components/UI';
-import { useStrictI18n } from '../../../composables/useStrictI18n';
 import { POPUP_RESULT, POPUP_TYPE, type ExtensionAPI } from '../../../types';
 import { uuidv4 } from '../../../utils/commons';
 import { DEFAULT_TEMPLATES, type RewriteSettings, type RewriteTemplate, type RewriteTemplateArg } from './types';
-
-// TODO: i18n
 
 const props = defineProps<{
   api: ExtensionAPI<RewriteSettings>;
 }>();
 
-const { t } = useStrictI18n();
+const t = props.api.i18n.t;
 
 const settings = ref<RewriteSettings>({
   templates: [...DEFAULT_TEMPLATES],
@@ -85,7 +82,7 @@ async function renameTemplate(id: string) {
 
   const { result, value } = await props.api.ui.showPopup({
     type: POPUP_TYPE.INPUT,
-    title: 'Rename Template',
+    title: t('extensionsBuiltin.rewrite.settings.renameTemplate'),
     inputValue: tpl.name,
     okButton: 'common.rename',
     cancelButton: 'common.cancel',
@@ -180,14 +177,14 @@ function onArgTypeChange(arg: RewriteTemplateArg) {
   <div class="rewrite-settings">
     <div class="settings-section">
       <h3>{{ t('common.general') }}</h3>
-      <FormItem label="Default Connection Profile">
+      <FormItem :label="t('extensionsBuiltin.rewrite.settings.defaultConnectionProfile')">
         <ConnectionProfileSelector v-model="settings.defaultConnectionProfile" />
       </FormItem>
     </div>
 
     <div class="settings-section">
       <div class="header-row">
-        <h3>Templates</h3>
+        <h3>{{ t('extensionsBuiltin.rewrite.settings.templates') }}</h3>
         <div class="actions">
           <Button icon="fa-rotate-left" @click="resetTemplates">{{ t('common.reset') }}</Button>
           <Button icon="fa-plus" @click="createTemplate">{{ t('common.create') }}</Button>
@@ -207,13 +204,25 @@ function onArgTypeChange(arg: RewriteTemplateArg) {
               >
                 <span class="template-name">{{ template.name }}</span>
                 <div class="item-actions">
-                  <button class="action-btn" title="Rename Template" @click.stop="renameTemplate(template.id)">
+                  <button
+                    class="action-btn"
+                    :title="t('extensionsBuiltin.rewrite.settings.renameTemplate')"
+                    @click.stop="renameTemplate(template.id)"
+                  >
                     <i class="fa-solid fa-pen"></i>
                   </button>
-                  <button class="action-btn" title="Duplicate Template" @click.stop="duplicateTemplate(template.id)">
+                  <button
+                    class="action-btn"
+                    :title="t('extensionsBuiltin.rewrite.settings.duplicateTemplate')"
+                    @click.stop="duplicateTemplate(template.id)"
+                  >
                     <i class="fa-solid fa-copy"></i>
                   </button>
-                  <button class="action-btn delete" title="Delete Template" @click.stop="deleteTemplate(template.id)">
+                  <button
+                    class="action-btn delete"
+                    :title="t('extensionsBuiltin.rewrite.settings.deleteTemplate')"
+                    @click.stop="deleteTemplate(template.id)"
+                  >
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </div>
@@ -223,34 +232,36 @@ function onArgTypeChange(arg: RewriteTemplateArg) {
 
           <template #main>
             <div v-if="activeTemplate" class="template-editor">
-              <FormItem label="Name">
+              <FormItem :label="t('extensionsBuiltin.rewrite.settings.name')">
                 <Input v-model="activeTemplate.name" />
               </FormItem>
 
               <div class="checkbox-field">
                 <Checkbox
                   v-model="activeTemplate.ignoreInput!"
-                  label="Ignore Input"
-                  title="If enabled, this template doesn't use {{input}} and the UI will hide input-related controls"
+                  :label="t('extensionsBuiltin.rewrite.settings.ignoreInput')"
+                  :title="t('extensionsBuiltin.rewrite.settings.ignoreInputHint')"
                 />
               </div>
 
-              <FormItem label="Instruction (Prompt)">
+              <FormItem :label="t('extensionsBuiltin.rewrite.settings.instruction')">
                 <div class="input-row">
                   <Input v-model="activeTemplate.prompt" />
                   <Button
                     v-if="isDefaultTemplate(activeTemplate.id)"
                     icon="fa-rotate-left"
-                    title="Reset to default"
+                    :title="t('extensionsBuiltin.rewrite.settings.resetToDefault')"
                     variant="ghost"
                     @click="resetDefaultField(activeTemplate.id, 'prompt')"
                   />
                 </div>
               </FormItem>
 
-              <FormItem label="Custom Flags / Arguments">
+              <FormItem :label="t('extensionsBuiltin.rewrite.settings.customArgs')">
                 <div class="args-list">
-                  <div v-if="!activeTemplate.args?.length" class="empty-args">No custom arguments defined.</div>
+                  <div v-if="!activeTemplate.args?.length" class="empty-args">
+                    {{ t('extensionsBuiltin.rewrite.settings.noCustomArgs') }}
+                  </div>
                   <div v-for="(arg, idx) in activeTemplate.args" :key="idx" class="arg-item">
                     <div class="arg-row">
                       <Input v-model="arg.key" placeholder="Key (e.g. includeChar)" class="arg-input-sm" />
@@ -277,18 +288,20 @@ function onArgTypeChange(arg: RewriteTemplateArg) {
                       <Button icon="fa-trash" variant="ghost" class="delete-arg-btn" @click="removeArg(idx)" />
                     </div>
                   </div>
-                  <Button icon="fa-plus" variant="ghost" class="add-arg-btn" @click="addArg">Add Argument</Button>
+                  <Button icon="fa-plus" variant="ghost" class="add-arg-btn" @click="addArg">{{
+                    t('extensionsBuiltin.rewrite.settings.addArgument')
+                  }}</Button>
                 </div>
               </FormItem>
 
-              <FormItem label="Template Macro">
+              <FormItem :label="t('extensionsBuiltin.rewrite.settings.templateMacro')">
                 <div class="textarea-container">
                   <Textarea v-model="activeTemplate.template" :rows="10" allow-maximize />
                   <Button
                     v-if="isDefaultTemplate(activeTemplate.id)"
                     class="reset-macro-btn"
                     icon="fa-rotate-left"
-                    title="Reset to default"
+                    :title="t('extensionsBuiltin.rewrite.settings.resetToDefault')"
                     variant="ghost"
                     @click="resetDefaultField(activeTemplate.id, 'template')"
                   />
@@ -313,7 +326,7 @@ function onArgTypeChange(arg: RewriteTemplateArg) {
                 </div>
               </FormItem>
             </div>
-            <div v-else class="empty-state">Select a template to edit</div>
+            <div v-else class="empty-state">{{ t('extensionsBuiltin.rewrite.settings.selectTemplate') }}</div>
           </template>
         </SplitPane>
       </div>

@@ -3,8 +3,6 @@ import type { ApiChatMessage, Character, ChatMessage, ExtensionAPI } from '../..
 import { GroupGenerationHandlingMode, GroupReplyStrategy, type GroupChatConfig } from './types';
 import { determineNextSpeaker } from './utils';
 
-// TODO: i18n
-
 export const DEFAULT_DECISION_TEMPLATE = `You are an AI assistant orchestrating a roleplay group chat.
 Your task is to determine who should speak next based on the recent conversation context.
 
@@ -46,12 +44,14 @@ export class GroupChatService {
   public isAnalyzing = ref(false);
   public isGeneratingSummary = ref(false);
   public wasAborted = false;
+  t: typeof this.api.i18n.t;
 
   // We mirror the current config to a reactive object for the UI
   public groupConfig = ref<GroupChatConfig | null>(null);
 
   constructor(api: ExtensionAPI) {
     this.api = api;
+    this.t = this.api.i18n.t;
   }
 
   public get isGroupChat(): boolean {
@@ -228,7 +228,7 @@ export class GroupChatService {
       this.updateMemberSummary(avatar, content.trim());
     } catch (e) {
       console.error('[GroupChat] Failed to generate summary', e);
-      this.api.ui.showToast('Failed to generate summary', 'error');
+      this.api.ui.showToast(this.t('extensionsBuiltin.groupChat.errors.summaryFailed'), 'error');
     } finally {
       this.isGeneratingSummary.value = false;
     }
@@ -313,8 +313,14 @@ export class GroupChatService {
       ).length;
 
       if (missingCount > 0) {
+        const plural = missingCount > 1 ? 's' : '';
+        const summaryPlural = missingCount > 1 ? 'summaries' : 'summary';
         this.api.ui.showToast(
-          `Warning: ${missingCount} character${missingCount > 1 ? 's' : ''} missing ${missingCount > 1 ? 'summaries' : 'summary'} in Swap+Summaries mode`,
+          this.t('extensionsBuiltin.groupChat.warnings.missingSummaries', {
+            count: missingCount,
+            plural,
+            summaryPlural,
+          }),
           'warning',
         );
       }

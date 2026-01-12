@@ -7,8 +7,6 @@ import type { Character, ExtensionAPI, Persona } from '../../../types';
 import { RewriteService } from './RewriteService';
 import { DEFAULT_TEMPLATES, type RewriteSettings, type RewriteTemplateOverride } from './types';
 
-// TODO: i18n
-
 const props = defineProps<{
   api: ExtensionAPI<RewriteSettings>;
   originalText: string;
@@ -19,6 +17,7 @@ const props = defineProps<{
   closePopup?: () => void;
 }>();
 
+const t = props.api.i18n.t;
 const service = new RewriteService(props.api);
 
 // Settings State
@@ -256,7 +255,7 @@ function handleAbort() {
 
 async function handleGenerate() {
   if (!selectedProfile.value) {
-    props.api.ui.showToast('Please select a connection profile', 'error');
+    props.api.ui.showToast(t('extensionsBuiltin.rewrite.errors.selectProfile'), 'error');
     return;
   }
 
@@ -313,9 +312,9 @@ async function handleGenerate() {
   } catch (error: any) {
     console.error(error);
     if (error?.name === 'AbortError' || error?.message?.includes('abort')) {
-      props.api.ui.showToast('Generation aborted', 'info');
+      props.api.ui.showToast(t('extensionsBuiltin.rewrite.messages.generationAborted'), 'info');
     } else {
-      props.api.ui.showToast('Generation failed', 'error');
+      props.api.ui.showToast(t('extensionsBuiltin.rewrite.messages.generationFailed'), 'error');
     }
   } finally {
     isGenerating.value = false;
@@ -339,10 +338,10 @@ function handleCopyOutput() {
 
   navigator.clipboard.writeText(generatedText.value).then(
     () => {
-      props.api.ui.showToast('Copied to clipboard', 'success');
+      props.api.ui.showToast(t('extensionsBuiltin.rewrite.messages.copiedToClipboard'), 'success');
     },
     () => {
-      props.api.ui.showToast('Failed to copy', 'error');
+      props.api.ui.showToast(t('extensionsBuiltin.rewrite.messages.copyFailed'), 'error');
     },
   );
 }
@@ -352,18 +351,18 @@ function handleCopyOutput() {
   <div class="rewrite-popup-content">
     <div class="controls-row">
       <div style="flex: 1">
-        <FormItem label="Template">
+        <FormItem :label="t('extensionsBuiltin.rewrite.popup.template')">
           <Select v-model="selectedTemplateId" :options="templateOptions" />
         </FormItem>
       </div>
       <div style="flex: 1">
-        <FormItem label="Connection Profile">
+        <FormItem :label="t('extensionsBuiltin.rewrite.popup.connectionProfile')">
           <ConnectionProfileSelector v-model="selectedProfile" />
         </FormItem>
       </div>
     </div>
 
-    <CollapsibleSection title="Context & Prompt" :is-open="true">
+    <CollapsibleSection :title="t('extensionsBuiltin.rewrite.popup.contextPrompt')" :is-open="true">
       <!-- Dynamic Arguments Section -->
       <div v-if="currentTemplate?.args && currentTemplate.args.length > 0" class="dynamic-args-grid">
         <div v-for="arg in currentTemplate.args" :key="arg.key" class="dynamic-arg-item">
@@ -381,17 +380,17 @@ function handleCopyOutput() {
         <div v-if="!currentTemplate?.ignoreInput" class="escape-control">
           <Checkbox
             v-model="escapeMacros"
-            label="Escape Macros"
-            title="Prevents {{macros}} in input text from being processed"
+            :label="t('extensionsBuiltin.rewrite.popup.escapeMacros')"
+            :title="t('extensionsBuiltin.rewrite.popup.escapeMacrosHint')"
           />
         </div>
         <div class="flex-spacer"></div>
         <div class="msg-count-control">
-          <span class="label">Context Messages:</span>
+          <span class="label">{{ t('extensionsBuiltin.rewrite.popup.contextMessages') }}</span>
           <Input v-model="contextMessageCount" type="number" :min="0" />
         </div>
       </div>
-      <FormItem label="Instruction">
+      <FormItem :label="t('extensionsBuiltin.rewrite.popup.instruction')">
         <div class="input-with-reset">
           <Textarea v-model="promptOverride" :rows="2" allow-maximize />
           <Button
@@ -410,7 +409,7 @@ function handleCopyOutput() {
     <div v-if="!IGNORE_INPUT" class="split-view">
       <!-- Original / Left Pane -->
       <div class="pane">
-        <div class="pane-header">Original</div>
+        <div class="pane-header">{{ t('extensionsBuiltin.rewrite.popup.original') }}</div>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div ref="leftPaneRef" class="pane-content diff-content" @scroll="onLeftScroll" v-html="leftHtml"></div>
       </div>
@@ -419,7 +418,7 @@ function handleCopyOutput() {
       <div class="pane">
         <div class="pane-header">
           <span>
-            New
+            {{ t('extensionsBuiltin.rewrite.popup.new') }}
             <span v-if="isGenerating" class="generating-indicator"
               ><i class="fa-solid fa-circle-notch fa-spin"></i
             ></span>
@@ -438,7 +437,7 @@ function handleCopyOutput() {
       <div class="pane">
         <div class="pane-header">
           <span>
-            Output
+            {{ t('extensionsBuiltin.rewrite.popup.output') }}
             <span v-if="isGenerating" class="generating-indicator"
               ><i class="fa-solid fa-circle-notch fa-spin"></i
             ></span>
@@ -454,16 +453,16 @@ function handleCopyOutput() {
 
     <div class="actions-row">
       <Button v-if="!isGenerating" @click="handleGenerate">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        Generate
+        {{ t('extensionsBuiltin.rewrite.popup.generate') }}
       </Button>
       <Button v-else variant="danger" @click="handleAbort">
-        <i class="fa-solid fa-stop"></i>
-        Abort
+        {{ t('extensionsBuiltin.rewrite.popup.abort') }}
       </Button>
       <div class="spacer"></div>
-      <Button variant="ghost" @click="handleCancel">Cancel</Button>
-      <Button variant="confirm" :disabled="!generatedText || isGenerating" @click="handleApply">Apply</Button>
+      <Button variant="ghost" @click="handleCancel">{{ t('common.cancel') }}</Button>
+      <Button variant="confirm" :disabled="!generatedText || isGenerating" @click="handleApply">{{
+        t('extensionsBuiltin.rewrite.popup.apply')
+      }}</Button>
     </div>
   </div>
 </template>

@@ -32,9 +32,10 @@ import { useWorldInfoStore } from '../stores/world-info.store';
 // Service Imports
 import { ApiTokenizer } from '../api/tokenizer';
 import VanillaSidebar from '../components/Shared/VanillaSidebar.vue';
+import i18n from '../i18n';
 import { macroService } from '../services/macro-service';
 import { PromptBuilder } from '../services/prompt-engine';
-import { WorldInfoProcessor } from '../services/world-info';
+import { WorldInfoProcessor, createDefaultEntry } from '../services/world-info';
 import { useCharacterUiStore } from '../stores/character-ui.store';
 import { useComponentRegistryStore } from '../stores/component-registry.store';
 import { useLayoutStore } from '../stores/layout.store';
@@ -438,6 +439,12 @@ const baseExtensionAPI: ExtensionAPI = {
     delete: async (avatarId) => usePersonaStore().deletePersona(avatarId),
   },
   worldInfo: {
+    createDefaultEntry(uid) {
+      return createDefaultEntry(uid);
+    },
+    getNewUid(book) {
+      return useWorldInfoStore().getNewUid(book);
+    },
     getSettings: () => deepClone(useSettingsStore().settings.worldInfo),
     updateSettings: (settings) => {
       const store = useSettingsStore();
@@ -452,15 +459,25 @@ const baseExtensionAPI: ExtensionAPI = {
     setGlobalBookNames: (names) => {
       useWorldInfoStore().globalBookNames = names;
     },
+    createEntry: async (bookName, entry) => {
+      const store = useWorldInfoStore();
+      store.getBookFromCache(bookName, true).then((book) => {
+        if (!book) return;
+        const index = book.entries.findIndex((e) => e.uid === entry.uid);
+        if (index === -1) {
+          book.entries.push({ ...entry });
+          store.saveBookDebounced(book);
+        }
+      });
+    },
     updateEntry: async (bookName, entry) => {
       const store = useWorldInfoStore();
       const book = await store.getBookFromCache(bookName, true);
       if (!book) return;
-      const index = book.entries.findIndex((e) => e.uid === entry.uid);
-      if (index > -1) {
-        book.entries[index] = { ...entry };
-        store.saveBookDebounced(book);
-      }
+      await store.updateEntry(book, entry);
+    },
+    deleteEntry: async (bookName, uid) => {
+      await useWorldInfoStore().deleteEntry(bookName, uid);
     },
   },
   macro: {
@@ -628,6 +645,10 @@ const baseExtensionAPI: ExtensionAPI = {
       return await ChatCompletionService.generate(payload, effectiveFormatter, options.signal);
     },
   },
+  i18n: {
+    // @ts-expect-error 'i18n.global' is of type 'unknown'
+    t: i18n.global.t as StrictT,
+  },
 };
 
 export function createScopedApiProxy(extensionId: string): ExtensionAPI {
@@ -773,7 +794,7 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
         if (componentRegistryStore.rightSidebarRegistry.has(namespacedId)) layoutStore.toggleRightSidebar(namespacedId);
       }
     },
-    registerTextareaTool: (identifier: CodeMirrorTarget, definition: TextareaToolDefinition) => {
+    registerTextareaTool: (identifier: CodeMirrorTarget | string | RegExp, definition: TextareaToolDefinition) => {
       const toolId = definition.id.startsWith(extensionId) ? definition.id : `${extensionId}.${definition.id}`;
       useComponentRegistryStore().registerTextareaTool(identifier, { ...definition, id: toolId });
       return () => useComponentRegistryStore().unregisterTextareaTool(identifier, toolId);

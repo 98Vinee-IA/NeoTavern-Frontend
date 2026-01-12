@@ -486,6 +486,7 @@ export interface MessageSchema {
   common: {
     ok: string;
     cancel: string;
+    cancelled: string;
     save: string;
     expandedEditor: string;
     yes: string;
@@ -1200,6 +1201,193 @@ export interface MessageSchema {
       branchCreationFailed: string;
       branchName: string;
       loadChatFailed: string;
+    };
+    rewrite: {
+      popupTitle: string;
+      settings: {
+        defaultConnectionProfile: string;
+        templates: string;
+        renameTemplate: string;
+        duplicateTemplate: string;
+        deleteTemplate: string;
+        name: string;
+        ignoreInput: string;
+        ignoreInputHint: string;
+        instruction: string;
+        customArgs: string;
+        noCustomArgs: string;
+        addArgument: string;
+        templateMacro: string;
+        selectTemplate: string;
+        resetToDefault: string;
+      };
+      popup: {
+        template: string;
+        connectionProfile: string;
+        contextPrompt: string;
+        escapeMacros: string;
+        escapeMacrosHint: string;
+        contextMessages: string;
+        instruction: string;
+        original: string;
+        new: string;
+        output: string;
+        generate: string;
+        abort: string;
+        apply: string;
+      };
+      buttons: {
+        rewriteMessage: string;
+        rewriteInput: string;
+      };
+      errors: {
+        templateNotFound: string;
+        selectProfile: string;
+      };
+      messages: {
+        generationAborted: string;
+        generationFailed: string;
+        copiedToClipboard: string;
+        copyFailed: string;
+        textUpdated: string;
+      };
+    };
+    groupChat: {
+      settings: {
+        defaultConnectionProfile: string;
+        defaultConnectionProfileDesc: string;
+        defaultTemplates: string;
+        defaultTemplatesDesc: string;
+        llmDecisionPrompt: string;
+        llmDecisionPromptDesc: string;
+        aiSummaryPrompt: string;
+        aiSummaryPromptDesc: string;
+        summaryInjectionTemplate: string;
+        summaryInjectionTemplateDesc: string;
+      };
+      errors: {
+        summaryFailed: string;
+      };
+      warnings: {
+        missingSummaries: string;
+      };
+    };
+    chatMemory: {
+      noProfile: string;
+      overlapWarning: string;
+      menuItem: string;
+      popupTitle: string;
+      summarizing: string;
+      summarized: string;
+      failed: string;
+      summarizeButton: string;
+      tabs: {
+        lorebook: string;
+        messages: string;
+      };
+      labels: {
+        connectionProfile: string;
+        connectionProfileDesc: string;
+        startIndex: string;
+        endIndex: string;
+        prompt: string;
+        result: string;
+        targetLorebook: string;
+        autoHide: string;
+        autoTrigger: string;
+      };
+      buttons: {
+        generate: string;
+        create: string;
+        reset: string;
+        deleteAll: string;
+        stop: string;
+        clearRange: string;
+        resummarize: string;
+        summarizeMissing: string;
+      };
+      placeholders: {
+        selectLorebook: string;
+        summaryResult: string;
+      };
+      errors: {
+        emptySummary: string;
+        bookNotFound: string;
+        createFailed: string;
+        noMessages: string;
+        required: string;
+        negative: string;
+        outOfBounds: string;
+        startGreaterThanEnd: string;
+        endLessThanStart: string;
+        exceedTotal: string;
+        noMatchingMessages: string;
+        noSummariesToClear: string;
+        noMetadata: string;
+      };
+      success: {
+        memoryCreated: string;
+        restored: string;
+        cleared: string;
+        removedAll: string;
+        summarizationComplete: string;
+      };
+      tooltips: {
+        noMemoriesToReset: string;
+      };
+      popups: {
+        reset: {
+          title: string;
+          content: string;
+        };
+        summarizeRange: {
+          title: string;
+          contentAll: string;
+          contentMissing: string;
+        };
+        clearRange: {
+          title: string;
+          content: string;
+        };
+        deleteAll: {
+          title: string;
+          content: string;
+        };
+      };
+      manage: string;
+      manageRange: string;
+      globalActions: string;
+      settings: {
+        title: string;
+        enable: string;
+        autoLabel: string;
+        autoDesc: string;
+        promptLabel: string;
+        promptDesc: string;
+      };
+      stats: {
+        total: string;
+        summarized: string;
+      };
+      timeline: {
+        memory: string;
+        selection: string;
+        currentSelection: string;
+        summarized: string;
+        summarizedSingle: string;
+      };
+    };
+  };
+  login: {
+    authenticating: string;
+    enterPassword: string;
+    selectAccount: string;
+    errors: {
+      enterUsername: string;
+      loginFailed: string;
+    };
+    messages: {
+      loggedInAs: string;
     };
   };
   persona: {

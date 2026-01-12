@@ -1,4 +1,5 @@
 import type { Component } from 'vue';
+import type { StrictT } from '../composables/useStrictI18n';
 import type { EventPriority } from '../constants';
 import type { PromptBuilder } from '../services/prompt-engine';
 import type { WorldInfoProcessor } from '../services/world-info';
@@ -411,13 +412,17 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
     delete: (avatarId: string) => Promise<void>;
   };
   worldInfo: {
+    createDefaultEntry(uid: number): WorldInfoEntry;
+    getNewUid(book: WorldInfoBook): number;
     getSettings: () => WorldInfoSettings;
     updateSettings: (settings: Partial<WorldInfoSettings>) => void;
     getAllBookNames: () => WorldInfoHeader[];
     getBook: (name: string) => Promise<WorldInfoBook | null>;
     getActiveBookNames: () => string[];
     setGlobalBookNames: (names: string[]) => void;
+    createEntry: (bookName: string, entry: WorldInfoEntry) => Promise<void>;
     updateEntry: (bookName: string, entry: WorldInfoEntry) => Promise<void>;
+    deleteEntry: (bookName: string, uid: number) => Promise<void>;
   };
   macro: {
     /**
@@ -506,11 +511,14 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
 
     /**
      * Registers a tool action for Textareas with specific identifiers.
-     * @param identifier The CodeMirrorTarget identifier (e.g. 'character.description').
+     * @param identifier The CodeMirrorTarget identifier (e.g. 'character.description') or a RegExp pattern.
      * @param definition The tool definition including icon and callback.
      * @returns A cleanup function to unregister the tool.
      */
-    registerTextareaTool: (identifier: CodeMirrorTarget, definition: TextareaToolDefinition) => () => void;
+    registerTextareaTool: (
+      identifier: CodeMirrorTarget | string | RegExp,
+      definition: TextareaToolDefinition,
+    ) => () => void;
 
     /**
      * Registers a custom tab in the Chat Management sidebar.
@@ -558,5 +566,9 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
       messages: ApiChatMessage[],
       options?: LlmGenerationOptions,
     ) => Promise<GenerationResponse | (() => AsyncGenerator<StreamedChunk>)>;
+  };
+
+  i18n: {
+    t: StrictT;
   };
 }

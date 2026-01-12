@@ -8,8 +8,6 @@ import type {
 } from '../../../types';
 import type { RewriteSettings, RewriteTemplate } from './types';
 
-// TODO: i18n
-
 export class RewriteService {
   constructor(private api: ExtensionAPI<RewriteSettings>) {}
 
@@ -40,7 +38,8 @@ export class RewriteService {
   ): Promise<GenerationResponse | (() => AsyncGenerator<StreamedChunk>)> {
     const settings = this.getSettings();
     const template = settings.templates.find((t) => t.id === templateId);
-    if (!template && !customPromptOverride) throw new Error('Template not found');
+    if (!template && !customPromptOverride)
+      throw new Error(this.api.i18n.t('extensionsBuiltin.rewrite.errors.templateNotFound'));
 
     const promptText = customPromptOverride || template?.prompt || '';
     const macroTemplate = template?.template || '{{input}}';

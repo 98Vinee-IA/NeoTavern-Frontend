@@ -6,6 +6,7 @@ import { useComponentRegistryStore } from '../../stores/component-registry.store
 import { usePopupStore } from '../../stores/popup.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { POPUP_TYPE, type CodeMirrorTarget } from '../../types';
+import type { TextareaToolDefinition } from '../../types/ExtensionAPI';
 import { uuidv4 } from '../../utils/commons';
 import CodeMirrorEditor from './CodeMirrorEditor.vue';
 import TextareaExpanded from './TextareaExpanded.vue';
@@ -20,8 +21,9 @@ interface Props {
   allowMaximize?: boolean;
   codeMirror?: boolean;
   language?: 'markdown' | 'css';
-  identifier?: CodeMirrorTarget;
+  identifier?: CodeMirrorTarget | string;
   id?: string;
+  tools?: TextareaToolDefinition[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -35,6 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
   language: 'markdown',
   identifier: undefined,
   id: undefined,
+  tools: () => [],
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -52,15 +55,19 @@ const textareaId = computed(() => props.id || `textarea-${uuidv4()}`);
 
 const isCodeMirrorActive = computed(() => {
   if (props.codeMirror) return true;
-  if (props.identifier && settingsStore.settings.ui.editor.codeMirrorIdentifiers.includes(props.identifier)) {
+  if (
+    props.identifier &&
+    settingsStore.settings.ui.editor.codeMirrorIdentifiers.includes(props.identifier as CodeMirrorTarget)
+  ) {
     return true;
   }
   return false;
 });
 
 const activeTools = computed(() => {
-  if (!props.identifier) return [];
-  return registryStore.textareaToolRegistry.get(props.identifier) || [];
+  const registryTools =
+    props.identifier && typeof props.identifier === 'string' ? registryStore.getTextareaTools(props.identifier) : [];
+  return [...registryTools, ...(props.tools || [])];
 });
 
 const showHeader = computed(() => {
@@ -75,7 +82,7 @@ function onCodeMirrorUpdate(value: string) {
   emit('update:modelValue', value);
 }
 
-function handleToolClick(tool: { onClick: (payload: { value: string; setValue: (val: string) => void }) => void }) {
+function handleToolClick(tool: TextareaToolDefinition) {
   tool.onClick({
     value: props.modelValue,
     setValue: (val: string) => emit('update:modelValue', val),
@@ -127,16 +134,16 @@ const cmMinHeight = computed(() => {
         <button
           v-for="tool in activeTools"
           :key="tool.id"
-          class="maximize-icon-btn tool-btn"
+          class="tool-btn"
           :title="tool.title"
           @click="handleToolClick(tool)"
         >
-          <i :class="tool.icon"></i>
+          <i :class="['fa-solid', tool.icon]"></i>
         </button>
 
         <button
           v-if="props.allowMaximize"
-          class="maximize-icon-btn"
+          class="tool-btn"
           :aria-label="t('common.expandedEditor')"
           :title="t('common.expandedEditor')"
           @click="maximizeEditor"
@@ -182,15 +189,6 @@ const cmMinHeight = computed(() => {
   display: flex;
   gap: 5px;
   margin-left: auto;
-}
-
-.tool-btn {
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.tool-btn:hover {
-  opacity: 1;
 }
 
 .textarea-header {

@@ -1,6 +1,6 @@
 import { markRaw } from 'vue';
 import type { ExtensionAPI } from '../../../types';
-import { MountableComponent } from '../../../types/ExtensionAPI';
+import { MountableComponent, type TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import type { CodeMirrorTarget } from '../../../types/settings';
 import { manifest } from './manifest';
 import RewritePopup from './RewritePopup.vue';
@@ -9,9 +9,9 @@ import type { RewriteSettings } from './types';
 
 export { manifest };
 
-// TODO: i18n
-
 export function activate(api: ExtensionAPI<RewriteSettings>) {
+  const t = api.i18n.t;
+
   const settingsContainer = document.getElementById(api.meta.containerId);
   if (settingsContainer) {
     api.ui.mount(settingsContainer, SettingsPanel, { api });
@@ -27,7 +27,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     referenceMessageIndex?: number,
   ) => {
     await api.ui.showPopup({
-      title: 'Magic Rewrite',
+      title: t('extensionsBuiltin.rewrite.popupTitle'),
       component: markRaw(RewritePopup),
       componentProps: {
         api,
@@ -36,7 +36,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
         referenceMessageIndex,
         onApply: (newText: string) => {
           setValue(newText);
-          api.ui.showToast('Text updated', 'success');
+          api.ui.showToast(t('extensionsBuiltin.rewrite.messages.textUpdated'), 'success');
         },
         onCancel: () => {},
       },
@@ -49,7 +49,8 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
   };
 
   // 1. Register Tools for Textareas
-  const targets: CodeMirrorTarget[] = [
+  // Explicitly keep core field names as requested, to ensure they are covered.
+  const coreTargets: (CodeMirrorTarget | string)[] = [
     'character.description',
     'character.first_mes',
     'character.personality',
@@ -64,20 +65,41 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     'prompt.content',
   ];
 
+  // Regex pattern to match any extension settings fields automatically.
+  // This allows other extensions to use the rewrite tool without modifying this file.
+  // Matches "extension.<anything>.<anything>"
+  const extensionPattern = /^extension\..+/;
+
   const unbinds: Array<() => void> = [];
 
-  targets.forEach((target) => {
+  const toolDefinition: TextareaToolDefinition = {
+    id: 'rewrite-wand',
+    icon: 'fa-solid fa-wand-magic-sparkles',
+    title: t('extensionsBuiltin.rewrite.popupTitle'),
+    onClick: () => {},
+  };
+
+  // Register Core Targets
+  coreTargets.forEach((target) => {
     unbinds.push(
-      api.ui.registerTextareaTool(target, {
-        id: 'rewrite-wand',
-        icon: 'fa-solid fa-wand-magic-sparkles',
-        title: 'Magic Rewrite',
+      api.ui.registerTextareaTool(target as CodeMirrorTarget, {
+        ...toolDefinition,
         onClick: ({ value, setValue }) => {
-          handleRewrite(value, setValue, target);
+          handleRewrite(value, setValue, target as string);
         },
       }),
     );
   });
+
+  // Register Pattern for Extension settings
+  unbinds.push(
+    api.ui.registerTextareaTool(extensionPattern, {
+      ...toolDefinition,
+      onClick: ({ value, setValue }) => {
+        handleRewrite(value, setValue, 'extension.generic');
+      },
+    }),
+  );
 
   // 2. Chat Message Toolbar Injection
   const injectSingleButton = async (messageElement: HTMLElement, messageIndex: number) => {
@@ -92,7 +114,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
 
     await api.ui.mountComponent(wrapper, MountableComponent.Button, {
       icon: 'fa-wand-magic-sparkles',
-      title: 'Rewrite Message',
+      title: t('extensionsBuiltin.rewrite.buttons.rewriteMessage'),
       variant: 'ghost',
       onClick: (e: MouseEvent) => {
         e.stopPropagation();
@@ -131,7 +153,10 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     item.className = 'options-menu-item rewrite-input-option';
     item.setAttribute('role', 'menuitem');
     item.tabIndex = 0;
-    item.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i><span>Rewrite Input</span>';
+    item.innerHTML =
+      '<i class="fa-solid fa-wand-magic-sparkles"></i><span>' +
+      t('extensionsBuiltin.rewrite.buttons.rewriteInput') +
+      '</span>';
 
     item.onclick = (e) => {
       e.preventDefault();

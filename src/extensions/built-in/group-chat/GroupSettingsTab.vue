@@ -12,7 +12,6 @@ import {
   Textarea,
 } from '../../../components/UI';
 import { DraggableList, EmptyState } from '../../../components/common';
-import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { Character, ExtensionAPI } from '../../../types';
 import { getThumbnailUrl } from '../../../utils/character';
 import type { GroupChatService } from './GroupChatService';
@@ -23,9 +22,9 @@ const props = defineProps<{
   service: GroupChatService;
 }>();
 
-const { t } = useStrictI18n();
 const service = props.service;
 const api = props.api;
+const t = api.i18n.t;
 
 onMounted(() => {
   service.init();
