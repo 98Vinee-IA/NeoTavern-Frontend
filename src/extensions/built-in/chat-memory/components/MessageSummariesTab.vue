@@ -8,6 +8,7 @@ import type { TextareaToolDefinition } from '../../../../types/ExtensionAPI';
 import {
   DEFAULT_MESSAGE_SUMMARY_PROMPT,
   EXTENSION_KEY,
+  type ChatMemoryMetadata,
   type ExtensionSettings,
   type MemoryMessageExtra,
 } from '../types';
@@ -62,10 +63,6 @@ const timelineSegments = computed<TimelineSegment[]>(() => {
     if (msg.is_system) return;
     const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
     if (extra?.summary) {
-      // Coalesce adjacent segments if possible for performance?
-      // For now, individual segments are fine as CSS handles absolute positioning well enough
-      // But for 1000 messages, 1000 divs is heavy.
-      // Let's implement simple run-length encoding.
       const lastSeg = segments[segments.length - 1];
       if (lastSeg && lastSeg.type === 'summarized' && lastSeg.end === idx - 1) {
         lastSeg.end = idx;
@@ -163,13 +160,43 @@ function loadSettings() {
     if (settings.autoMessageSummarize !== undefined) autoMessageSummarize.value = settings.autoMessageSummarize;
     if (settings.messageSummaryPrompt) messageSummaryPrompt.value = settings.messageSummaryPrompt;
   }
+
+  // Load Chat Metadata for Range
+  const currentMetadata = props.api.chat.metadata.get();
+  const memoryExtra = (currentMetadata?.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
+
+  if (memoryExtra.summaryRange && Array.isArray(memoryExtra.summaryRange) && memoryExtra.summaryRange.length === 2) {
+    startIndex.value = memoryExtra.summaryRange[0];
+    endIndex.value = memoryExtra.summaryRange[1];
+  } else {
+    // Default
+    startIndex.value = 0;
+    endIndex.value = maxIndex.value;
+  }
 }
 
-function saveSettings() {
+async function saveSettings() {
+  // Save Global
   props.api.settings.set('enableMessageSummarization', enableMessageSummarization.value);
   props.api.settings.set('autoMessageSummarize', autoMessageSummarize.value);
   props.api.settings.set('messageSummaryPrompt', messageSummaryPrompt.value);
   props.api.settings.save();
+  // @ts-expect-error extension event
+  await props.api.events.emit('chat-memory:refresh-ui');
+
+  // Save Metadata (Range)
+  const currentMetadata = props.api.chat.metadata.get();
+  if (!currentMetadata) return;
+  const memoryExtra = (currentMetadata.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
+
+  const updatedExtra: ChatMemoryMetadata = {
+    ...memoryExtra,
+    summaryRange: [startIndex.value, endIndex.value],
+  };
+
+  props.api.chat.metadata.update({
+    extra: { ...currentMetadata.extra, [EXTENSION_KEY]: updatedExtra },
+  });
 }
 
 function cancelGeneration() {
@@ -344,11 +371,6 @@ async function handleDeleteAll() {
 }
 
 onMounted(() => {
-  endIndex.value = maxIndex.value;
-  // Suggest a reasonable range? Or just all.
-  // Default to all for message summaries as that's often the intent, or user filters.
-  startIndex.value = 0;
-
   loadSettings();
 });
 
@@ -359,7 +381,7 @@ onUnmounted(() => {
 });
 
 watch(
-  [enableMessageSummarization, autoMessageSummarize, messageSummaryPrompt],
+  [enableMessageSummarization, autoMessageSummarize, messageSummaryPrompt, startIndex, endIndex],
   () => {
     saveSettings();
   },

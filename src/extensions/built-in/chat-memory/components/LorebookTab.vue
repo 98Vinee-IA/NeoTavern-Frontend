@@ -126,8 +126,25 @@ function refreshLorebooks() {
     label: b.name,
     value: b.file_id,
   }));
+}
 
-  if (!selectedLorebook.value) {
+function loadState() {
+  // Load Global Settings
+  const settings = props.api.settings.get();
+  if (settings) {
+    if (settings.prompt) lorebookPrompt.value = settings.prompt;
+    if (settings.autoHideMessages !== undefined) autoHideMessages.value = settings.autoHideMessages;
+  }
+
+  // Load Chat Metadata (Persisted State)
+  const currentMetadata = props.api.chat.metadata.get();
+  const memoryExtra = (currentMetadata?.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
+
+  // 1. Lorebook Selection
+  if (memoryExtra.targetLorebook && availableLorebooks.value.some((b) => b.value === memoryExtra.targetLorebook)) {
+    selectedLorebook.value = memoryExtra.targetLorebook;
+  } else {
+    // Fallback logic
     const activeBooks = props.api.worldInfo.getActiveBookNames();
     if (activeBooks.length > 0) {
       selectedLorebook.value = activeBooks[0];
@@ -135,24 +152,46 @@ function refreshLorebooks() {
       selectedLorebook.value = availableLorebooks.value[0].value;
     }
   }
-}
 
-function loadSettings() {
-  const settings = props.api.settings.get();
-  if (settings) {
-    if (settings.prompt) lorebookPrompt.value = settings.prompt;
-    if (settings.autoHideMessages !== undefined) autoHideMessages.value = settings.autoHideMessages;
-    if (settings.lastLorebook && availableLorebooks.value.some((b) => b.value === settings.lastLorebook)) {
-      selectedLorebook.value = settings.lastLorebook;
+  // 2. Range Selection
+  if (memoryExtra.lorebookRange && Array.isArray(memoryExtra.lorebookRange) && memoryExtra.lorebookRange.length === 2) {
+    startIndex.value = memoryExtra.lorebookRange[0];
+    endIndex.value = memoryExtra.lorebookRange[1];
+  } else {
+    // Default heuristic
+    endIndex.value = maxIndex.value;
+    const memories = existingMemories.value;
+    let suggestedStart = 0;
+    if (memories.length > 0) {
+      const lastMemoryEnd = Math.max(...memories.map((m) => m.range[1]));
+      suggestedStart = Math.min(lastMemoryEnd + 1, endIndex.value);
+    } else {
+      suggestedStart = Math.max(0, endIndex.value - 20);
     }
+    startIndex.value = suggestedStart;
   }
 }
 
-function saveSettings() {
+function saveState() {
+  // Save Global Settings
   props.api.settings.set('prompt', lorebookPrompt.value);
   props.api.settings.set('autoHideMessages', autoHideMessages.value);
-  props.api.settings.set('lastLorebook', selectedLorebook.value);
   props.api.settings.save();
+
+  // Save Chat Metadata
+  const currentMetadata = props.api.chat.metadata.get();
+  if (!currentMetadata) return;
+  const memoryExtra = (currentMetadata.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
+
+  const updatedExtra: ChatMemoryMetadata = {
+    ...memoryExtra,
+    targetLorebook: selectedLorebook.value,
+    lorebookRange: [startIndex.value, endIndex.value],
+  };
+
+  props.api.chat.metadata.update({
+    extra: { ...currentMetadata.extra, [EXTENSION_KEY]: updatedExtra },
+  });
 }
 
 function cancelGeneration() {
@@ -249,6 +288,7 @@ async function createEntry() {
 
     await props.api.worldInfo.createEntry(selectedLorebook.value, newEntry);
 
+    // Update Metadata with new memory and current state
     const currentMetadata = props.api.chat.metadata.get();
     if (currentMetadata) {
       const memoryExtra = (currentMetadata.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
@@ -258,11 +298,13 @@ async function createEntry() {
         range: [startIndex.value, endIndex.value],
         timestamp: Date.now(),
       };
-      const updatedExtra = {
-        ...currentMetadata.extra,
-        [EXTENSION_KEY]: { ...memoryExtra, memories: [...memoryExtra.memories, memoryRecord] },
+      const updatedExtra: ChatMemoryMetadata = {
+        ...memoryExtra,
+        memories: [...memoryExtra.memories, memoryRecord],
+        targetLorebook: selectedLorebook.value,
+        lorebookRange: [startIndex.value, endIndex.value],
       };
-      props.api.chat.metadata.update({ extra: updatedExtra });
+      props.api.chat.metadata.update({ extra: { ...currentMetadata.extra, [EXTENSION_KEY]: updatedExtra } });
     }
 
     for (let i = startIndex.value; i <= endIndex.value; i++) {
@@ -322,7 +364,12 @@ async function handleLorebookReset() {
         }
       }
       const updatedExtra = { ...currentMetadata.extra };
-      delete updatedExtra[EXTENSION_KEY];
+      // Preserve settings like targetLorebook, but clear memories
+      const newMemoryMeta: ChatMemoryMetadata = {
+        ...memoryExtra,
+        memories: [],
+      };
+      updatedExtra[EXTENSION_KEY] = newMemoryMeta;
       props.api.chat.metadata.update({ extra: updatedExtra });
     }
 
@@ -349,19 +396,8 @@ async function handleLorebookReset() {
 }
 
 onMounted(() => {
-  endIndex.value = maxIndex.value;
-  const memories = existingMemories.value;
-  let suggestedStart = 0;
-  if (memories.length > 0) {
-    const lastMemoryEnd = Math.max(...memories.map((m) => m.range[1]));
-    suggestedStart = Math.min(lastMemoryEnd + 1, endIndex.value);
-  } else {
-    suggestedStart = Math.max(0, endIndex.value - 20);
-  }
-  startIndex.value = suggestedStart;
-
   refreshLorebooks();
-  loadSettings();
+  loadState();
 });
 
 onUnmounted(() => {
@@ -371,9 +407,9 @@ onUnmounted(() => {
 });
 
 watch(
-  [lorebookPrompt, autoHideMessages, selectedLorebook],
+  [lorebookPrompt, autoHideMessages, selectedLorebook, startIndex, endIndex],
   () => {
-    saveSettings();
+    saveState();
   },
   { deep: true },
 );
@@ -428,6 +464,7 @@ watch(
           v-model="summaryResult"
           :rows="6"
           placeholder="Generated summary will appear here..."
+          identifier="extension.chat-memory.summary-result"
           allow-maximize
         />
       </FormItem>

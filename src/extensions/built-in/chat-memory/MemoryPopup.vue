@@ -5,7 +5,7 @@ import { FormItem, Tabs } from '../../../components/UI';
 import type { ExtensionAPI } from '../../../types';
 import LorebookTab from './components/LorebookTab.vue';
 import MessageSummariesTab from './components/MessageSummariesTab.vue';
-import type { ExtensionSettings } from './types';
+import { type ChatMemoryMetadata, EXTENSION_KEY, type ExtensionSettings } from './types';
 
 const props = defineProps<{
   api: ExtensionAPI<ExtensionSettings>;
@@ -23,25 +23,52 @@ const connectionProfile = ref<string | undefined>(undefined);
 
 // --- Lifecycle ---
 onMounted(async () => {
-  loadSettings();
+  loadState();
 });
 
 // Auto-save settings
 watch([connectionProfile], () => {
-  saveSettings();
+  saveGlobalSettings();
+});
+
+watch(activeTab, () => {
+  saveTabState();
 });
 
 // --- Common Methods ---
-function loadSettings() {
+function loadState() {
+  // Global
   const settings = props.api.settings.get();
   if (settings) {
     if (settings.connectionProfile) connectionProfile.value = settings.connectionProfile;
   }
+
+  // Metadata
+  const currentMetadata = props.api.chat.metadata.get();
+  const memoryExtra = (currentMetadata?.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || {};
+  if (memoryExtra.activeTab) {
+    activeTab.value = memoryExtra.activeTab;
+  }
 }
 
-function saveSettings() {
+function saveGlobalSettings() {
   props.api.settings.set('connectionProfile', connectionProfile.value);
   props.api.settings.save();
+}
+
+function saveTabState() {
+  const currentMetadata = props.api.chat.metadata.get();
+  if (!currentMetadata) return;
+
+  const memoryExtra = (currentMetadata.extra?.[EXTENSION_KEY] as ChatMemoryMetadata) || { memories: [] };
+  const updatedExtra: ChatMemoryMetadata = {
+    ...memoryExtra,
+    activeTab: activeTab.value,
+  };
+
+  props.api.chat.metadata.update({
+    extra: { ...currentMetadata.extra, [EXTENSION_KEY]: updatedExtra },
+  });
 }
 </script>
 

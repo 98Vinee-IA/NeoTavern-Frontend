@@ -1,5 +1,5 @@
 import { markRaw } from 'vue';
-import type { ChatMessage, ExtensionAPI, SettingsPath } from '../../../types';
+import type { ChatMessage, ExtensionAPI } from '../../../types';
 import { MountableComponent } from '../../../types/ExtensionAPI';
 import { manifest } from './manifest';
 import MemoryPopup from './MemoryPopup.vue';
@@ -279,7 +279,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
   unbinds.push(
     api.events.on('chat:entered', () => {
       injectMenuOption();
-      setTimeout(updateAllMessages, 100); // Wait for Vue render
+      updateAllMessages();
     }),
   );
 
@@ -288,11 +288,8 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       const history = api.chat.getHistory();
       const messageIndex = history.length - 1;
 
-      // Wait for DOM
-      setTimeout(() => {
-        const el = document.querySelector(`.message[data-message-index="${messageIndex}"]`);
-        if (el) processMessageElement(el as HTMLElement, messageIndex);
-      }, 50);
+      const el = document.querySelector(`.message[data-message-index="${messageIndex}"]`);
+      if (el) processMessageElement(el as HTMLElement, messageIndex);
 
       // Auto Summarize
       const settings = api.settings.get();
@@ -305,11 +302,8 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
 
   unbinds.push(
     api.events.on('message:updated', async (index: number) => {
-      // Re-process DOM
-      setTimeout(() => {
-        const el = document.querySelector(`.message[data-message-index="${index}"]`);
-        if (el) processMessageElement(el as HTMLElement, index);
-      }, 50);
+      const el = document.querySelector(`.message[data-message-index="${index}"]`);
+      if (el) processMessageElement(el as HTMLElement, index);
 
       // Handle Content Changes vs Summary
       // const extra = message.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
@@ -334,10 +328,9 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
   );
 
   unbinds.push(
-    api.events.on('setting:changed', (path) => {
-      if (path === ('core.chat-memory' as SettingsPath) || path?.startsWith('core.chat-memory')) {
-        updateAllMessages();
-      }
+    // @ts-expect-error extension event
+    api.events.on('chat-memory:refresh-ui', () => {
+      updateAllMessages();
     }),
   );
 

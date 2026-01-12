@@ -7,6 +7,10 @@ export interface ChatMemoryRecord {
 
 export interface ChatMemoryMetadata {
   memories: ChatMemoryRecord[];
+  targetLorebook?: string;
+  lorebookRange?: [number, number];
+  summaryRange?: [number, number];
+  activeTab?: string;
 }
 
 export interface MemoryMessageExtra {
@@ -19,7 +23,6 @@ export interface ExtensionSettings {
   connectionProfile?: string;
   prompt: string; // Lorebook summary prompt
   autoHideMessages: boolean;
-  lastLorebook?: string;
 
   // Message Summary Settings
   enableMessageSummarization: boolean;
