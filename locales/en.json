@@ -1199,6 +1199,76 @@
       "branchName": "Branch",
       "loadChatFailed": "Failed to load selected chat"
     },
+    "rewrite": {
+      "popupTitle": "Magic Rewrite",
+      "settings": {
+        "defaultConnectionProfile": "Default Connection Profile",
+        "templates": "Templates",
+        "renameTemplate": "Rename Template",
+        "duplicateTemplate": "Duplicate Template",
+        "deleteTemplate": "Delete Template",
+        "name": "Name",
+        "ignoreInput": "Ignore Input",
+        "ignoreInputHint": "If enabled, this template doesn't use {'{{input}}'} and the UI will hide input-related controls",
+        "instruction": "Instruction (Prompt)",
+        "customArgs": "Custom Flags / Arguments",
+        "noCustomArgs": "No custom arguments defined.",
+        "addArgument": "Add Argument",
+        "templateMacro": "Template Macro",
+        "selectTemplate": "Select a template to edit",
+        "resetToDefault": "Reset to default"
+      },
+      "popup": {
+        "template": "Template",
+        "connectionProfile": "Connection Profile",
+        "contextPrompt": "Context & Prompt",
+        "escapeMacros": "Escape Macros",
+        "escapeMacrosHint": "Prevents {'{{macros}}'} in input text from being processed",
+        "contextMessages": "Context Messages:",
+        "instruction": "Instruction",
+        "original": "Original",
+        "new": "New",
+        "output": "Output",
+        "generate": "Generate",
+        "abort": "Abort",
+        "apply": "Apply"
+      },
+      "buttons": {
+        "rewriteMessage": "Rewrite Message",
+        "rewriteInput": "Rewrite Input"
+      },
+      "errors": {
+        "templateNotFound": "Template not found",
+        "selectProfile": "Please select a connection profile"
+      },
+      "messages": {
+        "generationAborted": "Generation aborted",
+        "generationFailed": "Generation failed",
+        "copiedToClipboard": "Copied to clipboard",
+        "copyFailed": "Failed to copy",
+        "textUpdated": "Text updated"
+      }
+    },
+    "groupChat": {
+      "settings": {
+        "defaultConnectionProfile": "Default Connection Profile",
+        "defaultConnectionProfileDesc": "Used for LLM Decision mode and AI Summary generation.",
+        "defaultTemplates": "Default Templates",
+        "defaultTemplatesDesc": "These templates are used as defaults for new group chats. You can customize them per-chat in the Group tab.",
+        "llmDecisionPrompt": "LLM Decision Prompt",
+        "llmDecisionPromptDesc": "Template for AI to decide who speaks next in LLM Decision mode.",
+        "aiSummaryPrompt": "AI Summary Prompt",
+        "aiSummaryPromptDesc": "Template for generating character summaries used in Swap+Summaries mode.",
+        "summaryInjectionTemplate": "Summary Injection Template",
+        "summaryInjectionTemplateDesc": "Template for the complete description with summaries. Controls where and how summaries appear. Note: This modifies the character description during generation in Swap+Summaries mode."
+      },
+      "errors": {
+        "summaryFailed": "Failed to generate summary"
+      },
+      "warnings": {
+        "missingSummaries": "Warning: {count} character{plural} missing {summaryPlural} in Swap+Summaries mode"
+      }
+    },
     "chatMemory": {
       "noProfile": "No connection profile selected",
       "overlapWarning": "Warning: Selected range overlaps with an existing memory.",
@@ -1220,7 +1290,8 @@
         "prompt": "Lorebook Summarization Prompt",
         "result": "Result",
         "targetLorebook": "Target Lorebook",
-        "autoHide": "Auto-hide messages"
+        "autoHide": "Auto-hide messages",
+        "autoTrigger": "Auto-trigger"
       },
       "buttons": {
         "generate": "Generate Summary",
@@ -1302,6 +1373,18 @@
         "summarized": "Summarized: {start} - {end}",
         "summarizedSingle": "Summarized: {index}"
       }
+    }
+  },
+  "login": {
+    "authenticating": "Authenticating...",
+    "enterPassword": "Enter Password",
+    "selectAccount": "Select an Account",
+    "errors": {
+      "enterUsername": "Please enter a username",
+      "loginFailed": "Login failed"
+    },
+    "messages": {
+      "loggedInAs": "Logged in as {handle}"
     }
   },
   "persona": {

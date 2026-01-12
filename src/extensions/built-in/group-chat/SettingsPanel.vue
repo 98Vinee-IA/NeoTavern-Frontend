@@ -2,7 +2,6 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
 import { FormItem, Textarea } from '../../../components/UI';
-import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../types';
 import type { TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import {
@@ -12,13 +11,11 @@ import {
 } from './GroupChatService';
 import type { GroupExtensionSettings } from './types';
 
-// TODO: i18n
-
 const props = defineProps<{
   api: ExtensionAPI;
 }>();
 
-const { t } = useStrictI18n();
+const t = props.api.i18n.t;
 
 const settings = ref<GroupExtensionSettings>({
   defaultDecisionPromptTemplate: DEFAULT_DECISION_TEMPLATE,
@@ -86,20 +83,23 @@ const summaryInjectionTools = computed<TextareaToolDefinition[]>(() => [
   <div class="group-settings-panel">
     <div class="settings-section">
       <h3>{{ t('common.general') }}</h3>
-      <FormItem label="Default Connection Profile" description="Used for LLM Decision mode and AI Summary generation.">
+      <FormItem
+        :label="t('extensionsBuiltin.groupChat.settings.defaultConnectionProfile')"
+        :description="t('extensionsBuiltin.groupChat.settings.defaultConnectionProfileDesc')"
+      >
         <ConnectionProfileSelector v-model="settings.defaultConnectionProfile" />
       </FormItem>
     </div>
 
     <div class="settings-section">
-      <h3>Default Templates</h3>
+      <h3>{{ t('extensionsBuiltin.groupChat.settings.defaultTemplates') }}</h3>
       <p class="section-description">
-        These templates are used as defaults for new group chats. You can customize them per-chat in the Group tab.
+        {{ t('extensionsBuiltin.groupChat.settings.defaultTemplatesDesc') }}
       </p>
 
       <FormItem
-        label="LLM Decision Prompt"
-        description="Template for AI to decide who speaks next in LLM Decision mode."
+        :label="t('extensionsBuiltin.groupChat.settings.llmDecisionPrompt')"
+        :description="t('extensionsBuiltin.groupChat.settings.llmDecisionPromptDesc')"
       >
         <div class="textarea-container">
           <Textarea
@@ -119,8 +119,8 @@ const summaryInjectionTools = computed<TextareaToolDefinition[]>(() => [
       </FormItem>
 
       <FormItem
-        label="AI Summary Prompt"
-        description="Template for generating character summaries used in Swap+Summaries mode."
+        :label="t('extensionsBuiltin.groupChat.settings.aiSummaryPrompt')"
+        :description="t('extensionsBuiltin.groupChat.settings.aiSummaryPromptDesc')"
       >
         <div class="textarea-container">
           <Textarea
@@ -139,8 +139,8 @@ const summaryInjectionTools = computed<TextareaToolDefinition[]>(() => [
       </FormItem>
 
       <FormItem
-        label="Summary Injection Template"
-        description="Template for the complete description with summaries. Controls where and how summaries appear. Note: This modifies the character description during generation in Swap+Summaries mode."
+        :label="t('extensionsBuiltin.groupChat.settings.summaryInjectionTemplate')"
+        :description="t('extensionsBuiltin.groupChat.settings.summaryInjectionTemplateDesc')"
       >
         <div class="textarea-container">
           <Textarea

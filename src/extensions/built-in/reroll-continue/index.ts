@@ -1,6 +1,4 @@
-import { type StrictT } from '../../../composables/useStrictI18n';
 import { GenerationMode } from '../../../constants';
-import i18n from '../../../i18n';
 import type { ApiChatMessage, ExtensionAPI, GenerationContext } from '../../../types';
 import { manifest } from './manifest';
 import SettingsPanel from './SettingsPanel.vue';
@@ -31,8 +29,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
   const REROLL_CONTINUE_BUTTON_ID = 'reroll-continue-button';
   const IMPERSONATE_BUTTON_ID = 'impersonate-button';
 
-  // @ts-expect-error 'i18n.global' is of type 'unknown'
-  const t = i18n.global.t as StrictT;
+  const t = api.i18n.t;
 
   // Helper to toggle button visibility based on state
   const updateButtonState = () => {

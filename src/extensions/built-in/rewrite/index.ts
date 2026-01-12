@@ -9,9 +9,9 @@ import type { RewriteSettings } from './types';
 
 export { manifest };
 
-// TODO: i18n
-
 export function activate(api: ExtensionAPI<RewriteSettings>) {
+  const t = api.i18n.t;
+
   const settingsContainer = document.getElementById(api.meta.containerId);
   if (settingsContainer) {
     api.ui.mount(settingsContainer, SettingsPanel, { api });
@@ -27,7 +27,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     referenceMessageIndex?: number,
   ) => {
     await api.ui.showPopup({
-      title: 'Magic Rewrite',
+      title: t('extensionsBuiltin.rewrite.popupTitle'),
       component: markRaw(RewritePopup),
       componentProps: {
         api,
@@ -36,7 +36,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
         referenceMessageIndex,
         onApply: (newText: string) => {
           setValue(newText);
-          api.ui.showToast('Text updated', 'success');
+          api.ui.showToast(t('extensionsBuiltin.rewrite.messages.textUpdated'), 'success');
         },
         onCancel: () => {},
       },
@@ -75,7 +75,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
   const toolDefinition: TextareaToolDefinition = {
     id: 'rewrite-wand',
     icon: 'fa-solid fa-wand-magic-sparkles',
-    title: 'Magic Rewrite',
+    title: t('extensionsBuiltin.rewrite.popupTitle'),
     onClick: () => {},
   };
 
@@ -114,7 +114,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
 
     await api.ui.mountComponent(wrapper, MountableComponent.Button, {
       icon: 'fa-wand-magic-sparkles',
-      title: 'Rewrite Message',
+      title: t('extensionsBuiltin.rewrite.buttons.rewriteMessage'),
       variant: 'ghost',
       onClick: (e: MouseEvent) => {
         e.stopPropagation();
@@ -153,7 +153,10 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
     item.className = 'options-menu-item rewrite-input-option';
     item.setAttribute('role', 'menuitem');
     item.tabIndex = 0;
-    item.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i><span>Rewrite Input</span>';
+    item.innerHTML =
+      '<i class="fa-solid fa-wand-magic-sparkles"></i><span>' +
+      t('extensionsBuiltin.rewrite.buttons.rewriteInput') +
+      '</span>';
 
     item.onclick = (e) => {
       e.preventDefault();

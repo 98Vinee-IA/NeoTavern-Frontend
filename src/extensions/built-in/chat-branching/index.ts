@@ -1,5 +1,3 @@
-import type { StrictT } from '../../../composables/useStrictI18n';
-import i18n from '../../../i18n';
 import { type ChatInfo, type ChatMetadata, type FullChat } from '../../../types';
 import { MountableComponent } from '../../../types/ExtensionAPI';
 import BranchTree from './BranchTree.vue';
@@ -9,10 +7,9 @@ import type { ChatBranchingAPI } from './types';
 export { manifest };
 
 export function activate(api: ChatBranchingAPI) {
-  const { ui, chat, events, character, settings } = api;
+  const { ui, chat, events, character, settings, i18n } = api;
 
-  // @ts-expect-error StrictT type assertion
-  const t = i18n.global.t as StrictT;
+  const t = i18n.t;
 
   const initSettings = () => {
     const s = settings.get();

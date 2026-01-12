@@ -2,7 +2,6 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
 import { FormItem, Input, Select, Textarea } from '../../../components/UI';
-import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../types';
 import type { TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import { AutoTranslateMode, type ChatTranslationSettings, DEFAULT_PROMPT } from './types';
@@ -11,7 +10,7 @@ const props = defineProps<{
   api: ExtensionAPI;
 }>();
 
-const { t } = useStrictI18n();
+const t = props.api.i18n.t;
 
 const settings = ref<ChatTranslationSettings>({
   connectionProfile: undefined,

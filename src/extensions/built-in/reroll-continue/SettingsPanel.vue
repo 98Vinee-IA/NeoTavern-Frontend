@@ -2,7 +2,6 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
 import { CollapsibleSection, FormItem, Textarea, Toggle } from '../../../components/UI';
-import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../types';
 import type { TextareaToolDefinition } from '../../../types/ExtensionAPI';
 import { DEFAULT_IMPERSONATE_PROMPT, type ExtensionSettings } from './types';
@@ -18,7 +17,7 @@ const settings = ref<ExtensionSettings>({
   impersonatePrompt: DEFAULT_IMPERSONATE_PROMPT,
 });
 
-const { t } = useStrictI18n();
+const t = props.api.i18n.t;
 
 onMounted(() => {
   const saved = props.api.settings.get();

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Button, FormItem, Input, Select, Textarea, Toggle } from '../../../../components/UI';
-import { useStrictI18n } from '../../../../composables/useStrictI18n';
 import type { ApiChatMessage, ChatMessage, ExtensionAPI } from '../../../../types';
 import { POPUP_RESULT, POPUP_TYPE } from '../../../../types';
 import type { TextareaToolDefinition } from '../../../../types/ExtensionAPI';
@@ -21,7 +20,7 @@ const props = defineProps<{
   connectionProfile?: string;
 }>();
 
-const { t } = useStrictI18n();
+const t = props.api.i18n.t;
 
 // State
 const startIndex = ref<number>(0);

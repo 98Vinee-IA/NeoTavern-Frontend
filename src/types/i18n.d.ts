@@ -1202,6 +1202,76 @@ export interface MessageSchema {
       branchName: string;
       loadChatFailed: string;
     };
+    rewrite: {
+      popupTitle: string;
+      settings: {
+        defaultConnectionProfile: string;
+        templates: string;
+        renameTemplate: string;
+        duplicateTemplate: string;
+        deleteTemplate: string;
+        name: string;
+        ignoreInput: string;
+        ignoreInputHint: string;
+        instruction: string;
+        customArgs: string;
+        noCustomArgs: string;
+        addArgument: string;
+        templateMacro: string;
+        selectTemplate: string;
+        resetToDefault: string;
+      };
+      popup: {
+        template: string;
+        connectionProfile: string;
+        contextPrompt: string;
+        escapeMacros: string;
+        escapeMacrosHint: string;
+        contextMessages: string;
+        instruction: string;
+        original: string;
+        new: string;
+        output: string;
+        generate: string;
+        abort: string;
+        apply: string;
+      };
+      buttons: {
+        rewriteMessage: string;
+        rewriteInput: string;
+      };
+      errors: {
+        templateNotFound: string;
+        selectProfile: string;
+      };
+      messages: {
+        generationAborted: string;
+        generationFailed: string;
+        copiedToClipboard: string;
+        copyFailed: string;
+        textUpdated: string;
+      };
+    };
+    groupChat: {
+      settings: {
+        defaultConnectionProfile: string;
+        defaultConnectionProfileDesc: string;
+        defaultTemplates: string;
+        defaultTemplatesDesc: string;
+        llmDecisionPrompt: string;
+        llmDecisionPromptDesc: string;
+        aiSummaryPrompt: string;
+        aiSummaryPromptDesc: string;
+        summaryInjectionTemplate: string;
+        summaryInjectionTemplateDesc: string;
+      };
+      errors: {
+        summaryFailed: string;
+      };
+      warnings: {
+        missingSummaries: string;
+      };
+    };
     chatMemory: {
       noProfile: string;
       overlapWarning: string;
@@ -1224,6 +1294,7 @@ export interface MessageSchema {
         result: string;
         targetLorebook: string;
         autoHide: string;
+        autoTrigger: string;
       };
       buttons: {
         generate: string;
@@ -1305,6 +1376,18 @@ export interface MessageSchema {
         summarized: string;
         summarizedSingle: string;
       };
+    };
+  };
+  login: {
+    authenticating: string;
+    enterPassword: string;
+    selectAccount: string;
+    errors: {
+      enterUsername: string;
+      loginFailed: string;
+    };
+    messages: {
+      loggedInAs: string;
     };
   };
   persona: {

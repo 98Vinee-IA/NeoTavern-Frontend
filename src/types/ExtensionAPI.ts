@@ -1,4 +1,5 @@
 import type { Component } from 'vue';
+import type { StrictT } from '../composables/useStrictI18n';
 import type { EventPriority } from '../constants';
 import type { PromptBuilder } from '../services/prompt-engine';
 import type { WorldInfoProcessor } from '../services/world-info';
@@ -565,5 +566,9 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
       messages: ApiChatMessage[],
       options?: LlmGenerationOptions,
     ) => Promise<GenerationResponse | (() => AsyncGenerator<StreamedChunk>)>;
+  };
+
+  i18n: {
+    t: StrictT;
   };
 }

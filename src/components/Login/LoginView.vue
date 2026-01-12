@@ -6,8 +6,6 @@ import { useAuthStore, type User } from '../../stores/auth.store';
 import { SmartAvatar } from '../common';
 import { Button, Input } from '../UI';
 
-// TODO: i18n
-
 const authStore = useAuthStore();
 const { t } = useStrictI18n();
 
@@ -39,17 +37,17 @@ function cancelSelection() {
 
 async function performLogin(handle: string, password?: string) {
   if (!handle) {
-    toast.error('Please enter a username');
+    toast.error(t('login.errors.enterUsername'));
     return;
   }
 
   isLoading.value = true;
   try {
     await authStore.login(handle, password);
-    toast.success(`Logged in as ${handle}`);
+    toast.success(t('login.messages.loggedInAs', { handle }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    toast.error(error.message || 'Login failed');
+    toast.error(error.message || t('login.errors.loginFailed'));
     console.error(error);
     isLoading.value = false;
   }
@@ -67,9 +65,9 @@ async function handleFormSubmit() {
       <div class="login-header">
         <h2>{{ t('common.welcome') }}</h2>
         <p class="subtitle">
-          <span v-if="isLoading">Authenticating...</span>
-          <span v-else-if="selectedUser">Enter Password</span>
-          <span v-else>Select an Account</span>
+          <span v-if="isLoading">{{ t('login.authenticating') }}</span>
+          <span v-else-if="selectedUser">{{ t('login.enterPassword') }}</span>
+          <span v-else>{{ t('login.selectAccount') }}</span>
         </p>
       </div>
 

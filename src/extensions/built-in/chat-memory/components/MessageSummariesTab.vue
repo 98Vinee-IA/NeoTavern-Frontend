@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Button, FormItem, Input, Textarea, Toggle } from '../../../../components/UI';
-import { useStrictI18n } from '../../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../../types';
 import { POPUP_RESULT, POPUP_TYPE } from '../../../../types';
 import type { TextareaToolDefinition } from '../../../../types/ExtensionAPI';
@@ -19,7 +18,7 @@ const props = defineProps<{
   connectionProfile?: string;
 }>();
 
-const { t } = useStrictI18n();
+const t = props.api.i18n.t;
 
 // State
 const messageSummaryPrompt = ref<string>(DEFAULT_MESSAGE_SUMMARY_PROMPT);
@@ -401,7 +400,11 @@ watch(
         :label="t('extensionsBuiltin.chatMemory.settings.autoLabel')"
         :description="t('extensionsBuiltin.chatMemory.settings.autoDesc')"
       >
-        <Toggle v-model="autoMessageSummarize" :disabled="!enableMessageSummarization" label="Auto-trigger" />
+        <Toggle
+          v-model="autoMessageSummarize"
+          :disabled="!enableMessageSummarization"
+          :label="t('extensionsBuiltin.chatMemory.labels.autoTrigger')"
+        />
       </FormItem>
       <FormItem
         :label="t('extensionsBuiltin.chatMemory.settings.promptLabel')"

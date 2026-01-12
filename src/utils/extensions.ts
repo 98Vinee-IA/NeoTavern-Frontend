@@ -32,6 +32,7 @@ import { useWorldInfoStore } from '../stores/world-info.store';
 // Service Imports
 import { ApiTokenizer } from '../api/tokenizer';
 import VanillaSidebar from '../components/Shared/VanillaSidebar.vue';
+import i18n from '../i18n';
 import { macroService } from '../services/macro-service';
 import { PromptBuilder } from '../services/prompt-engine';
 import { WorldInfoProcessor, createDefaultEntry } from '../services/world-info';
@@ -643,6 +644,10 @@ const baseExtensionAPI: ExtensionAPI = {
       });
       return await ChatCompletionService.generate(payload, effectiveFormatter, options.signal);
     },
+  },
+  i18n: {
+    // @ts-expect-error 'i18n.global' is of type 'unknown'
+    t: i18n.global.t as StrictT,
   },
 };
 

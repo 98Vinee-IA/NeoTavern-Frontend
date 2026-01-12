@@ -2,7 +2,6 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
 import { FormItem, Tabs } from '../../../components/UI';
-import { useStrictI18n } from '../../../composables/useStrictI18n';
 import type { ExtensionAPI } from '../../../types';
 import LorebookTab from './components/LorebookTab.vue';
 import MessageSummariesTab from './components/MessageSummariesTab.vue';
@@ -12,7 +11,7 @@ const props = defineProps<{
   api: ExtensionAPI<ExtensionSettings>;
 }>();
 
-const { t } = useStrictI18n();
+const t = props.api.i18n.t;
 
 // --- Tabs ---
 const activeTab = ref('lorebook');
