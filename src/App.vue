@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { computed, nextTick, onMounted, ref, watch, type CSSProperties } from 'vue';
 import LoginView from './components/Login/LoginView.vue';
 import NavBar from './components/NavBar/NavBar.vue';
 import Popup from './components/Popup/Popup.vue';
 import SidebarHost from './components/Shared/SidebarHost.vue';
 import ToastContainer from './components/Toast/ToastContainer.vue';
+import { Button } from './components/UI';
 import { useAppRegistration } from './composables/useAppRegistration';
 import { useStrictI18n } from './composables/useStrictI18n';
 import { useToastState } from './composables/useToast';
@@ -38,6 +40,23 @@ const authStore = useAuthStore();
 const { t } = useStrictI18n();
 const { registerCoreComponents } = useAppRegistration();
 const { toasts } = useToastState();
+
+// TODO: i18n
+
+// PWA Update Logic
+const { needRefresh, updateServiceWorker } = useRegisterSW({
+  onRegistered(r) {
+    // Check for updates every hour
+    if (r) {
+      setInterval(
+        () => {
+          r.update();
+        },
+        60 * 60 * 1000,
+      );
+    }
+  },
+});
 
 const isInitializing = ref(true);
 
@@ -202,5 +221,43 @@ onMounted(async () => {
     />
   </template>
 
+  <!-- PWA Update Notification -->
+  <div v-if="needRefresh" class="pwa-toast" role="alert">
+    <div class="pwa-message">New version available</div>
+    <div class="pwa-actions">
+      <Button variant="confirm" @click="updateServiceWorker(true)"> Reload </Button>
+      <Button variant="ghost" @click="needRefresh = false"> Close </Button>
+    </div>
+  </div>
+
   <ToastContainer :toasts="toasts" />
 </template>
+
+<style>
+.pwa-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--theme-background-tint);
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--base-border-radius);
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 250px;
+}
+
+.pwa-message {
+  color: var(--theme-text-color);
+  font-weight: bold;
+}
+
+.pwa-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+</style>

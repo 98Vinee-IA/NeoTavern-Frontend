@@ -84,7 +84,7 @@ export default defineConfig(({ mode }) => {
         strictMessage: false,
       }),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         minify: false,
         includeAssets: ['favicon.ico', 'img/*.svg'],
         manifest: {
