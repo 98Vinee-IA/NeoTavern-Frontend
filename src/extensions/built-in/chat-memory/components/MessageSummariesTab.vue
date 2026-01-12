@@ -1,0 +1,553 @@
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { Button, FormItem, Input, Textarea, Toggle } from '../../../../components/UI';
+import { useStrictI18n } from '../../../../composables/useStrictI18n';
+import type { ExtensionAPI } from '../../../../types';
+import { POPUP_RESULT, POPUP_TYPE } from '../../../../types';
+import type { TextareaToolDefinition } from '../../../../types/ExtensionAPI';
+import {
+  DEFAULT_MESSAGE_SUMMARY_PROMPT,
+  EXTENSION_KEY,
+  type ExtensionSettings,
+  type MemoryMessageExtra,
+} from '../types';
+import TimelineVisualizer, { type TimelineSegment } from './TimelineVisualizer.vue';
+
+const props = defineProps<{
+  api: ExtensionAPI<ExtensionSettings>;
+  connectionProfile?: string;
+}>();
+
+const { t } = useStrictI18n();
+
+// State
+const messageSummaryPrompt = ref<string>(DEFAULT_MESSAGE_SUMMARY_PROMPT);
+const enableMessageSummarization = ref(false);
+const autoMessageSummarize = ref(false);
+const bulkProgress = ref<{ current: number; total: number } | null>(null);
+const isGenerating = ref(false);
+const abortController = ref<AbortController | null>(null);
+
+// Range State
+const startIndex = ref<number>(0);
+const endIndex = ref<number>(0);
+
+// Computed
+const chatHistory = computed(() => props.api.chat.getHistory());
+const maxIndex = computed(() => {
+  const history = chatHistory.value;
+  return history.length > 0 ? history.length - 1 : 0;
+});
+const hasMessages = computed(() => chatHistory.value.length > 0);
+
+const messageStats = computed(() => {
+  const history = chatHistory.value;
+  let total = 0;
+  let summarized = 0;
+  history.forEach((msg) => {
+    if (msg.is_system) return;
+    total++;
+    const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    if (extra?.summary) summarized++;
+  });
+  return { total, summarized };
+});
+
+const timelineSegments = computed<TimelineSegment[]>(() => {
+  const segments: TimelineSegment[] = [];
+  const history = chatHistory.value;
+
+  // Map summarized messages
+  history.forEach((msg, idx) => {
+    if (msg.is_system) return;
+    const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    if (extra?.summary) {
+      // Coalesce adjacent segments if possible for performance?
+      // For now, individual segments are fine as CSS handles absolute positioning well enough
+      // But for 1000 messages, 1000 divs is heavy.
+      // Let's implement simple run-length encoding.
+      const lastSeg = segments[segments.length - 1];
+      if (lastSeg && lastSeg.type === 'summarized' && lastSeg.end === idx - 1) {
+        lastSeg.end = idx;
+        lastSeg.title = `Summarized: ${lastSeg.start} - ${idx}`;
+      } else {
+        segments.push({
+          start: idx,
+          end: idx,
+          type: 'summarized',
+          title: `Summarized: ${idx}`,
+        });
+      }
+    }
+  });
+
+  // Overlay Selection
+  if (isValidRange.value) {
+    segments.push({
+      start: startIndex.value,
+      end: endIndex.value,
+      type: 'selection',
+      title: `Selection: ${startIndex.value} - ${endIndex.value}`,
+    });
+  }
+
+  return segments;
+});
+
+const startIndexError = computed(() => {
+  if (!hasMessages.value) return 'No messages available';
+  if (startIndex.value === undefined || startIndex.value === null) return 'Value is required';
+  if (startIndex.value < 0) return 'Cannot be negative';
+  if (startIndex.value > maxIndex.value) return 'Index out of bounds';
+  if (startIndex.value > endIndex.value) return 'Start cannot be greater than End';
+  return undefined;
+});
+
+const endIndexError = computed(() => {
+  if (!hasMessages.value) return 'No messages available';
+  if (endIndex.value === undefined || endIndex.value === null) return 'Value is required';
+  if (endIndex.value < 0) return 'Cannot be negative';
+  if (endIndex.value > maxIndex.value) return 'Cannot exceed total messages';
+  if (endIndex.value < startIndex.value) return 'End cannot be less than Start';
+  return undefined;
+});
+
+const isValidRange = computed(() => hasMessages.value && !startIndexError.value && !endIndexError.value);
+
+const countUnsummarizedInRange = computed(() => {
+  if (!isValidRange.value) return 0;
+  let count = 0;
+  const history = chatHistory.value;
+  for (let i = startIndex.value; i <= endIndex.value; i++) {
+    const msg = history[i];
+    if (msg.is_system) continue;
+    const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    if (!extra?.summary) {
+      count++;
+    }
+  }
+  return count;
+});
+
+const countSummarizedInRange = computed(() => {
+  if (!isValidRange.value) return 0;
+  let count = 0;
+  const history = chatHistory.value;
+  for (let i = startIndex.value; i <= endIndex.value; i++) {
+    const msg = history[i];
+    const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    if (extra?.summary) {
+      count++;
+    }
+  }
+  return count;
+});
+
+const promptTools = computed<TextareaToolDefinition[]>(() => [
+  {
+    id: 'reset',
+    icon: 'fa-rotate-left',
+    title: t('common.reset'),
+    onClick: ({ setValue }) => {
+      setValue(DEFAULT_MESSAGE_SUMMARY_PROMPT);
+    },
+  },
+]);
+
+// Methods
+function loadSettings() {
+  const settings = props.api.settings.get();
+  if (settings) {
+    if (settings.enableMessageSummarization !== undefined)
+      enableMessageSummarization.value = settings.enableMessageSummarization;
+    if (settings.autoMessageSummarize !== undefined) autoMessageSummarize.value = settings.autoMessageSummarize;
+    if (settings.messageSummaryPrompt) messageSummaryPrompt.value = settings.messageSummaryPrompt;
+  }
+}
+
+function saveSettings() {
+  props.api.settings.set('enableMessageSummarization', enableMessageSummarization.value);
+  props.api.settings.set('autoMessageSummarize', autoMessageSummarize.value);
+  props.api.settings.set('messageSummaryPrompt', messageSummaryPrompt.value);
+  props.api.settings.save();
+}
+
+function cancelGeneration() {
+  if (abortController.value) {
+    abortController.value.abort();
+    abortController.value = null;
+    isGenerating.value = false;
+    bulkProgress.value = null;
+    props.api.ui.showToast(t('common.cancelled'), 'info');
+  }
+}
+
+async function summarizeRange(mode: 'missing-only' | 'force-all') {
+  if (!props.connectionProfile) {
+    props.api.ui.showToast('No connection profile selected', 'error');
+    return;
+  }
+  if (!isValidRange.value) return;
+
+  const history = chatHistory.value;
+  const targetIndices: number[] = [];
+
+  for (let i = startIndex.value; i <= endIndex.value; i++) {
+    const msg = history[i];
+    if (msg.is_system) continue;
+
+    const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    const hasSummary = !!extra?.summary;
+
+    if (mode === 'force-all' || !hasSummary) {
+      targetIndices.push(i);
+    }
+  }
+
+  if (targetIndices.length === 0) {
+    props.api.ui.showToast('No matching messages in range', 'info');
+    return;
+  }
+
+  const confirmMessage =
+    mode === 'force-all'
+      ? `This will re-summarize ${targetIndices.length} messages in the selected range, overwriting existing summaries.`
+      : `This will summarize ${targetIndices.length} unsummarized messages in the selected range.`;
+
+  const { result } = await props.api.ui.showPopup({
+    title: 'Summarize Messages',
+    content: `${confirmMessage} Continue?`,
+    type: POPUP_TYPE.CONFIRM,
+  });
+
+  if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+
+  isGenerating.value = true;
+  abortController.value = new AbortController();
+  bulkProgress.value = { current: 0, total: targetIndices.length };
+
+  try {
+    for (const idx of targetIndices) {
+      if (abortController.value?.signal.aborted) break;
+
+      const msg = history[idx];
+      const prompt = props.api.macro.process(messageSummaryPrompt.value, undefined, { text: msg.mes });
+
+      const response = await props.api.llm.generate([{ role: 'system', content: prompt, name: 'System' }], {
+        connectionProfileName: props.connectionProfile,
+      });
+
+      let fullContent = '';
+      if (typeof response === 'function') {
+        const generator = response();
+        for await (const chunk of generator) {
+          fullContent += chunk.delta;
+        }
+      } else {
+        fullContent = response.content;
+      }
+
+      const codeBlockRegex = /```(?:[\w]*\n)?([\s\S]*?)```/i;
+      const match = fullContent.match(codeBlockRegex);
+      const text = match && match[1] ? match[1].trim() : fullContent.trim();
+
+      const currentExtra = (msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra) || {};
+      await props.api.chat.updateMessageObject(idx, {
+        extra: {
+          ...msg.extra,
+          [EXTENSION_KEY]: { ...currentExtra, summary: text },
+        },
+      });
+
+      bulkProgress.value.current++;
+    }
+
+    if (!abortController.value?.signal.aborted) {
+      props.api.ui.showToast('Summarization complete', 'success');
+    }
+  } catch (error) {
+    console.error('Range summarization error', error);
+    props.api.ui.showToast('Error during summarization', 'error');
+  } finally {
+    isGenerating.value = false;
+    bulkProgress.value = null;
+    abortController.value = null;
+  }
+}
+
+async function clearRange() {
+  if (!isValidRange.value) return;
+
+  const count = countSummarizedInRange.value;
+  if (count === 0) {
+    props.api.ui.showToast('No summaries to clear in range', 'info');
+    return;
+  }
+
+  const { result } = await props.api.ui.showPopup({
+    title: 'Clear Summaries',
+    content: `This will delete summaries for ${count} messages in the selected range. Are you sure?`,
+    type: POPUP_TYPE.CONFIRM,
+    okButton: 'common.delete',
+    cancelButton: 'common.cancel',
+  });
+
+  if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+
+  const history = chatHistory.value;
+  let deletedCount = 0;
+
+  for (let i = startIndex.value; i <= endIndex.value; i++) {
+    const msg = history[i];
+    const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    if (extra?.summary) {
+      await props.api.chat.updateMessageObject(i, {
+        extra: {
+          ...msg.extra,
+          [EXTENSION_KEY]: { ...extra, summary: undefined },
+        },
+      });
+      deletedCount++;
+    }
+  }
+  props.api.ui.showToast(`Cleared ${deletedCount} summaries`, 'success');
+}
+
+async function handleDeleteAll() {
+  const { result } = await props.api.ui.showPopup({
+    title: 'Delete All Summaries',
+    content: 'This will delete all per-message summaries in the entire chat. Are you sure?',
+    type: POPUP_TYPE.CONFIRM,
+    okButton: 'common.delete',
+    cancelButton: 'common.cancel',
+  });
+
+  if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+
+  const history = chatHistory.value;
+  let count = 0;
+
+  for (let i = 0; i < history.length; i++) {
+    const msg = history[i];
+    const extra = msg.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    if (extra?.summary) {
+      await props.api.chat.updateMessageObject(i, {
+        extra: {
+          ...msg.extra,
+          [EXTENSION_KEY]: { ...extra, summary: undefined },
+        },
+      });
+      count++;
+    }
+  }
+  props.api.ui.showToast(`Removed summaries from ${count} messages`, 'success');
+}
+
+onMounted(() => {
+  endIndex.value = maxIndex.value;
+  // Suggest a reasonable range? Or just all.
+  // Default to all for message summaries as that's often the intent, or user filters.
+  startIndex.value = 0;
+
+  loadSettings();
+});
+
+onUnmounted(() => {
+  if (abortController.value) {
+    abortController.value.abort();
+  }
+});
+
+watch(
+  [enableMessageSummarization, autoMessageSummarize, messageSummaryPrompt],
+  () => {
+    saveSettings();
+  },
+  { deep: true },
+);
+</script>
+
+<template>
+  <div class="message-summaries-tab">
+    <div class="section">
+      <div class="section-title">Settings</div>
+      <FormItem>
+        <Toggle v-model="enableMessageSummarization" label="Enable Message Summarization" />
+      </FormItem>
+      <FormItem
+        label="Auto-summarize new messages"
+        description="Automatically generate summaries for new messages as they arrive."
+      >
+        <Toggle v-model="autoMessageSummarize" :disabled="!enableMessageSummarization" label="Auto-trigger" />
+      </FormItem>
+      <FormItem label="Message Summary Prompt" description="Prompt used to summarize a single message.">
+        <Textarea
+          v-model="messageSummaryPrompt"
+          :rows="4"
+          allow-maximize
+          :tools="promptTools"
+          identifier="extension.chat-memory.message-prompt"
+        />
+      </FormItem>
+    </div>
+
+    <div class="section highlight">
+      <div class="section-title">Manage Range</div>
+      <TimelineVisualizer :total-items="maxIndex + 1" :segments="timelineSegments" />
+      <div class="stats-row">
+        <span>Total: {{ messageStats.total }}</span>
+        <span>Summarized: {{ messageStats.summarized }}</span>
+      </div>
+
+      <div class="row">
+        <FormItem label="Start Index" style="flex: 1" :error="startIndexError">
+          <Input v-model.number="startIndex" type="number" :min="0" :max="endIndex" />
+        </FormItem>
+        <FormItem label="End Index" style="flex: 1" :error="endIndexError">
+          <Input v-model.number="endIndex" type="number" :min="startIndex" :max="maxIndex" />
+        </FormItem>
+      </div>
+
+      <div v-if="bulkProgress" class="progress-bar">
+        <div class="progress-fill" :style="{ width: (bulkProgress.current / bulkProgress.total) * 100 + '%' }"></div>
+        <span class="progress-text">{{ bulkProgress.current }} / {{ bulkProgress.total }}</span>
+      </div>
+
+      <div class="actions">
+        <template v-if="isGenerating">
+          <Button variant="danger" icon="fa-stop" @click="cancelGeneration"> Stop </Button>
+        </template>
+        <template v-else>
+          <Button
+            variant="danger"
+            icon="fa-eraser"
+            :disabled="!isValidRange || countSummarizedInRange === 0"
+            @click="clearRange"
+          >
+            Clear Range
+          </Button>
+          <Button
+            icon="fa-rotate"
+            :disabled="
+              !enableMessageSummarization || !connectionProfile || !isValidRange || countSummarizedInRange === 0
+            "
+            title="Re-summarize all messages in range, including existing ones"
+            @click="summarizeRange('force-all')"
+          >
+            Resummarize All
+          </Button>
+          <Button
+            icon="fa-wand-magic-sparkles"
+            :disabled="
+              !enableMessageSummarization || !connectionProfile || !isValidRange || countUnsummarizedInRange === 0
+            "
+            :title="`Summarize ${countUnsummarizedInRange} missing messages in range`"
+            @click="summarizeRange('missing-only')"
+          >
+            Summarize Missing
+          </Button>
+        </template>
+      </div>
+    </div>
+
+    <div class="section danger-zone">
+      <div class="section-title">Global Actions</div>
+      <div class="actions">
+        <Button variant="danger" icon="fa-trash-can" @click="handleDeleteAll"> Delete All Summaries </Button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.message-summaries-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--theme-border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.highlight {
+    background-color: var(--black-30a);
+    padding: 15px;
+    border-radius: var(--base-border-radius);
+    border: 1px solid var(--theme-underline-color);
+  }
+
+  &.danger-zone {
+    margin-top: 10px;
+    border: 1px solid var(--color-accent-red);
+    padding: 15px;
+    border-radius: var(--base-border-radius);
+
+    .section-title {
+      color: var(--color-accent-red);
+    }
+  }
+}
+
+.section-title {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: var(--theme-text-color);
+  margin-bottom: 5px;
+}
+
+.row {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
+.stats-row {
+  display: flex;
+  gap: 20px;
+  font-size: 0.9em;
+  color: var(--theme-emphasis-color);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 5px 0;
+  flex-wrap: wrap;
+}
+
+.progress-bar {
+  height: 20px;
+  background-color: var(--black-50a);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 10px;
+  border: 1px solid var(--theme-border-color);
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--color-accent-green);
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8em;
+    font-weight: bold;
+    color: var(--white-100);
+    text-shadow: 0 0 2px black;
+  }
+}
+</style>

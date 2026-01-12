@@ -789,7 +789,7 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
         if (componentRegistryStore.rightSidebarRegistry.has(namespacedId)) layoutStore.toggleRightSidebar(namespacedId);
       }
     },
-    registerTextareaTool: (identifier: CodeMirrorTarget, definition: TextareaToolDefinition) => {
+    registerTextareaTool: (identifier: CodeMirrorTarget | string | RegExp, definition: TextareaToolDefinition) => {
       const toolId = definition.id.startsWith(extensionId) ? definition.id : `${extensionId}.${definition.id}`;
       useComponentRegistryStore().registerTextareaTool(identifier, { ...definition, id: toolId });
       return () => useComponentRegistryStore().unregisterTextareaTool(identifier, toolId);

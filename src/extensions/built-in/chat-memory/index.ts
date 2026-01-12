@@ -335,7 +335,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
 
   unbinds.push(
     api.events.on('setting:changed', (path) => {
-      if (path === 'core.chat-memory' as SettingsPath || path?.startsWith('core.chat-memory')) {
+      if (path === ('core.chat-memory' as SettingsPath) || path?.startsWith('core.chat-memory')) {
         updateAllMessages();
       }
     }),
