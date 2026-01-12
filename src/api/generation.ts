@@ -607,7 +607,7 @@ export class ChatCompletionService {
       let finalContent = messageContent.trim();
 
       // Apply Reasoning Template if provided and reasoning wasn't already extracted (or even if it was, maybe additional reasoning in content)
-      if (options.reasoningTemplate) {
+      if (options.reasoningTemplate && options.reasoningTemplate.prefix && options.reasoningTemplate.suffix) {
         const extracted = extractReasoningWithTemplate(messageContent, options.reasoningTemplate);
         // If we found reasoning in content, prioritize it or append?
         // Usually if model supports native reasoning, content is clean.
@@ -651,7 +651,10 @@ export class ChatCompletionService {
       let isFirstChunk = true;
       let stopStream = false;
 
-      const reasoningParser = options.reasoningTemplate ? new StreamReasoningParser(options.reasoningTemplate) : null;
+      // Only enable parser if template is fully valid
+      const shouldParseReasoning =
+        options.reasoningTemplate && options.reasoningTemplate.prefix && options.reasoningTemplate.suffix;
+      const reasoningParser = shouldParseReasoning ? new StreamReasoningParser(options.reasoningTemplate!) : null;
 
       try {
         while (true) {
