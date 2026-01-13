@@ -149,6 +149,17 @@ export const useChatStore = defineStore('chat', () => {
   );
 
   eventEmitter.on(
+    'chat:deleted',
+    (filename: string) => {
+      const index = chatInfos.value.findIndex((c) => c.file_id === filename);
+      if (index !== -1) {
+        chatInfos.value.splice(index, 1);
+      }
+    },
+    EventPriority.HIGH,
+  );
+
+  eventEmitter.on(
     'character:first-message-updated',
     async (avatar: string, charData: Character) => {
       if (

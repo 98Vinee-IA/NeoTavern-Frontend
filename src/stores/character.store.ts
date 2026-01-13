@@ -5,6 +5,7 @@ import { computed, nextTick, ref } from 'vue';
 import { useAutoSave } from '../composables/useAutoSave';
 import { useCharacterTokens } from '../composables/useCharacterTokens';
 import { characterService } from '../services/character.service';
+import { chatService } from '../services/chat.service';
 import { type Character, type CropData } from '../types';
 import { getCharacterDifferences } from '../utils/character';
 import { onlyUnique } from '../utils/commons';
@@ -156,7 +157,14 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   async function deleteCharacter(avatar: string, deleteChats: boolean) {
-    await characterService.delete(avatar, deleteChats);
+    if (deleteChats) { // TODO: Move to noetavern backend
+      const character = characters.value.find((c) => c.avatar === avatar);
+      if (character && character.chat) {
+        await chatService.delete(character.chat);
+        await eventEmitter.emit('chat:deleted', character.chat);
+      }
+    }
+    await characterService.delete(avatar, false);
     await eventEmitter.emit('character:deleted', avatar);
 
     const index = characters.value.findIndex((c) => c.avatar === avatar);
