@@ -12,7 +12,7 @@ import type {
   WorldInfoBook,
   WorldInfoSettings,
 } from '../types';
-import { eventEmitter } from '../utils/extensions';
+import { countTokens, eventEmitter } from '../utils/extensions';
 import { macroService } from './macro-service';
 import { WorldInfoProcessor } from './world-info';
 
@@ -218,7 +218,7 @@ export class PromptBuilder {
 
     for (const prompt of fixedPrompts) {
       if (prompt.content !== historyPlaceholder.content) {
-        currentTokenCount += await this.tokenizer.getTokenCount(prompt.content);
+        currentTokenCount += await countTokens(prompt.content, this.tokenizer);
       }
     }
 
@@ -230,7 +230,7 @@ export class PromptBuilder {
     const insertMessages = async (msgs: ApiChatMessage[]): Promise<boolean> => {
       for (let i = msgs.length - 1; i >= 0; i--) {
         const msg = msgs[i];
-        const tokenCount = await this.tokenizer.getTokenCount(msg.content);
+        const tokenCount = await countTokens(msg.content, this.tokenizer);
         if (historyTokenCount + tokenCount <= historyBudget) {
           historyTokenCount += tokenCount;
           historyMessages.unshift(msg);
@@ -258,7 +258,6 @@ export class PromptBuilder {
     let currentDepth = 0;
 
     // Process Depth 0 (At the very end of history)
-    // TODO: Logic for 'continue' generation handling for depth 0 injection
     if (depthEntriesMap.has(0)) {
       const msgs = depthEntriesMap.get(0)!;
       await insertMessages(msgs);
@@ -290,7 +289,7 @@ export class PromptBuilder {
         chatLength: this.chatHistory.length,
       });
 
-      const msgTokenCount = await this.tokenizer.getTokenCount(apiMsg.content);
+      const msgTokenCount = await countTokens(apiMsg.content, this.tokenizer);
 
       if (historyTokenCount + msgTokenCount <= historyBudget) {
         historyTokenCount += msgTokenCount;

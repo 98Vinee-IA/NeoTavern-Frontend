@@ -11,12 +11,13 @@ export const useUiStore = defineStore('ui', () => {
   const zoomedAvatars = ref<ZoomedAvatar[]>([]);
 
   function toggleZoomedAvatar(avatarData: Omit<ZoomedAvatar, 'id'>) {
-    const id = avatarData.charName;
+    const id = avatarData.src;
     const existingIndex = zoomedAvatars.value.findIndex((avatar) => avatar.id === id);
 
     if (existingIndex > -1) {
       zoomedAvatars.value.splice(existingIndex, 1);
     } else {
+      // @ts-expect-error yeah yeah
       zoomedAvatars.value.push({ ...avatarData, id });
     }
   }

@@ -168,6 +168,40 @@ export const aiConfigDefinition: AiConfigSection[] = [
     ],
   },
   {
+    id: 'media-settings',
+    conditions: [
+      {
+        capability: 'vision',
+      },
+    ],
+    items: [
+      { widget: 'hr' },
+      {
+        id: 'api.sendMedia',
+        widget: 'checkbox',
+        label: 'aiConfig.media.send.label',
+        description: 'aiConfig.media.send.description',
+      },
+      {
+        id: 'api.imageQuality',
+        widget: 'select',
+        label: 'aiConfig.media.imageQuality.label',
+        options: [
+          { value: 'auto', label: 'aiConfig.media.imageQuality.options.auto' },
+          { value: 'low', label: 'aiConfig.media.imageQuality.options.low' },
+          { value: 'high', label: 'aiConfig.media.imageQuality.options.high' },
+        ],
+      },
+      {
+        widget: 'info-display',
+        description: 'aiConfig.media.limits.google',
+        conditions: {
+          provider: ['makersuite', 'vertexai'],
+        },
+      },
+    ],
+  },
+  {
     id: 'sampling-sliders-1',
     items: [
       {

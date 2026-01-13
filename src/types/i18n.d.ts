@@ -464,6 +464,23 @@ export interface MessageSchema {
       tfsZ: string;
       typicalP: string;
     };
+    media: {
+      send: {
+        label: string;
+        description: string;
+      };
+      imageQuality: {
+        label: string;
+        options: {
+          auto: string;
+          low: string;
+          high: string;
+        };
+      };
+      limits: {
+        google: string;
+      };
+    };
   };
   userSettings: {
     searchPlaceholder: string;
@@ -589,6 +606,8 @@ export interface MessageSchema {
       itemization: string;
       showInPrompt: string;
       hideFromPrompt: string;
+      ignoreImage: string;
+      unignoreImage: string;
     };
     delete: {
       confirmTitle: string;
@@ -641,6 +660,19 @@ export interface MessageSchema {
       showRaw: string;
       showWorldInfo: string;
       copy: string;
+    };
+    media: {
+      videoTooLong: string;
+      metadataError: string;
+      tooLarge: string;
+      unsupportedType: string;
+      notSupported: string;
+      unsupportedVision: string;
+      unsupportedVideo: string;
+      unsupportedAudio: string;
+      dropFiles: string;
+      uploadError: string;
+      attach: string;
     };
   };
   character: {

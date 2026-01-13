@@ -352,6 +352,9 @@ export interface Settings {
     reasoningTemplateName?: string;
     customPromptPostProcessing: CustomPromptPostProcessing;
 
+    sendMedia: boolean;
+    imageQuality: 'auto' | 'low' | 'high';
+
     providerSpecific: {
       openrouter: {
         useFallback: boolean;

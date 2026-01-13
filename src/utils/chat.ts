@@ -1,10 +1,25 @@
 import DOMPurify, { type Config } from 'dompurify';
 import hljs from 'highlight.js';
-import { Marked, type TokenizerAndRendererExtension } from 'marked';
+import { Marked, type Token, type TokenizerAndRendererExtension } from 'marked';
 import { macroService, type MacroContextData } from '../services/macro-service';
-import type { ChatMessage } from '../types';
+import type { ChatMediaItem, ChatMessage } from '../types';
 import { getMessageTimeStamp } from './commons';
 import { scopeHtml } from './style-scoper';
+
+/**
+ * Heuristic to check if a string is a self-contained HTML block.
+ * This is used to decide whether to parse as Markdown or treat as raw HTML.
+ * It helps preserve structure and <style> tags that Markdown might mangle.
+ * @param text The string to check.
+ */
+function isHtmlBlock(text: string): boolean {
+  const trimmed = text.trim();
+  // Regex Breakdown:
+  // ^<([a-z][a-z0-9-]*)\b  : Starts with <tagname (word boundary ensures strict match)
+  // [\s\S]*                : Any content in between
+  // <\/\1>$                : Ends with </tagname> (matching the captured tag name)
+  return /^<([a-z][a-z0-9-]*)\b[\s\S]*<\/\1>$/i.test(trimmed);
+}
 
 // --- Markdown & Formatting ---
 
@@ -79,7 +94,7 @@ const PLACEHOLDER_TAG = 'x-style-placeholder';
 // Helper to handle DOMPurify in both Browser and Test (Node/JSDOM) environments
 let sanitizerInstance: typeof DOMPurify | null = null;
 
-function getSanitizer() {
+function getSanitizer(): typeof DOMPurify {
   if (sanitizerInstance) return sanitizerInstance;
 
   if (typeof DOMPurify === 'function') {
@@ -88,28 +103,36 @@ function getSanitizer() {
   } else {
     sanitizerInstance = DOMPurify;
   }
-  return sanitizerInstance;
+  return sanitizerInstance as typeof DOMPurify;
 }
 
-export function formatText(text: string, forbidExternalMedia: boolean = false): string {
+export function formatText(text: string, forbidExternalMedia: boolean = false, ignoredMedia: string[] = []): string {
   if (!text) return '';
 
   let rawHtml: string;
-  const trimmed = text.trim();
 
-  // Heuristic: If text is a self-contained HTML block (starts with <tag and ends with </tag>),
-  // treat it as raw HTML. This preserves structure and <style> tags that Markdown might mangle.
-  //
-  // Regex Breakdown:
-  // ^<([a-z][a-z0-9-]*)\b  : Starts with <tagname (word boundary ensures strict match)
-  // [\s\S]*                : Any content in between
-  // <\/\1>$                : Ends with </tagname> (matching the captured tag name)
-  const isHtmlWrapper = /^<([a-z][a-z0-9-]*)\b[\s\S]*<\/\1>$/i.test(trimmed);
+  const customRenderer = new marked.Renderer();
+  Object.assign(customRenderer, renderer);
 
-  if (isHtmlWrapper) {
+  customRenderer.image = ({ href, title, text }) => {
+    if (!href) return text;
+
+    const sanitizedHref = getSanitizer().sanitize(href) as string;
+    const isIgnored = ignoredMedia.includes(sanitizedHref);
+
+    const sanitizedTitle = title ? (getSanitizer().sanitize(title) as string) : '';
+    const sanitizedText = getSanitizer().sanitize(text) as string;
+    const ignoredClass = isIgnored ? 'is-ignored' : '';
+
+    return `<img src="${sanitizedHref}" alt="${sanitizedText}" title="${
+      sanitizedTitle || sanitizedText
+    }" class="message-content-image ${ignoredClass}">`;
+  };
+
+  if (isHtmlBlock(text)) {
     rawHtml = text;
   } else {
-    rawHtml = marked.parse(text) as string;
+    rawHtml = marked.parse(text, { renderer: customRenderer }) as string;
   }
 
   // Mask <style> tags to prevent DOMPurify from stripping them (e.g. due to @keyframes or other complex CSS)
@@ -150,13 +173,45 @@ export function formatText(text: string, forbidExternalMedia: boolean = false): 
 
 export function formatMessage(message: ChatMessage, forbidExternalMedia: boolean = false): string {
   const textToFormat = message?.extra?.display_text || message.mes;
-  return formatText(textToFormat, forbidExternalMedia);
+  const ignored = message.extra?.ignored_media ?? [];
+  return formatText(textToFormat, forbidExternalMedia, ignored);
 }
 
 export function formatReasoning(message: ChatMessage, forbidExternalMedia: boolean = false): string {
   if (!message.extra?.reasoning) return '';
   const textToFormat = message.extra.reasoning_display_text || message.extra.reasoning;
-  return formatText(textToFormat, forbidExternalMedia);
+  const ignored = message.extra?.ignored_media ?? [];
+  return formatText(textToFormat, forbidExternalMedia, ignored);
+}
+
+export function extractMediaFromMarkdown(text: string): ChatMediaItem[] {
+  if (isHtmlBlock(text)) {
+    return [];
+  }
+
+  const tokens = marked.lexer(text);
+  const mediaItems: ChatMediaItem[] = [];
+  const seenUrls = new Set<string>();
+
+  function walkTokens(tokens: Token[]) {
+    for (const token of tokens) {
+      if (token.type === 'image' && token.href && !seenUrls.has(token.href)) {
+        mediaItems.push({
+          source: 'inline',
+          type: 'image',
+          url: token.href,
+          title: token.title ?? token.text,
+        });
+        seenUrls.add(token.href);
+      }
+      if ('tokens' in token && token.tokens) {
+        walkTokens(token.tokens);
+      }
+    }
+  }
+
+  walkTokens(tokens);
+  return mediaItems;
 }
 
 // --- Chat Initialization ---
@@ -181,6 +236,11 @@ export function getFirstMessage(context: MacroContextData): ChatMessage | null {
     swipes: firstMes ? [firstMes] : [],
     swipe_info: firstMes ? [{ extra: {}, send_date: getMessageTimeStamp() }] : [],
   };
+
+  const inlineMedia = extractMediaFromMarkdown(firstMes);
+  if (inlineMedia.length > 0) {
+    message.extra.media = inlineMedia;
+  }
 
   if (Array.isArray(alternateGreetings) && alternateGreetings.length > 0) {
     const swipes = [message.mes, ...alternateGreetings.map((greeting) => macroService.process(greeting, context))];

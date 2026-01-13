@@ -1,9 +1,10 @@
 import YAML from 'yaml';
 import { ReasoningEffort } from '../constants';
-import type { ApiProvider, ChatCompletionPayload, StreamedChunk } from '../types';
+import type { ApiModel, ApiProvider, ChatCompletionPayload, ModelCapability, StreamedChunk } from '../types';
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
 import type { ApiFormatter, SamplerSettings } from '../types/settings';
+import { isDataURL } from '../utils/media';
 
 /**
  * Defines how a setting maps to an API payload parameter.
@@ -103,6 +104,8 @@ export interface ProviderResponseHandler {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extractReasoning?: (data: any) => string | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extractImages?: (data: any) => string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getStreamingReply: (data: any, formatter?: ApiFormatter) => StreamedChunk;
 }
 
@@ -144,6 +147,185 @@ export const PROVIDER_CONFIG: Partial<Record<ApiProvider, ProviderConfig>> = {
   [api_providers.OLLAMA]: { textCompletionEndpoint: '/api/backends/text-completions/generate' },
   [api_providers.KOBOLDCPP]: { textCompletionEndpoint: '/api/backends/text-completions/generate' },
 };
+
+// --- Media Support Definitions ---
+
+const visionSupportedModels = [
+  // OpenAI
+  'chatgpt-4o-latest',
+  'gpt-4-turbo',
+  'gpt-4-vision',
+  'gpt-4.1',
+  'gpt-4.5-preview',
+  'gpt-4o',
+  'gpt-5',
+  'o1',
+  'o3',
+  'o4-mini',
+  // Claude
+  'claude-3',
+  'claude-opus-4',
+  'claude-sonnet-4',
+  'claude-haiku-4',
+  // Cohere
+  'c4ai-aya-vision',
+  'command-a-vision',
+  // Google AI Studio / Vertex
+  'gemini-2.0',
+  'gemini-2.5',
+  'gemini-3',
+  'gemini-exp-1206',
+  'learnlm',
+  'gemini-robotics',
+  // MistralAI
+  'mistral-small-2503',
+  'mistral-small-2506',
+  'mistral-small-latest',
+  'mistral-medium-latest',
+  'mistral-medium-2505',
+  'mistral-medium-2508',
+  'pixtral',
+  // xAI (Grok)
+  'grok-4',
+  'grok-2-vision',
+  // Moonshot
+  'moonshot-v1-8k-vision-preview',
+  'moonshot-v1-32k-vision-preview',
+  'moonshot-v1-128k-vision-preview',
+  // Z.AI (GLM)
+  'glm-4.5v',
+  'glm-4.6v',
+  'autoglm-phone',
+];
+
+const visionUnsupportedModels = ['gpt-4-turbo-preview', 'o1-mini', 'o3-mini'];
+
+const videoSupportedModels = [
+  // Gemini
+  'gemini-2.0',
+  'gemini-2.5',
+  'gemini-exp-1206',
+  'gemini-3',
+  // Z.AI (GLM)
+  'glm-4.5v',
+  'glm-4.6v',
+];
+
+const audioSupportedModels = [
+  // OpenAI
+  'gpt-4o-audio',
+  'gpt-4o-realtime',
+  'gpt-4o-mini-audio',
+  'gpt-4o-mini-realtime',
+  'gpt-audio',
+  'gpt-realtime',
+  // Gemini
+  'gemini-2.0',
+  'gemini-2.5',
+  'gemini-3',
+  'gemini-exp-1206',
+];
+
+export interface ModelCapabilities {
+  vision: boolean;
+  video: boolean;
+  audio: boolean;
+}
+
+export function getModelCapabilities(
+  provider: ApiProvider,
+  modelId: string,
+  modelList?: ApiModel[],
+): ModelCapabilities {
+  const capabilities: ModelCapabilities = {
+    vision: false,
+    video: false,
+    audio: false,
+  };
+
+  if (!modelId) return capabilities;
+
+  const currentModel = modelList?.find((m) => m.id === modelId);
+
+  // Vision Capability
+  switch (provider) {
+    case api_providers.OPENAI:
+    case api_providers.AZURE_OPENAI:
+      capabilities.vision =
+        visionSupportedModels.some((m) => modelId.includes(m)) &&
+        !visionUnsupportedModels.some((m) => modelId.includes(m));
+      break;
+    case api_providers.MAKERSUITE:
+    case api_providers.VERTEXAI:
+    case api_providers.CLAUDE:
+    case api_providers.COHERE:
+    case api_providers.XAI:
+    case api_providers.MOONSHOT:
+    case api_providers.ZAI:
+      capabilities.vision = visionSupportedModels.some((m) => modelId.includes(m));
+      break;
+    case api_providers.OPENROUTER:
+      capabilities.vision = !!currentModel?.architecture?.input_modalities?.includes('image');
+      break;
+    case api_providers.MISTRALAI:
+      capabilities.vision = !!currentModel?.capabilities?.vision;
+      break;
+    case api_providers.AIMLAPI:
+      capabilities.vision = !!currentModel?.features?.includes('openai/chat-completion.vision');
+      break;
+    case api_providers.ELECTRONHUB:
+      capabilities.vision = !!currentModel?.metadata?.vision;
+      break;
+    case api_providers.POLLINATIONS:
+      capabilities.vision = !!currentModel?.vision;
+      break;
+    case api_providers.NANOGPT:
+      capabilities.vision = !!currentModel?.capabilities?.vision;
+      break;
+    case api_providers.CUSTOM:
+    case api_providers.COMETAPI:
+      capabilities.vision = true;
+      break;
+  }
+
+  // Video Capability
+  switch (provider) {
+    case api_providers.MAKERSUITE:
+    case api_providers.VERTEXAI:
+    case api_providers.ZAI:
+      capabilities.video = videoSupportedModels.some((m) => modelId.includes(m));
+      break;
+    case api_providers.OPENROUTER:
+      capabilities.video = !!currentModel?.architecture?.input_modalities?.includes('video');
+      break;
+  }
+
+  // Audio Capability
+  switch (provider) {
+    case api_providers.OPENAI:
+    case api_providers.MAKERSUITE:
+    case api_providers.VERTEXAI:
+      capabilities.audio = audioSupportedModels.some((m) => modelId.includes(m));
+      break;
+    case api_providers.OPENROUTER:
+      capabilities.audio = !!currentModel?.architecture?.input_modalities?.includes('audio');
+      break;
+    case api_providers.CUSTOM:
+      capabilities.audio = true;
+      break;
+  }
+
+  return capabilities;
+}
+
+export function isCapabilitySupported(
+  capability: ModelCapability,
+  provider: ApiProvider,
+  modelId: string,
+  modelList?: ApiModel[],
+): boolean {
+  return getModelCapabilities(provider, modelId, modelList)[capability];
+}
 
 // --- Response Handlers ---
 
@@ -249,14 +431,42 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ?.map((p: any) => p.text)
         ?.join('\n\n') ?? '',
-    getStreamingReply: (data) => ({
-      delta:
+    extractImages: (data) => {
+      const inlineData = data?.responseContent?.parts
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data?.candidates?.[0]?.content?.parts?.filter((x: any) => !x.thought)?.map((x: any) => x.text)?.[0] || '',
-      reasoning:
+        ?.filter((x: any) => x.inlineData && !x.thought)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
-    }),
+        ?.map((x: any) => x.inlineData);
+      if (Array.isArray(inlineData) && inlineData.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return inlineData.map((x: any) => `data:${x.mimeType};base64,${x.data}`).filter(isDataURL);
+      }
+      return [];
+    },
+    getStreamingReply: (data) => {
+      const images: string[] = [];
+
+      const inlineData =
+        data?.candidates?.[0]?.content?.parts
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ?.filter((x: any) => x.inlineData && !x.thought)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ?.map((x: any) => x.inlineData) || [];
+      if (Array.isArray(inlineData) && inlineData.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        images.push(...inlineData.map((x: any) => `data:${x.mimeType};base64,${x.data}`).filter(isDataURL));
+      }
+
+      return {
+        delta:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data?.candidates?.[0]?.content?.parts?.filter((x: any) => !x.thought)?.map((x: any) => x.text)?.[0] || '',
+        reasoning:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
+        images,
+      };
+    },
   },
   [api_providers.VERTEXAI]: {
     extractMessage: (data) =>
@@ -273,14 +483,42 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ?.map((p: any) => p.text)
         ?.join('\n\n') ?? '',
-    getStreamingReply: (data) => ({
-      delta:
+    extractImages: (data) => {
+      const inlineData = data?.responseContent?.parts
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data?.candidates?.[0]?.content?.parts?.filter((x: any) => !x.thought)?.map((x: any) => x.text)?.[0] || '',
-      reasoning:
+        ?.filter((x: any) => x.inlineData && !x.thought)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
-    }),
+        ?.map((x: any) => x.inlineData);
+      if (Array.isArray(inlineData) && inlineData.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return inlineData.map((x: any) => `data:${x.mimeType};base64,${x.data}`).filter(isDataURL);
+      }
+      return [];
+    },
+    getStreamingReply: (data) => {
+      const images: string[] = [];
+
+      const inlineData =
+        data?.candidates?.[0]?.content?.parts
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ?.filter((x: any) => x.inlineData && !x.thought)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ?.map((x: any) => x.inlineData) || [];
+      if (Array.isArray(inlineData) && inlineData.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        images.push(...inlineData.map((x: any) => `data:${x.mimeType};base64,${x.data}`).filter(isDataURL));
+      }
+
+      return {
+        delta:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data?.candidates?.[0]?.content?.parts?.filter((x: any) => !x.thought)?.map((x: any) => x.text)?.[0] || '',
+        reasoning:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
+        images,
+      };
+    },
   },
   [api_providers.MISTRALAI]: {
     extractMessage: (data) => {
@@ -318,11 +556,50 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
       };
     },
   },
+  [api_providers.OPENROUTER]: {
+    extractMessage: DEFAULT_HANDLER.extractMessage,
+    extractReasoning: GENERIC_REASONING_EXTRACTOR,
+    extractImages: (data) => {
+      const imageUrl = data?.choices[0]?.message?.images
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ?.filter((x: any) => x.type === 'image_url')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ?.map((x: any) => x?.image_url?.url);
+      if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+        return imageUrl.filter(isDataURL);
+      }
+      return [];
+    },
+    getStreamingReply: (data) => {
+      const images: string[] = [];
+
+      const imageUrls =
+        data?.choices?.[0]?.delta?.images
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ?.filter((x: any) => x.type === 'image_url')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ?.map((x: any) => x?.image_url?.url) || [];
+      if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+        images.push(...imageUrls.filter(isDataURL));
+      }
+
+      return {
+        delta:
+          data.choices?.[0]?.delta?.content ?? data.choices?.[0]?.message?.content ?? data.choices?.[0]?.text ?? '',
+        reasoning:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.choices?.filter((x: any) => x?.delta?.reasoning_content)?.[0]?.delta?.reasoning_content ??
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.choices?.filter((x: any) => x?.delta?.reasoning)?.[0]?.delta?.reasoning ??
+          '',
+        images,
+      };
+    },
+  },
 };
 
 // Populate generic handlers for reasoning providers
 const REASONING_SUPPORTED = [
-  api_providers.OPENROUTER,
   api_providers.DEEPSEEK,
   api_providers.XAI,
   api_providers.AIMLAPI,

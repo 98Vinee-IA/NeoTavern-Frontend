@@ -86,6 +86,48 @@
   }
 }
 
+.chat-dropzone-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: calc(var(--z-modal) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--black-70a);
+  border: 3px dashed var(--theme-underline-color);
+  border-radius: var(--base-border-radius-rounded);
+  margin: var(--spacing-lg);
+  pointer-events: none;
+  transition:
+    opacity var(--animation-duration-sm) ease-in-out,
+    transform var(--animation-duration-sm) ease-in-out;
+  opacity: 0;
+  transform: scale(0.95);
+
+  &.active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  &-content {
+    text-align: center;
+    color: var(--white-100);
+
+    .icon {
+      font-size: 3em;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .text {
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+  }
+}
+
 .chat-form {
   @include flex-container(column);
   align-items: flex-end; // Align to bottom for multiline
@@ -96,6 +138,50 @@
   background-color: var(--theme-background-tint);
   position: relative;
   padding: var(--spacing-xs);
+
+  &-media-previews {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-xs) 0;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: var(--spacing-xs);
+
+    .media-preview-item {
+      position: relative;
+      flex-shrink: 0;
+
+      img {
+        width: 64px;
+        height: 64px;
+        object-fit: cover;
+        border-radius: var(--base-border-radius);
+        border: 1px solid var(--theme-border-color);
+      }
+
+      .remove-media-btn {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background-color: var(--black-90a);
+        color: var(--white-100);
+        border: 1px solid var(--white-50a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.8em;
+        transition: background-color var(--animation-duration-sm);
+
+        &:hover {
+          background-color: var(--color-accent-crimson-hover);
+        }
+      }
+    }
+  }
 
   &-inner {
     width: 100%;

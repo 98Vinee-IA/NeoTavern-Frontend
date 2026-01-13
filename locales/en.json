@@ -460,6 +460,23 @@
       "numKeep": "Keep Context",
       "tfsZ": "TFS Z",
       "typicalP": "Typical P"
+    },
+    "media": {
+      "send": {
+        "label": "Send Media",
+        "description": "Sends media in prompts if supported by the model."
+      },
+      "imageQuality": {
+        "label": "Image Quality",
+        "options": {
+          "auto": "Auto",
+          "low": "Low",
+          "high": "High"
+        }
+      },
+      "limits": {
+        "google": "For Google models: Videos must be less than 20 MB and under 1 minute long. Audio must be less than 20 MB."
+      }
     }
   },
   "userSettings": {
@@ -585,7 +602,9 @@
       "swipeRight": "Next swipe",
       "itemization": "Prompt Itemization",
       "showInPrompt": "Include message in prompt",
-      "hideFromPrompt": "Hide message from prompt"
+      "hideFromPrompt": "Hide message from prompt",
+      "ignoreImage": "Ignore image in prompt",
+      "unignoreImage": "Include image in prompt"
     },
     "delete": {
       "confirmTitle": "Confirm Deletion",
@@ -638,6 +657,19 @@
       "showRaw": "Show Raw Prompt",
       "showWorldInfo": "Show World Info",
       "copy": "Copy Prompt"
+    },
+    "media": {
+      "videoTooLong": "Video '{name}' is too long. It must be under 1 minute.",
+      "metadataError": "Failed to read media metadata.",
+      "tooLarge": "File '{name}' is too large.",
+      "unsupportedType": "Unsupported file type: {type}",
+      "notSupported": "Media uploads not supported by this model",
+      "unsupportedVision": "The current model does not support image uploads.",
+      "unsupportedVideo": "The current model does not support video uploads.",
+      "unsupportedAudio": "The current model does not support audio uploads.",
+      "dropFiles": "Drop files here to upload",
+      "uploadError": "Failed to upload media.",
+      "attach": "Upload Media"
     }
   },
   "character": {

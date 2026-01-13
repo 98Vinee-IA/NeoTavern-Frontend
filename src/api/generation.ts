@@ -125,6 +125,52 @@ export async function resolveConnectionProfileSettings(options: {
   };
 }
 
+export async function processMessagesWithPrefill(
+  messages: ApiChatMessage[],
+  postProcessingType: CustomPromptPostProcessing,
+): Promise<ApiChatMessage[]> {
+  if (postProcessingType === CustomPromptPostProcessing.NONE) {
+    return messages;
+  }
+
+  let processedMessages = [...messages];
+  const lastMsg = processedMessages.length > 0 ? processedMessages[processedMessages.length - 1] : null;
+  let isPrefill = false;
+
+  if (lastMsg && lastMsg.role === 'assistant') {
+    const contentStr =
+      typeof lastMsg.content === 'string'
+        ? lastMsg.content
+        : Array.isArray(lastMsg.content) &&
+            lastMsg.content.length > 0 &&
+            lastMsg.content[lastMsg.content.length - 1].type === 'text'
+          ? lastMsg.content[lastMsg.content.length - 1].text || ''
+          : '';
+    isPrefill = contentStr.trim().endsWith(':');
+  }
+
+  const lastPrefillMessage = isPrefill ? processedMessages.pop() : null;
+
+  processedMessages = await ChatCompletionService.formatMessages(processedMessages, postProcessingType);
+
+  if (lastPrefillMessage) {
+    if (
+      typeof lastPrefillMessage.content === 'string' &&
+      !lastPrefillMessage.content.startsWith(`${lastPrefillMessage.name}: `)
+    ) {
+      lastPrefillMessage.content = `${lastPrefillMessage.name}: ${lastPrefillMessage.content}`;
+    } else if (Array.isArray(lastPrefillMessage.content)) {
+      const textPart = lastPrefillMessage.content.find((p) => p.type === 'text');
+      if (textPart && textPart.text && !textPart.text.startsWith(`${lastPrefillMessage.name}: `)) {
+        textPart.text = `${lastPrefillMessage.name}: ${textPart.text}`;
+      }
+    }
+    processedMessages.push(lastPrefillMessage);
+  }
+
+  return processedMessages;
+}
+
 const PARAM_TO_GROUP_MAP: Record<string, string> = {};
 let isMapInitialized = false;
 
@@ -605,6 +651,7 @@ export class ChatCompletionService {
 
       let reasoning = responseHandler.extractReasoning ? responseHandler.extractReasoning(responseData) : undefined;
       let finalContent = messageContent.trim();
+      const images = responseHandler.extractImages ? responseHandler.extractImages(responseData) : undefined;
 
       // Apply Reasoning Template if provided and reasoning wasn't already extracted (or even if it was, maybe additional reasoning in content)
       if (options.reasoningTemplate && options.reasoningTemplate.prefix && options.reasoningTemplate.suffix) {
@@ -624,6 +671,7 @@ export class ChatCompletionService {
         content: finalContent,
         reasoning: reasoning?.trim(),
         token_count: tokenCount,
+        images,
       };
     }
 
@@ -702,14 +750,15 @@ export class ChatCompletionService {
 
                 const hasContentChange = deltaToYield.length > 0;
                 const hasReasoningChange = (chunk.reasoning && chunk.reasoning.length > 0) || reasoningDelta.length > 0;
+                const hasImages = chunk.images && chunk.images.length > 0;
 
-                if (hasContentChange || hasReasoningChange) {
+                if (hasContentChange || hasReasoningChange || hasImages) {
                   if (isFirstChunk && deltaToYield) {
                     deltaToYield = deltaToYield.trimStart();
                     isFirstChunk = false;
                   }
 
-                  yield { delta: deltaToYield, reasoning: reasoning };
+                  yield { delta: deltaToYield, reasoning: reasoning, images: chunk.images };
                 }
               } catch (e) {
                 console.error('Error parsing stream chunk:', data, e);

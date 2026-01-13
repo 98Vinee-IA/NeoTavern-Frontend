@@ -1,9 +1,25 @@
 import { computed, nextTick, ref, type Ref } from 'vue';
-import { buildChatCompletionPayload, ChatCompletionService, resolveConnectionProfileSettings } from '../api/generation';
+import {
+  buildChatCompletionPayload,
+  ChatCompletionService,
+  processMessagesWithPrefill,
+  resolveConnectionProfileSettings,
+} from '../api/generation';
+import { getModelCapabilities } from '../api/provider-definitions';
 import { ApiTokenizer } from '../api/tokenizer';
 import { CustomPromptPostProcessing, default_user_avatar, GenerationMode } from '../constants';
+import { PromptBuilder } from '../services/prompt-engine';
+import { useApiStore } from '../stores/api.store';
+import { useCharacterStore } from '../stores/character.store';
+import { usePersonaStore } from '../stores/persona.store';
+import { usePromptStore } from '../stores/prompt.store';
+import { useSettingsStore } from '../stores/settings.store';
+import { useUiStore } from '../stores/ui.store';
+import { useWorldInfoStore } from '../stores/world-info.store';
 import {
+  type ApiChatContentPart,
   type Character,
+  type ChatMediaItem,
   type ChatMessage,
   type ChatMetadata,
   type GenerationContext,
@@ -15,22 +31,14 @@ import {
   type SwipeInfo,
   type WorldInfoBook,
 } from '../types';
-import { toast } from './useToast';
-
-// Stores
-import { PromptBuilder } from '../services/prompt-engine';
-import { useApiStore } from '../stores/api.store';
-import { useCharacterStore } from '../stores/character.store';
-import { usePersonaStore } from '../stores/persona.store';
-import { usePromptStore } from '../stores/prompt.store';
-import { useSettingsStore } from '../stores/settings.store';
-import { useUiStore } from '../stores/ui.store';
-import { useWorldInfoStore } from '../stores/world-info.store';
 import { getThumbnailUrl } from '../utils/character';
+import { extractMediaFromMarkdown } from '../utils/chat';
 import { getMessageTimeStamp, uuidv4 } from '../utils/commons';
-import { eventEmitter } from '../utils/extensions';
+import { countTokens, eventEmitter } from '../utils/extensions';
 import { trimInstructResponse } from '../utils/instruct';
+import { compressImage, getImageTokenCost, getMediaDurationFromDataURL, isDataURL } from '../utils/media';
 import { useStrictI18n } from './useStrictI18n';
+import { toast } from './useToast';
 
 export interface ChatStateRef {
   messages: ChatMessage[];
@@ -84,19 +92,26 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
 
   async function sendMessage(
     messageText: string,
-    { triggerGeneration = true, generationId }: { triggerGeneration?: boolean; generationId?: string } = {},
+    {
+      triggerGeneration = true,
+      generationId,
+      media = [],
+    }: { triggerGeneration?: boolean; generationId?: string; media?: ChatMediaItem[] } = {},
   ) {
     if (!personaStore.activePersona) {
       toast.error(t('chat.generate.noPersonaError'));
       return;
     }
-    if (!messageText.trim() || isGenerating.value || deps.activeChat.value === null) {
+    if ((!messageText.trim() && media.length === 0) || isGenerating.value || deps.activeChat.value === null) {
       return;
     }
 
     deps.stopAutoModeTimer();
 
     const currentChatContext = deps.activeChat.value;
+
+    const inlineMedia = extractMediaFromMarkdown(messageText);
+    const allMedia = [...media, ...inlineMedia];
 
     const userMessage: ChatMessage = {
       name: uiStore.activePlayerName || 'User',
@@ -106,7 +121,9 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       force_avatar: getThumbnailUrl('persona', uiStore.activePlayerAvatar || default_user_avatar),
       original_avatar: personaStore.activePersona.avatarId,
       is_system: false,
-      extra: {},
+      extra: {
+        media: allMedia.length > 0 ? allMedia : undefined,
+      },
       swipe_id: 0,
       swipes: [messageText.trim()],
       swipe_info: [
@@ -416,16 +433,112 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     const messages = await promptBuilder.build();
     if (messages.length === 0) throw new Error(t('chat.generate.noPrompts'));
 
+    // --- Media Hydration Logic ---
+    let promptIdx = messages.length - 1;
+    let historyIdx = context.history.length - 1;
+
+    let mediaTokenCost = 0;
+    const mediaSendingEnabled = settings.api.sendMedia;
+    const modelCapabilities = getModelCapabilities(effectiveProvider, effectiveModel, apiStore.modelList);
+
+    // Only attach media if formatter is not 'text' and media sending is enabled
+    if (context.settings.formatter !== 'text' && mediaSendingEnabled) {
+      while (promptIdx >= 0 && historyIdx >= 0) {
+        const pMsg = messages[promptIdx];
+        const hMsg = context.history[historyIdx];
+
+        // Map Prompt message to History message by role
+        const pRole = pMsg.role;
+        const hRole = hMsg.is_user ? 'user' : 'assistant';
+
+        // Very basic matching. Since PromptBuilder preserves order of history, this usually works.
+        if (pRole === hRole) {
+          if (hMsg.extra?.media && hMsg.extra.media.length > 0) {
+            const contentParts: ApiChatContentPart[] = [];
+            // Add existing text content
+            if (typeof pMsg.content === 'string' && pMsg.content) {
+              contentParts.push({ type: 'text', text: pMsg.content });
+            } else if (Array.isArray(pMsg.content)) {
+              contentParts.push(...pMsg.content);
+            }
+
+            const ignoredMedia = hMsg.extra.ignored_media ?? [];
+            for (const mediaItem of hMsg.extra.media) {
+              // Skip ignored media items
+              if (
+                ignoredMedia.includes(mediaItem.url) ||
+                (mediaItem.source === 'inline' && settingsStore.settings.ui.chat.forbidExternalMedia)
+              ) {
+                continue;
+              }
+
+              try {
+                let dataUrl = mediaItem.url;
+                if (mediaItem.type === 'image' && modelCapabilities.vision) {
+                  const compressed = await compressImage(dataUrl);
+                  contentParts.push({
+                    type: 'image_url',
+                    image_url: {
+                      url: compressed,
+                      detail: settings.api.imageQuality,
+                    },
+                  });
+                  mediaTokenCost += await getImageTokenCost(compressed, settings.api.imageQuality);
+                } else if (
+                  (mediaItem.type === 'video' && modelCapabilities.video) ||
+                  (mediaItem.type === 'audio' && modelCapabilities.audio)
+                ) {
+                  if (!isDataURL(dataUrl)) {
+                    const response = await fetch(dataUrl);
+                    if (response.ok) {
+                      const blob = await response.blob();
+                      dataUrl = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result as string);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                      });
+                    }
+                  }
+
+                  if (mediaItem.type === 'video') {
+                    contentParts.push({ type: 'video_url', video_url: { url: dataUrl } });
+                    mediaTokenCost += 263 * Math.ceil(await getMediaDurationFromDataURL(dataUrl, 'video'));
+                  } else {
+                    contentParts.push({ type: 'audio_url', audio_url: { url: dataUrl } });
+                    mediaTokenCost += 32 * Math.ceil(await getMediaDurationFromDataURL(dataUrl, 'audio'));
+                  }
+                }
+              } catch (e) {
+                console.error('Failed to process media item:', e);
+              }
+            }
+            pMsg.content = contentParts;
+          }
+          historyIdx--;
+        }
+        promptIdx--;
+      }
+    }
+
     // Handle (Continue) injection
-    // If the last message is an assistant message that doesn't look like a prefill (ends in ':'),
-    // we inject a user message with '(Continue)' to force a new turn.
-    // If it looks like a prefill, we assume the model will complete it naturally.
     const lastPromptMsg = messages[messages.length - 1];
+    let isLastMsgPrefill = false;
+    if (lastPromptMsg && lastPromptMsg.role === 'assistant') {
+      const contentStr =
+        typeof lastPromptMsg.content === 'string'
+          ? lastPromptMsg.content
+          : Array.isArray(lastPromptMsg.content) && lastPromptMsg.content.length > 0
+            ? lastPromptMsg.content[lastPromptMsg.content.length - 1].text || ''
+            : '';
+      isLastMsgPrefill = contentStr.trim().endsWith(':');
+    }
+
     if (
       context.chatMetadata.members &&
       context.chatMetadata.members.length === 1 &&
       lastPromptMsg?.role === 'assistant' &&
-      !lastPromptMsg.content.trim().endsWith(':') &&
+      !isLastMsgPrefill &&
       [GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(mode)
     ) {
       messages.push({
@@ -435,9 +548,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       });
     }
 
-    const promptTotal = await Promise.all(messages.map((m) => tokenizer.getTokenCount(m.content))).then((counts) =>
-      counts.reduce((a, b) => a + b, 0),
+    const promptTotalText = await Promise.all(messages.map(async (m) => await countTokens(m.content, tokenizer))).then(
+      (counts) => counts.reduce((a, b) => a + b, 0),
     );
+
+    const promptTotal = promptTotalText + mediaTokenCost;
 
     const processedWorldInfo = promptBuilder.processedWorldInfo;
     let wiTokens = 0;
@@ -453,14 +568,14 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         ...Object.values(processedWorldInfo.outletEntries).flat(),
       ];
       const fullWiText = parts.filter(Boolean).join('\n');
-      if (fullWiText) wiTokens = await tokenizer.getTokenCount(fullWiText);
+      if (fullWiText) wiTokens = await countTokens(fullWiText, tokenizer);
     }
 
-    const charDesc = await tokenizer.getTokenCount(activeCharacter.description || '');
-    const charPers = await tokenizer.getTokenCount(activeCharacter.personality || '');
-    const charScen = await tokenizer.getTokenCount(activeCharacter.scenario || '');
-    const charEx = await tokenizer.getTokenCount(activeCharacter.mes_example || '');
-    const personaDesc = await tokenizer.getTokenCount(activePersona.description || '');
+    const charDesc = await countTokens(activeCharacter.description || '', tokenizer);
+    const charPers = await countTokens(activeCharacter.personality || '', tokenizer);
+    const charScen = await countTokens(activeCharacter.scenario || '', tokenizer);
+    const charEx = await countTokens(activeCharacter.mes_example || '', tokenizer);
+    const personaDesc = await countTokens(activePersona.description || '', tokenizer);
 
     const breakdown: PromptTokenBreakdown = {
       systemTotal: 0,
@@ -479,10 +594,12 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     };
 
     for (const m of messages) {
-      const count = await tokenizer.getTokenCount(m.content);
+      const count = await countTokens(m.content, tokenizer);
       if (m.role === 'system') breakdown.systemTotal += count;
       else breakdown.chatHistory += count;
     }
+    // TODO: Add media field
+    breakdown.chatHistory += mediaTokenCost;
 
     let swipeId = 0;
     if (mode === GenerationMode.ADD_SWIPE) {
@@ -513,23 +630,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     let effectiveMessages = [...messages];
     if (postProcessing !== CustomPromptPostProcessing.NONE) {
       try {
-        // We ensure we operate only on effectiveMessages to avoid duplication.
-        const isPrefill =
-          effectiveMessages.length > 1
-            ? effectiveMessages[effectiveMessages.length - 1].role === 'assistant' &&
-              effectiveMessages[effectiveMessages.length - 1].content.trim().endsWith(':')
-            : false;
-
-        const lastPrefillMessage = isPrefill ? effectiveMessages.pop() : null;
-
-        effectiveMessages = await ChatCompletionService.formatMessages(effectiveMessages || [], postProcessing);
-
-        if (lastPrefillMessage) {
-          if (!lastPrefillMessage.content.startsWith(`${lastPrefillMessage.name}: `)) {
-            lastPrefillMessage.content = `${lastPrefillMessage.name}: ${lastPrefillMessage.content}`;
-          }
-          effectiveMessages.push(lastPrefillMessage);
-        }
+        effectiveMessages = await processMessagesWithPrefill(effectiveMessages, postProcessing);
       } catch (e) {
         console.error('Post-processing failed:', e);
         toast.error(t('chat.generate.postProcessError'));
@@ -569,7 +670,12 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
 
     // --- Generation Execution ---
 
-    const handleGenerationResult = async (content: string, reasoning?: string, tokenCount?: number) => {
+    const handleGenerationResult = async (
+      content: string,
+      reasoning?: string,
+      tokenCount?: number,
+      images?: string[],
+    ) => {
       if (deps.activeChat.value !== chatContext) {
         console.warn('Chat context changed during generation. Result ignored.');
         return;
@@ -602,7 +708,25 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       }
 
       const genFinished = new Date().toISOString();
-      const token_count = tokenCount ?? (await tokenizer.getTokenCount(finalContent));
+      const token_count = tokenCount ?? (await countTokens(finalContent, tokenizer));
+
+      // Handle generated images from both payload and inline markdown
+      const mediaItems: ChatMediaItem[] = [];
+      if (images && images.length > 0) {
+        mediaItems.push(
+          ...images.map(
+            (url) =>
+              ({
+                source: 'url',
+                type: 'image',
+                url: url,
+                title: 'Generated Image',
+              }) as ChatMediaItem,
+          ),
+        );
+      }
+      const inlineMedia = extractMediaFromMarkdown(finalContent);
+      mediaItems.push(...inlineMedia);
 
       const swipeInfo: SwipeInfo = {
         send_date: getMessageTimeStamp(),
@@ -616,7 +740,13 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         lastMessage.mes += finalContent;
         lastMessage.gen_finished = genFinished;
         if (!lastMessage.extra) lastMessage.extra = {};
-        lastMessage.extra.token_count = await tokenizer.getTokenCount(lastMessage.mes);
+        lastMessage.extra.token_count = await countTokens(lastMessage.mes, tokenizer);
+
+        const existingNonInline = lastMessage.extra.media?.filter((m) => m.source !== 'inline') ?? [];
+        const newInline = extractMediaFromMarkdown(lastMessage.mes);
+        lastMessage.extra.media = [...existingNonInline, ...newInline];
+        if (lastMessage.extra.media.length === 0) delete lastMessage.extra.media;
+
         if (
           lastMessage.swipes &&
           lastMessage.swipe_id !== undefined &&
@@ -632,6 +762,13 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         if (!Array.isArray(lastMessage.swipe_info)) lastMessage.swipe_info = [];
         lastMessage.swipes.push(finalContent);
         lastMessage.swipe_info.push(swipeInfo);
+        // Note: Swipes usually share 'extra' from the message object, but media might be per swipe ideally.
+        // Current structure: extra is on message. Swipe info has extra too.
+        if (mediaItems.length > 0) {
+          if (!lastMessage.extra.media) lastMessage.extra.media = [];
+          lastMessage.extra.media.push(...mediaItems);
+        }
+
         await deps.syncSwipeToMes(activeChatMessages.length - 1, lastMessage.swipes.length - 1);
         generatedMessage = lastMessage;
       } else {
@@ -647,7 +784,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           swipes: [finalContent],
           swipe_info: [swipeInfo],
           swipe_id: 0,
-          extra: { reasoning, token_count },
+          extra: { reasoning, token_count, media: mediaItems.length > 0 ? mediaItems : undefined },
           original_avatar: activeCharacter!.avatar,
         };
 
@@ -676,7 +813,6 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       },
       reasoningTemplate: context.settings.reasoningTemplate,
       onCompletion: (data: { outputTokens: number }) => {
-        // Update token count for streaming scenario (and redundant check for non-stream)
         if (generatedMessage) {
           if (!generatedMessage.extra) generatedMessage.extra = {};
           generatedMessage.extra.token_count = data.outputTokens;
@@ -700,11 +836,14 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         generationId,
       });
       if (!responseController.signal.aborted) {
-        if (!response.content || response.content.trim() === '') {
+        if (
+          (!response.content || response.content.trim() === '') &&
+          (!response.images || response.images.length === 0)
+        ) {
           toast.error(t('chat.generate.emptyResponseError'));
           return null;
         }
-        await handleGenerationResult(response.content, response.reasoning, response.token_count);
+        await handleGenerationResult(response.content, response.reasoning, response.token_count, response.images);
       }
     } else {
       // Streaming
@@ -716,6 +855,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
 
       let targetMessageIndex = -1;
       let messageCreated = false;
+      const streamImages: string[] = [];
 
       // For CONTINUE mode, we work on existing message
       if (mode === GenerationMode.CONTINUE) {
@@ -736,8 +876,15 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
             break;
           }
 
-          // Create message on first chunk with content
-          if (!messageCreated && chunk.delta && chunk.delta.trim()) {
+          if (chunk.images) {
+            streamImages.push(...chunk.images);
+          }
+
+          // Create message on first chunk with content or images
+          const hasContent = chunk.delta && chunk.delta.trim();
+          const hasImages = chunk.images && chunk.images.length > 0;
+
+          if (!messageCreated && (hasContent || hasImages)) {
             if (mode === GenerationMode.NEW || mode === GenerationMode.REGENERATE) {
               const botMessage: ChatMessage = {
                 name: activeCharacter!.name,
@@ -773,8 +920,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
               lastMessage.swipes.push('');
               lastMessage.swipe_id = lastMessage.swipes.length - 1;
               lastMessage.mes = '';
-              lastMessage.extra.display_text = '';
-              lastMessage.extra.reasoning_display_text = '';
+              if (lastMessage.extra) {
+                delete lastMessage.extra.display_text;
+                delete lastMessage.extra.reasoning_display_text;
+              }
               messageCreated = true;
             }
           }
@@ -840,7 +989,11 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           if (context.settings.formatter === 'text' && context.settings.instructTemplate) {
             const trimmed = trimInstructResponse(finalMessage.mes, context.settings.instructTemplate);
             finalMessage.mes = trimmed;
-            if (finalMessage.swipes && finalMessage.swipes[finalMessage.swipe_id] !== undefined) {
+            if (
+              finalMessage.swipes &&
+              finalMessage.swipe_id !== undefined &&
+              finalMessage.swipes[finalMessage.swipe_id] !== undefined
+            ) {
               finalMessage.swipes[finalMessage.swipe_id] = trimmed;
             }
           }
@@ -848,8 +1001,29 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           finalMessage.gen_finished = new Date().toISOString();
           if (!finalMessage.extra) finalMessage.extra = {};
 
+          const existingNonInline = finalMessage.extra.media?.filter((m) => m.source !== 'inline') ?? [];
+          const inlineMedia = extractMediaFromMarkdown(finalMessage.mes);
+
+          if (streamImages.length > 0) {
+            existingNonInline.push(
+              ...streamImages.map(
+                (url) =>
+                  ({
+                    source: 'url',
+                    type: 'image',
+                    url: url,
+                    title: 'Generated Image',
+                  }) satisfies ChatMediaItem,
+              ),
+            );
+          }
+
+          const allMedia = [...existingNonInline, ...inlineMedia];
+          finalMessage.extra.media = allMedia.length > 0 ? allMedia : undefined;
+          if (!finalMessage.extra.media) delete finalMessage.extra.media;
+
           if (finalMessage.extra.token_count === undefined) {
-            finalMessage.extra.token_count = await tokenizer.getTokenCount(finalMessage.mes);
+            finalMessage.extra.token_count = await countTokens(finalMessage.mes, tokenizer);
           }
 
           const swipeInfo: SwipeInfo = {

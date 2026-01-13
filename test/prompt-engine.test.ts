@@ -20,6 +20,19 @@ vi.mock('../src/utils/extensions', () => ({
   eventEmitter: {
     emit: vi.fn(),
   },
+  countTokens: vi.fn(async (content: string | unknown[], tokenizer: Tokenizer) => {
+    if (typeof content === 'string') {
+      return await tokenizer.getTokenCount(content);
+    }
+    if (Array.isArray(content)) {
+      const textContent = content
+        .filter((part: never) => part.type === 'text')
+        .map((part: never) => part.text || '')
+        .join('');
+      return await tokenizer.getTokenCount(textContent);
+    }
+    return 0;
+  }),
 }));
 
 // Mock Tokenizer

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { uploadMedia } from '../../api/media';
 import { useMobile } from '../../composables/useMobile';
+import { useModelCapabilities } from '../../composables/useModelCapabilities';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
 import { GenerationMode } from '../../constants';
@@ -15,7 +17,9 @@ import { usePopupStore } from '../../stores/popup.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useWorldInfoStore } from '../../stores/world-info.store';
-import { POPUP_RESULT, POPUP_TYPE } from '../../types';
+import { POPUP_RESULT, POPUP_TYPE, type ChatMediaItem } from '../../types';
+import { getBase64Async } from '../../utils/commons';
+import { getMediaDurationFromDataURL } from '../../utils/media';
 import { Button, Textarea } from '../UI';
 import ChatMessage from './ChatMessage.vue';
 
@@ -30,10 +34,17 @@ const promptStore = usePromptStore();
 const { isDeviceMobile, isViewportMobile } = useMobile();
 const layoutStore = useLayoutStore();
 const { t } = useStrictI18n();
+const { hasCapability } = useModelCapabilities();
 
 const userInput = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const chatInput = ref<InstanceType<typeof Textarea> | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+const attachedMedia = ref<ChatMediaItem[]>([]);
+const isUploading = ref(false);
+const isDragging = ref(false);
+const dragEnterCounter = ref(0);
 
 const isOptionsMenuVisible = ref(false);
 const optionsButtonRef = ref<HTMLElement | null>(null);
@@ -47,13 +58,35 @@ const { floatingStyles: optionsMenuStyles } = useFloating(optionsButtonRef, opti
   middleware: [offset(8), flip(), shift({ padding: 10 })],
 });
 
-function submitMessage() {
-  if (!userInput.value.trim()) {
-    generate();
+const acceptedFileTypes = computed(() => {
+  const types = [];
+  if (hasCapability('vision')) types.push('image/*');
+  if (hasCapability('video')) types.push('video/*');
+  if (hasCapability('audio')) types.push('audio/*');
+  return types.join(', ');
+});
+
+const isMediaAttachDisabled = computed(() => {
+  return isUploading.value || !acceptedFileTypes.value;
+});
+
+const mediaAttachTitle = computed(() => {
+  if (!acceptedFileTypes.value) {
+    return t('chat.media.notSupported');
+  }
+  return t('chat.media.attach');
+});
+
+async function submitMessage() {
+  if ((!userInput.value.trim() && attachedMedia.value.length === 0) || isUploading.value) {
+    if (!userInput.value.trim() && attachedMedia.value.length === 0) {
+      generate();
+    }
     return;
   }
-  chatStore.sendMessage(userInput.value);
+  chatStore.sendMessage(userInput.value, { media: attachedMedia.value });
   userInput.value = '';
+  attachedMedia.value = [];
 
   nextTick(() => {
     chatInput.value?.focus();
@@ -208,6 +241,133 @@ const handleStreamingScroll = () => {
   });
 };
 
+function triggerFileUpload() {
+  fileInput.value?.click();
+}
+
+async function processFiles(files: FileList | null) {
+  if (!files || files.length === 0) return;
+
+  const provider = settingsStore.settings.api.provider;
+  const isGoogle = provider === 'makersuite' || provider === 'vertexai';
+
+  isUploading.value = true;
+  try {
+    for (const file of Array.from(files)) {
+      let mediaType: 'image' | 'video' | 'audio' | null = null;
+      let sizeLimit = 5 * 1024 * 1024; // 5MB default for images
+
+      if (file.type.startsWith('image/')) {
+        if (!hasCapability('vision')) {
+          toast.warning(t('chat.media.unsupportedVision'));
+          continue;
+        }
+        mediaType = 'image';
+      } else if (file.type.startsWith('video/')) {
+        if (!hasCapability('video')) {
+          toast.warning(t('chat.media.unsupportedVideo'));
+          continue;
+        }
+        mediaType = 'video';
+        sizeLimit = 20 * 1024 * 1024; // 20MB for video
+      } else if (file.type.startsWith('audio/')) {
+        if (!hasCapability('audio')) {
+          toast.warning(t('chat.media.unsupportedAudio'));
+          continue;
+        }
+        mediaType = 'audio';
+        sizeLimit = 20 * 1024 * 1024; // 20MB for audio
+      }
+
+      if (!mediaType) {
+        toast.warning(t('chat.media.unsupportedType', { type: file.type }));
+        continue;
+      }
+
+      if (file.size > sizeLimit) {
+        toast.warning(t('chat.media.tooLarge', { name: file.name }));
+        continue;
+      }
+
+      const base64 = await getBase64Async(file);
+
+      // Duration checks
+      if (isGoogle && mediaType === 'video') {
+        try {
+          const duration = await getMediaDurationFromDataURL(base64, 'video');
+          if (duration > 60) {
+            toast.warning(t('chat.media.videoTooLong', { name: file.name }));
+            continue;
+          }
+        } catch (e) {
+          console.error('Failed to get video duration:', e);
+          toast.error(t('chat.media.metadataError'));
+          continue;
+        }
+      }
+
+      const response = await uploadMedia({
+        ch_name: characterStore.activeCharacters?.[0]?.name,
+        filename: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        format: file.type.split('/')[1] || 'bin',
+        image: base64.split(',')[1],
+      });
+
+      attachedMedia.value.push({
+        source: 'upload',
+        type: mediaType,
+        url: response.path,
+        title: file.name,
+      });
+    }
+  } catch (error) {
+    console.error('Error uploading media:', error);
+    toast.error(error instanceof Error ? error.message : t('chat.media.uploadError'));
+  } finally {
+    isUploading.value = false;
+  }
+}
+
+async function handleFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement;
+  await processFiles(input.files);
+  // Reset file input to allow selecting the same file again
+  if (input) input.value = '';
+}
+
+function handlePaste(event: ClipboardEvent) {
+  processFiles(event.clipboardData?.files ?? null);
+}
+
+function handleDragEnter() {
+  dragEnterCounter.value++;
+  if (isMediaAttachDisabled.value) return;
+  isDragging.value = true;
+}
+
+function handleDragLeave() {
+  dragEnterCounter.value--;
+  if (dragEnterCounter.value === 0) {
+    isDragging.value = false;
+  }
+}
+
+function handleDragOver(event: DragEvent) {
+  // This is necessary to allow dropping
+  event.preventDefault();
+}
+
+async function handleDrop(event: DragEvent) {
+  dragEnterCounter.value = 0;
+  isDragging.value = false;
+  if (isMediaAttachDisabled.value) return;
+  await processFiles(event.dataTransfer?.files ?? null);
+}
+
+function removeAttachedMedia(index: number) {
+  attachedMedia.value.splice(index, 1);
+}
+
 // Scroll watcher
 watch(
   visibleMessages,
@@ -236,6 +396,8 @@ watch(lastMessageContent, () => {
 
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  document.addEventListener('paste', handlePaste);
+
   nextTick().then(() => {
     if (!isDeviceMobile.value) {
       chatInput.value?.focus();
@@ -253,6 +415,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('paste', handlePaste);
   chatUiStore.setChatInputElement(null);
 });
 
@@ -286,6 +449,7 @@ watch(
     if (newFile) {
       const savedInput = await promptStore.loadUserTyping(newFile);
       userInput.value = savedInput;
+      attachedMedia.value = [];
 
       if (!isDeviceMobile.value) {
         await nextTick();
@@ -293,17 +457,35 @@ watch(
       }
     } else {
       userInput.value = '';
+      attachedMedia.value = [];
     }
   },
 );
 </script>
 
 <template>
-  <div class="chat-interface">
+  <div
+    class="chat-interface"
+    @dragenter.prevent="handleDragEnter"
+    @dragover.prevent="handleDragOver"
+    @dragleave.prevent="handleDragLeave"
+    @drop.prevent="handleDrop"
+  >
     <div v-show="chatStore.isChatLoading" class="chat-loading-overlay" role="alert" aria-busy="true">
       <div class="loading-spinner">
         <i class="fa-solid fa-circle-notch fa-spin"></i>
         <span>{{ t('common.loading') }}</span>
+      </div>
+    </div>
+
+    <div
+      v-show="isDragging && !isMediaAttachDisabled"
+      class="chat-dropzone-overlay"
+      :class="{ active: isDragging && !isMediaAttachDisabled }"
+    >
+      <div class="chat-dropzone-overlay-content">
+        <div class="icon"><i class="fa-solid fa-upload"></i></div>
+        <div class="text">{{ t('chat.media.dropFiles') }}</div>
       </div>
     </div>
 
@@ -340,6 +522,15 @@ watch(
         id="chat-form"
         class="chat-form"
       >
+        <div v-if="attachedMedia.length > 0" class="chat-form-media-previews">
+          <div v-for="(media, index) in attachedMedia" :key="index" class="media-preview-item">
+            <img :src="media.url" :alt="media.title" />
+            <button class="remove-media-btn" :aria-label="`Remove ${media.title}`" @click="removeAttachedMedia(index)">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+
         <div class="chat-form-inner">
           <div ref="optionsButtonRef" class="chat-form-actions-left">
             <Button
@@ -352,6 +543,15 @@ watch(
               :aria-expanded="isOptionsMenuVisible"
               @click.stop="isOptionsMenuVisible = !isOptionsMenuVisible"
             />
+            <Button
+              class="chat-form-button"
+              variant="ghost"
+              icon="fa-paperclip"
+              :title="mediaAttachTitle"
+              :disabled="isMediaAttachDisabled"
+              @click="triggerFileUpload"
+            />
+            <input ref="fileInput" type="file" hidden multiple :accept="acceptedFileTypes" @change="handleFileSelect" />
           </div>
           <Textarea
             id="chat-input"
@@ -359,7 +559,7 @@ watch(
             v-model="userInput"
             :placeholder="t('chat.inputPlaceholder')"
             autocomplete="off"
-            :disabled="chatStore.isGenerating"
+            :disabled="chatStore.isGenerating || isUploading"
             :allow-maximize="false"
             identifier="chat.input"
             @keydown="handleKeydown"
@@ -379,7 +579,7 @@ watch(
                 icon="fa-paper-plane"
                 variant="ghost"
                 :title="t('chat.send')"
-                :disabled="chatStore.isGenerating"
+                :disabled="chatStore.isGenerating || isUploading"
                 @click="submitMessage"
               />
             </div>
