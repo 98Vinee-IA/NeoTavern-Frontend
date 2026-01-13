@@ -228,6 +228,11 @@ export function getFirstMessage(context: MacroContextData): ChatMessage | null {
     swipe_info: firstMes ? [{ extra: {}, send_date: getMessageTimeStamp() }] : [],
   };
 
+  const inlineMedia = extractMediaFromMarkdown(firstMes);
+  if (inlineMedia.length > 0) {
+    message.extra.media = inlineMedia;
+  }
+
   if (Array.isArray(alternateGreetings) && alternateGreetings.length > 0) {
     const swipes = [message.mes, ...alternateGreetings.map((greeting) => macroService.process(greeting, context))];
     if (!message.mes) {

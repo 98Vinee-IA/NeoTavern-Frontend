@@ -185,6 +185,7 @@ export const useChatStore = defineStore('chat', () => {
             swipes: newFirstMessageDetails.swipes,
             swipe_id: newFirstMessageDetails.swipe_id,
             swipe_info: newFirstMessageDetails.swipe_info,
+            extra: newFirstMessageDetails.extra,
           });
         }
       }
