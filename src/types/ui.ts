@@ -1,12 +1,6 @@
 import type { Component } from 'vue';
 import type { I18nKey } from './i18n';
 
-export interface ZoomedAvatar {
-  id: string;
-  src: string;
-  charName: string;
-}
-
 export interface SidebarDefinition {
   id: string;
   component: Component;

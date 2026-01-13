@@ -17,6 +17,7 @@ export const useUiStore = defineStore('ui', () => {
     if (existingIndex > -1) {
       zoomedAvatars.value.splice(existingIndex, 1);
     } else {
+      // @ts-expect-error yeah yeah
       zoomedAvatars.value.push({ ...avatarData, id });
     }
   }

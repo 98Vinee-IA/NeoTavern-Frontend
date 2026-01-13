@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { apiConnectionDefinition } from '../../api-connection-definition';
 import { buildChatCompletionPayload, ChatCompletionService } from '../../api/generation';
+import { useModelCapabilities } from '../../composables/useModelCapabilities';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { toast } from '../../composables/useToast';
 import { CustomPromptPostProcessing, TokenizerType } from '../../constants';
@@ -18,6 +19,7 @@ import { Button, CollapsibleSection, FormItem, Input, Select } from '../UI';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
 
 const { t } = useStrictI18n();
+const { capabilities } = useModelCapabilities();
 
 const apiStore = useApiStore();
 const settingsStore = useSettingsStore();
@@ -25,6 +27,8 @@ const popupStore = usePopupStore();
 const secretStore = useSecretStore();
 
 const isProfilePopupVisible = ref(false);
+const provider = computed(() => settingsStore.settings.api.provider);
+const formatter = computed(() => settingsStore.settings.api.formatter);
 
 function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
   apiStore.createConnectionProfile(profile);
@@ -239,7 +243,12 @@ async function testMessage() {
       <template v-for="section in visibleSections" :key="section.id">
         <div class="api-connections-drawer-section">
           <template v-for="item in section.items" :key="item.id || item.label">
-            <AiConfigItemRenderer :item="item" />
+            <AiConfigItemRenderer
+              :item="item"
+              :provider="provider"
+              :formatter="formatter"
+              :capabilities="capabilities"
+            />
             <div
               v-if="['openai', 'claude', 'openrouter'].includes(section.id) && item.widget === 'key-manager'"
               class="neutral_warning"
