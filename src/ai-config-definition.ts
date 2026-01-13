@@ -168,6 +168,58 @@ export const aiConfigDefinition: AiConfigSection[] = [
     ],
   },
   {
+    id: 'media-settings',
+    conditions: [
+      {
+        provider: [
+          'openai',
+          'aimlapi',
+          'openrouter',
+          'mistralai',
+          'makersuite',
+          'vertexai',
+          'claude',
+          'custom',
+          'xai',
+          'pollinations',
+          'moonshot',
+          'cohere',
+          'cometapi',
+          'nanogpt',
+          'electronhub',
+          'azure_openai',
+          'zai',
+        ],
+      },
+    ],
+    items: [
+      { widget: 'hr' },
+      {
+        id: 'api.mediaInlining',
+        widget: 'checkbox',
+        label: 'aiConfig.media.inlining.label',
+        description: 'aiConfig.media.inlining.description',
+      },
+      {
+        id: 'api.inlineImageQuality',
+        widget: 'select',
+        label: 'aiConfig.media.imageQuality.label',
+        options: [
+          { value: 'auto', label: 'aiConfig.media.imageQuality.options.auto' },
+          { value: 'low', label: 'aiConfig.media.imageQuality.options.low' },
+          { value: 'high', label: 'aiConfig.media.imageQuality.options.high' },
+        ],
+      },
+      {
+        widget: 'info-display',
+        description: 'aiConfig.media.limits.google',
+        conditions: {
+          provider: ['makersuite', 'vertexai'],
+        },
+      },
+    ],
+  },
+  {
     id: 'sampling-sliders-1',
     items: [
       {

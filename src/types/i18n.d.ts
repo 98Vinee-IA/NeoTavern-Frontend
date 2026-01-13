@@ -464,6 +464,23 @@ export interface MessageSchema {
       tfsZ: string;
       typicalP: string;
     };
+    media: {
+      inlining: {
+        label: string;
+        description: string;
+      };
+      imageQuality: {
+        label: string;
+        options: {
+          auto: string;
+          low: string;
+          high: string;
+        };
+      };
+      limits: {
+        google: string;
+      };
+    };
   };
   userSettings: {
     searchPlaceholder: string;
@@ -641,6 +658,14 @@ export interface MessageSchema {
       showRaw: string;
       showWorldInfo: string;
       copy: string;
+    };
+    media: {
+      videoTooLong: string;
+      metadataError: string;
+      tooLarge: string;
+      unsupportedType: string;
+      uploadError: string;
+      attach: string;
     };
   };
   character: {

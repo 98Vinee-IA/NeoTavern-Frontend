@@ -460,6 +460,23 @@
       "numKeep": "Keep Context",
       "tfsZ": "TFS Z",
       "typicalP": "Typical P"
+    },
+    "media": {
+      "inlining": {
+        "label": "Send Inline Media",
+        "description": "Sends attached media in prompts if supported by the model."
+      },
+      "imageQuality": {
+        "label": "Inline Image Quality",
+        "options": {
+          "auto": "Auto",
+          "low": "Low",
+          "high": "High"
+        }
+      },
+      "limits": {
+        "google": "For Google models: Videos must be less than 20 MB and under 1 minute long. Audio must be less than 20 MB."
+      }
     }
   },
   "userSettings": {
@@ -638,6 +655,14 @@
       "showRaw": "Show Raw Prompt",
       "showWorldInfo": "Show World Info",
       "copy": "Copy Prompt"
+    },
+    "media": {
+      "videoTooLong": "Video '{name}' is too long. It must be under 1 minute.",
+      "metadataError": "Failed to read media metadata.",
+      "tooLarge": "File '{name}' is too large.",
+      "unsupportedType": "Unsupported file type: {type}",
+      "uploadError": "Failed to upload media.",
+      "attach": "Upload Media"
     }
   },
   "character": {

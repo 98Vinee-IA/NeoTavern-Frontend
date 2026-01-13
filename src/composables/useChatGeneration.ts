@@ -1,5 +1,10 @@
 import { computed, nextTick, ref, type Ref } from 'vue';
 import { buildChatCompletionPayload, ChatCompletionService, resolveConnectionProfileSettings } from '../api/generation';
+import {
+  isAudioInliningSupported,
+  isImageInliningSupported,
+  isVideoInliningSupported,
+} from '../api/provider-definitions';
 import { ApiTokenizer } from '../api/tokenizer';
 import { CustomPromptPostProcessing, default_user_avatar, GenerationMode } from '../constants';
 import { PromptBuilder } from '../services/prompt-engine';
@@ -428,9 +433,10 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
     let historyIdx = context.history.length - 1;
 
     let mediaTokenCost = 0;
+    const mediaInliningEnabled = settings.api.mediaInlining;
 
-    // Only attach media if formatter is not 'text' (default 'chat')
-    if (context.settings.formatter !== 'text') {
+    // Only attach media if formatter is not 'text' and media inlining is enabled
+    if (context.settings.formatter !== 'text' && mediaInliningEnabled) {
       while (promptIdx >= 0 && historyIdx >= 0) {
         const pMsg = messages[promptIdx];
         const hMsg = context.history[historyIdx];
@@ -440,9 +446,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
         const hRole = hMsg.is_user ? 'user' : 'assistant';
 
         // Very basic matching. Since PromptBuilder preserves order of history, this usually works.
-        // If mismatch occurs (e.g. system message in prompt), we assume prompt has extra message and move prompt pointer only.
         if (pRole === hRole) {
-          // Found a match
           if (hMsg.extra?.media && hMsg.extra.media.length > 0) {
             const contentParts: ApiChatContentPart[] = [];
             // Add existing text content
@@ -459,13 +463,13 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
                 const isRemoteUrl = mediaItem.source === 'url' && !isDataURL(dataUrl);
 
                 if (isLocalUpload || isRemoteUrl) {
-                  // Fetch and convert to base64 if it's a relative path or if we want to ensure data URL
+                  // Fetch and convert to base64 if it's a relative path or a remote URL we need to inline
                   if (dataUrl.startsWith('/') || isLocalUpload) {
                     const response = await fetch(dataUrl);
                     if (response.ok) {
                       const blob = await response.blob();
-                      const reader = new FileReader();
                       dataUrl = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
                         reader.onload = () => resolve(reader.result as string);
                         reader.onerror = reject;
                         reader.readAsDataURL(blob);
@@ -474,47 +478,31 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
                   }
                 }
 
-                if (mediaItem.type === 'image') {
+                if (
+                  mediaItem.type === 'image' &&
+                  isImageInliningSupported(effectiveProvider, effectiveModel, apiStore.modelList)
+                ) {
                   const compressed = await compressImage(dataUrl);
                   contentParts.push({
                     type: 'image_url',
                     image_url: {
                       url: compressed,
-                      detail: 'auto',
+                      detail: settings.api.inlineImageQuality,
                     },
                   });
-                  try {
-                    mediaTokenCost += await getImageTokenCost(compressed, 'auto');
-                  } catch (err) {
-                    console.warn('Failed to get image token cost, using fallback.', err);
-                    mediaTokenCost += 85; // Low quality fallback
-                  }
-                } else if (mediaItem.type === 'video') {
-                  contentParts.push({
-                    type: 'video_url',
-                    video_url: {
-                      url: dataUrl,
-                    },
-                  });
-                  try {
-                    const duration = await getMediaDurationFromDataURL(dataUrl, 'video');
-                    mediaTokenCost += 263 * Math.ceil(duration);
-                  } catch (err) {
-                    console.error('Failed to get video duration, using fallback token cost.', err);
-                    mediaTokenCost += 263 * 40; // ~40 second video fallback
-                  }
-                } else if (mediaItem.type === 'audio') {
-                  contentParts.push({
-                    type: 'audio_url',
-                    audio_url: { url: dataUrl },
-                  });
-                  try {
-                    const duration = await getMediaDurationFromDataURL(dataUrl, 'audio');
-                    mediaTokenCost += 32 * Math.ceil(duration);
-                  } catch (err) {
-                    console.error('Failed to get audio duration, using fallback token cost.', err);
-                    mediaTokenCost += 32 * 300; // ~5 minute audio fallback
-                  }
+                  mediaTokenCost += await getImageTokenCost(compressed, settings.api.inlineImageQuality);
+                } else if (
+                  mediaItem.type === 'video' &&
+                  isVideoInliningSupported(effectiveProvider, effectiveModel, apiStore.modelList)
+                ) {
+                  contentParts.push({ type: 'video_url', video_url: { url: dataUrl } });
+                  mediaTokenCost += 263 * Math.ceil(await getMediaDurationFromDataURL(dataUrl, 'video'));
+                } else if (
+                  mediaItem.type === 'audio' &&
+                  isAudioInliningSupported(effectiveProvider, effectiveModel, apiStore.modelList)
+                ) {
+                  contentParts.push({ type: 'audio_url', audio_url: { url: dataUrl } });
+                  mediaTokenCost += 32 * Math.ceil(await getMediaDurationFromDataURL(dataUrl, 'audio'));
                 }
               } catch (e) {
                 console.error('Failed to process media item:', e);

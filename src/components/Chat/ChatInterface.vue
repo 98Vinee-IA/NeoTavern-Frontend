@@ -17,9 +17,10 @@ import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useWorldInfoStore } from '../../stores/world-info.store';
 import { POPUP_RESULT, POPUP_TYPE, type ChatMediaItem } from '../../types';
+import { getBase64Async } from '../../utils/commons';
+import { getMediaDurationFromDataURL } from '../../utils/media';
 import { Button, Textarea } from '../UI';
 import ChatMessage from './ChatMessage.vue';
-import { getBase64Async } from '../../utils/commons';
 
 const chatStore = useChatStore();
 const chatUiStore = useChatUiStore();
@@ -227,31 +228,62 @@ async function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   if (!input.files || input.files.length === 0) return;
 
+  const provider = settingsStore.settings.api.provider;
+  const isGoogle = provider === 'makersuite' || provider === 'vertexai';
+
   isUploading.value = true;
   try {
     for (const file of Array.from(input.files)) {
-      if (!file.type.startsWith('image/')) {
+      let mediaType: 'image' | 'video' | 'audio' | null = null;
+      let sizeLimit = 5 * 1024 * 1024; // 5MB default for images
+
+      if (file.type.startsWith('image/')) {
+        mediaType = 'image';
+      } else if (file.type.startsWith('video/')) {
+        mediaType = 'video';
+        sizeLimit = 20 * 1024 * 1024; // 20MB for video
+      } else if (file.type.startsWith('audio/')) {
+        mediaType = 'audio';
+        sizeLimit = 20 * 1024 * 1024; // 20MB for audio
+      }
+
+      if (!mediaType) {
         toast.warning(t('chat.media.unsupportedType', { type: file.type }));
         continue;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
+
+      if (file.size > sizeLimit) {
         toast.warning(t('chat.media.tooLarge', { name: file.name }));
         continue;
       }
 
       const base64 = await getBase64Async(file);
 
+      // Duration checks
+      if (isGoogle && mediaType === 'video') {
+        try {
+          const duration = await getMediaDurationFromDataURL(base64, 'video');
+          if (duration > 60) {
+            toast.warning(t('chat.media.videoTooLong', { name: file.name }));
+            continue;
+          }
+        } catch (e) {
+          console.error('Failed to get video duration:', e);
+          toast.error(t('chat.media.metadataError'));
+          continue;
+        }
+      }
+
       const response = await uploadMedia({
         ch_name: characterStore.activeCharacters?.[0]?.name,
         filename: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        format: file.type.split('/')[1] || 'png',
+        format: file.type.split('/')[1] || 'bin',
         image: base64.split(',')[1],
       });
 
       attachedMedia.value.push({
         source: 'upload',
-        type: 'image',
+        type: mediaType,
         url: response.path,
         title: file.name,
       });
@@ -438,7 +470,7 @@ watch(
               type="file"
               hidden
               multiple
-              accept="image/png, image/jpeg, image/webp"
+              accept="image/*, video/*, audio/*"
               @change="handleFileSelect"
             />
           </div>

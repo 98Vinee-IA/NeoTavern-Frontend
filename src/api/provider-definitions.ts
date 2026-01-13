@@ -1,6 +1,6 @@
 import YAML from 'yaml';
 import { ReasoningEffort } from '../constants';
-import type { ApiProvider, ChatCompletionPayload, StreamedChunk } from '../types';
+import type { ApiModel, ApiProvider, ChatCompletionPayload, StreamedChunk } from '../types';
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
 import type { ApiFormatter, SamplerSettings } from '../types/settings';
@@ -147,6 +147,157 @@ export const PROVIDER_CONFIG: Partial<Record<ApiProvider, ProviderConfig>> = {
   [api_providers.OLLAMA]: { textCompletionEndpoint: '/api/backends/text-completions/generate' },
   [api_providers.KOBOLDCPP]: { textCompletionEndpoint: '/api/backends/text-completions/generate' },
 };
+
+// --- Media Support Definitions ---
+
+const visionSupportedModels = [
+  // OpenAI
+  'chatgpt-4o-latest',
+  'gpt-4-turbo',
+  'gpt-4-vision',
+  'gpt-4.1',
+  'gpt-4.5-preview',
+  'gpt-4o',
+  'gpt-5',
+  'o1',
+  'o3',
+  'o4-mini',
+  // Claude
+  'claude-3',
+  'claude-opus-4',
+  'claude-sonnet-4',
+  'claude-haiku-4',
+  // Cohere
+  'c4ai-aya-vision',
+  'command-a-vision',
+  // Google AI Studio / Vertex
+  'gemini-2.0',
+  'gemini-2.5',
+  'gemini-3',
+  'gemini-exp-1206',
+  'learnlm',
+  'gemini-robotics',
+  // MistralAI
+  'mistral-small-2503',
+  'mistral-small-2506',
+  'mistral-small-latest',
+  'mistral-medium-latest',
+  'mistral-medium-2505',
+  'mistral-medium-2508',
+  'pixtral',
+  // xAI (Grok)
+  'grok-4',
+  'grok-2-vision',
+  // Moonshot
+  'moonshot-v1-8k-vision-preview',
+  'moonshot-v1-32k-vision-preview',
+  'moonshot-v1-128k-vision-preview',
+  // Z.AI (GLM)
+  'glm-4.5v',
+  'glm-4.6v',
+  'autoglm-phone',
+];
+
+const visionUnsupportedModels = ['gpt-4-turbo-preview', 'o1-mini', 'o3-mini'];
+
+const videoSupportedModels = [
+  // Gemini
+  'gemini-2.0',
+  'gemini-2.5',
+  'gemini-exp-1206',
+  'gemini-3',
+  // Z.AI (GLM)
+  'glm-4.5v',
+  'glm-4.6v',
+];
+
+const audioSupportedModels = [
+  // OpenAI
+  'gpt-4o-audio',
+  'gpt-4o-realtime',
+  'gpt-4o-mini-audio',
+  'gpt-4o-mini-realtime',
+  'gpt-audio',
+  'gpt-realtime',
+  // Gemini
+  'gemini-2.0',
+  'gemini-2.5',
+  'gemini-3',
+  'gemini-exp-1206',
+];
+
+export function isImageInliningSupported(provider: ApiProvider, modelId: string, modelList?: ApiModel[]): boolean {
+  if (!modelId) return false;
+  const currentModel = modelList?.find((m) => m.id === modelId);
+
+  switch (provider) {
+    case api_providers.OPENAI:
+    case api_providers.AZURE_OPENAI:
+      return (
+        visionSupportedModels.some((m) => modelId.includes(m)) &&
+        !visionUnsupportedModels.some((m) => modelId.includes(m))
+      );
+    case api_providers.MAKERSUITE:
+    case api_providers.VERTEXAI:
+    case api_providers.CLAUDE:
+    case api_providers.COHERE:
+    case api_providers.XAI:
+    case api_providers.MOONSHOT:
+    case api_providers.ZAI:
+      return visionSupportedModels.some((m) => modelId.includes(m));
+    case api_providers.OPENROUTER:
+      return !!currentModel?.architecture?.input_modalities?.includes('image');
+    case api_providers.MISTRALAI:
+      return !!currentModel?.capabilities?.vision;
+    case api_providers.AIMLAPI:
+      return !!currentModel?.features?.includes('openai/chat-completion.vision');
+    case api_providers.ELECTRONHUB:
+      return !!currentModel?.metadata?.vision;
+    case api_providers.POLLINATIONS:
+      return !!currentModel?.vision;
+    case api_providers.NANOGPT:
+      return !!currentModel?.capabilities?.vision;
+    case api_providers.CUSTOM:
+    case api_providers.COMETAPI:
+      return true;
+    default:
+      return false;
+  }
+}
+
+export function isVideoInliningSupported(provider: ApiProvider, modelId: string, modelList?: ApiModel[]): boolean {
+  if (!modelId) return false;
+  const currentModel = modelList?.find((m) => m.id === modelId);
+
+  switch (provider) {
+    case api_providers.MAKERSUITE:
+    case api_providers.VERTEXAI:
+    case api_providers.ZAI:
+      return videoSupportedModels.some((m) => modelId.includes(m));
+    case api_providers.OPENROUTER:
+      return !!currentModel?.architecture?.input_modalities?.includes('video');
+    default:
+      return false;
+  }
+}
+
+export function isAudioInliningSupported(provider: ApiProvider, modelId: string, modelList?: ApiModel[]): boolean {
+  if (!modelId) return false;
+  const currentModel = modelList?.find((m) => m.id === modelId);
+
+  switch (provider) {
+    case api_providers.OPENAI:
+    case api_providers.MAKERSUITE:
+    case api_providers.VERTEXAI:
+      return audioSupportedModels.some((m) => modelId.includes(m));
+    case api_providers.OPENROUTER:
+      return !!currentModel?.architecture?.input_modalities?.includes('audio');
+    case api_providers.CUSTOM:
+      return true;
+    default:
+      return false;
+  }
+}
 
 // --- Response Handlers ---
 
