@@ -148,7 +148,7 @@ export default defineConfig(({ mode }) => {
     },
     preview: {
       port: 4173,
-      host: false,
+      host: true,
       allowedHosts: true,
       proxy: proxyRules,
     },
