@@ -1,6 +1,13 @@
 import YAML from 'yaml';
 import { ReasoningEffort } from '../constants';
-import type { ApiModel, ApiProvider, ChatCompletionPayload, ModelCapability, StreamedChunk } from '../types';
+import type {
+  ApiChatToolCall,
+  ApiModel,
+  ApiProvider,
+  ChatCompletionPayload,
+  ModelCapability,
+  StreamedChunk,
+} from '../types';
 import { api_providers } from '../types';
 import type { BuildChatCompletionPayloadOptions } from '../types/generation';
 import type { ApiFormatter, SamplerSettings } from '../types/settings';
@@ -105,6 +112,8 @@ export interface ProviderResponseHandler {
   extractReasoning?: (data: any) => string | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extractImages?: (data: any) => string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extractToolCalls?: (data: any) => ApiChatToolCall[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getStreamingReply: (data: any, formatter?: ApiFormatter) => StreamedChunk;
 }
@@ -230,6 +239,7 @@ export interface ModelCapabilities {
   vision: boolean;
   video: boolean;
   audio: boolean;
+  tools: boolean;
 }
 
 export function getModelCapabilities(
@@ -241,6 +251,7 @@ export function getModelCapabilities(
     vision: false,
     video: false,
     audio: false,
+    tools: false,
   };
 
   if (!modelId) return capabilities;
@@ -315,6 +326,59 @@ export function getModelCapabilities(
       break;
   }
 
+  // Tools Capability
+  if (currentModel) {
+    switch (provider) {
+      case api_providers.POLLINATIONS:
+        capabilities.tools = !!currentModel.tools;
+        break;
+      case api_providers.FIREWORKS:
+        capabilities.tools = !!currentModel.supports_tools;
+        break;
+      case api_providers.OPENROUTER:
+        capabilities.tools = !!currentModel.supported_parameters?.includes('tools');
+        break;
+      case api_providers.MISTRALAI:
+        capabilities.tools = !!currentModel.capabilities?.function_calling;
+        break;
+      case api_providers.AIMLAPI:
+        capabilities.tools = !!currentModel.features?.includes('openai/chat-completion.function');
+        break;
+      case api_providers.ELECTRONHUB:
+        capabilities.tools = !!currentModel.metadata?.function_call;
+        break;
+    }
+  }
+
+  // Fallback for tools if not determined by model list metadata
+  if (!capabilities.tools) {
+    const supportedSources: ApiProvider[] = [
+      api_providers.OPENAI,
+      api_providers.CUSTOM,
+      api_providers.MISTRALAI,
+      api_providers.CLAUDE,
+      api_providers.OPENROUTER,
+      api_providers.AIMLAPI,
+      api_providers.GROQ,
+      api_providers.COHERE,
+      api_providers.DEEPSEEK,
+      api_providers.MAKERSUITE,
+      api_providers.VERTEXAI,
+      api_providers.AI21,
+      api_providers.XAI,
+      api_providers.POLLINATIONS,
+      api_providers.MOONSHOT,
+      api_providers.FIREWORKS,
+      api_providers.COMETAPI,
+      api_providers.ELECTRONHUB,
+      api_providers.AZURE_OPENAI,
+      api_providers.ZAI,
+      api_providers.NANOGPT,
+      api_providers.KOBOLDCPP,
+    ];
+    capabilities.tools = supportedSources.includes(provider);
+  }
+
   return capabilities;
 }
 
@@ -370,10 +434,42 @@ export function extractMessageGeneric(data: any): string {
   return processed;
 }
 
+// Tool Extraction Utilities
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractToolsGeneric(data: any): ApiChatToolCall[] {
+  if (Array.isArray(data?.choices) && data.choices.length > 0) {
+    const choice = data.choices[0];
+    if (choice.message?.tool_calls && Array.isArray(choice.message.tool_calls)) {
+      // OpenRouter / Standard OpenAI
+      const toolCalls = choice.message.tool_calls;
+
+      // Map encryption details from OpenRouter if available
+      if (Array.isArray(choice.message.reasoning_details)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        choice.message.reasoning_details.forEach((rd: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const match = toolCalls.find((tc: any) => tc.id === rd.id);
+          if (match && rd.type === 'reasoning.encrypted' && rd.data) {
+            // We append signature to the tool call object
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (match as any).signature = rd.data;
+          }
+        });
+      }
+
+      return toolCalls;
+    }
+  }
+  return [];
+}
+
 const DEFAULT_HANDLER: ProviderResponseHandler = {
   extractMessage: extractMessageGeneric,
+  extractToolCalls: extractToolsGeneric,
   getStreamingReply: (data) => ({
     delta: data?.choices?.[0]?.delta?.content ?? data.choices?.[0]?.message?.content ?? data.choices?.[0]?.text ?? '',
+    tool_calls: data?.choices?.[0]?.delta?.tool_calls || undefined,
   }),
 };
 
@@ -391,6 +487,7 @@ const GENERIC_REASONING_STREAMER = (data: any) => ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data.choices?.filter((x: any) => x?.delta?.reasoning)?.[0]?.delta?.reasoning ??
     '',
+  tool_calls: data?.choices?.[0]?.delta?.tool_calls || undefined,
 });
 
 export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHandler>> = {
@@ -399,10 +496,46 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
     extractMessage: (data) => data?.content?.find((p: any) => p.type === 'text')?.text ?? '',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extractReasoning: (data) => data?.content?.find((p: any) => p.type === 'thinking')?.thinking,
-    getStreamingReply: (data) => ({
-      delta: data?.delta?.text || '',
-      reasoning: data?.delta?.thinking || '',
-    }),
+    extractToolCalls: (data) => {
+      // Claude to OpenAI format conversion
+      if (Array.isArray(data?.content)) {
+        return (
+          data.content
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((c: any) => c.type === 'tool_use')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((c: any) => ({
+              id: c.id,
+              type: 'function',
+              function: {
+                name: c.name,
+                arguments: JSON.stringify(c.input),
+              },
+            }))
+        );
+      }
+      return [];
+    },
+    getStreamingReply: (data) => {
+      // Claude Streaming Logic for Tools is complex as it comes in different event types
+      // This is a simplified handler assuming normalized events or specific delta structure
+      // Usually handled by the stream loop logic in generation.ts adapting events
+      // But if we map 'content_block_delta' etc., we need to handle it.
+      // For now, basic text/thinking support.
+      // Tool support in streams requires careful accumulation which is done in generation.ts via getStreamingReply
+      // Here we just map what we see in a chunk.
+
+      // Note: Claude sends 'content_block_start' with 'tool_use', then 'delta' for 'input_json'
+      // That logic needs to be in the stream consumption loop or we return a specific structure here
+      // The default loop expects 'delta' property.
+
+      const delta = data?.delta?.text || '';
+
+      return {
+        delta: delta,
+        reasoning: data?.delta?.thinking || '',
+      };
+    },
   },
   [api_providers.OLLAMA]: {
     extractMessage: (data) => data?.response ?? data?.message?.content ?? '',
@@ -420,7 +553,7 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
     extractMessage: (data) =>
       data?.candidates?.[0]?.content?.parts
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ?.filter((p: any) => !p.thought)
+        ?.filter((p: any) => !p.thought && !p.functionCall)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ?.map((p: any) => p.text)
         ?.join('') ?? '',
@@ -443,6 +576,24 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
       }
       return [];
     },
+    extractToolCalls: (data) => {
+      // Google to OpenAI format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parts = data?.candidates?.[0]?.content?.parts?.filter((p: any) => p.functionCall);
+      if (parts) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return parts.map((p: any) => ({
+          id: Math.random().toString(36).substring(7), // Google doesn't return IDs
+          type: 'function',
+          function: {
+            name: p.functionCall.name,
+            arguments: JSON.stringify(p.functionCall.args),
+          },
+          signature: p.thoughtSignature,
+        }));
+      }
+      return [];
+    },
     getStreamingReply: (data) => {
       const images: string[] = [];
 
@@ -459,12 +610,16 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
 
       return {
         delta:
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data?.candidates?.[0]?.content?.parts?.filter((x: any) => !x.thought)?.map((x: any) => x.text)?.[0] || '',
+          data?.candidates?.[0]?.content?.parts
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ?.filter((x: any) => !x.thought && !x.functionCall)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ?.map((x: any) => x.text)?.[0] || '',
         reasoning:
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
         images,
+        // Streaming tools for google is tricky without accumulating JSON, omitting for now
       };
     },
   },
@@ -472,7 +627,7 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
     extractMessage: (data) =>
       data?.candidates?.[0]?.content?.parts
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ?.filter((p: any) => !p.thought)
+        ?.filter((p: any) => !p.thought && !p.functionCall)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ?.map((p: any) => p.text)
         ?.join('') ?? '',
@@ -495,6 +650,24 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
       }
       return [];
     },
+    extractToolCalls: (data) => {
+      // Google to OpenAI format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parts = data?.candidates?.[0]?.content?.parts?.filter((p: any) => p.functionCall);
+      if (parts) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return parts.map((p: any) => ({
+          id: Math.random().toString(36).substring(7),
+          type: 'function',
+          function: {
+            name: p.functionCall.name,
+            arguments: JSON.stringify(p.functionCall.args),
+          },
+          signature: p.thoughtSignature,
+        }));
+      }
+      return [];
+    },
     getStreamingReply: (data) => {
       const images: string[] = [];
 
@@ -511,8 +684,11 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
 
       return {
         delta:
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data?.candidates?.[0]?.content?.parts?.filter((x: any) => !x.thought)?.map((x: any) => x.text)?.[0] || '',
+          data?.candidates?.[0]?.content?.parts
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ?.filter((x: any) => !x.thought && !x.functionCall)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ?.map((x: any) => x.text)?.[0] || '',
         reasoning:
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
@@ -535,6 +711,7 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ?.filter((x: any) => x)
         ?.join('\n\n') ?? '',
+    extractToolCalls: extractToolsGeneric,
     getStreamingReply: (data) => {
       const content = data.choices?.[0]?.delta?.content;
       // Handle array or string content safely
@@ -553,12 +730,14 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data.choices?.filter((x: any) => x?.delta?.content?.[0]?.thinking)?.[0]?.delta?.content?.[0]?.thinking?.[0]
             ?.text || '',
+        tool_calls: data?.choices?.[0]?.delta?.tool_calls || undefined,
       };
     },
   },
   [api_providers.OPENROUTER]: {
     extractMessage: DEFAULT_HANDLER.extractMessage,
     extractReasoning: GENERIC_REASONING_EXTRACTOR,
+    extractToolCalls: extractToolsGeneric,
     extractImages: (data) => {
       const imageUrl = data?.choices[0]?.message?.images
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -593,6 +772,7 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
           data.choices?.filter((x: any) => x?.delta?.reasoning)?.[0]?.delta?.reasoning ??
           '',
         images,
+        tool_calls: data?.choices?.[0]?.delta?.tool_calls || undefined,
       };
     },
   },
@@ -616,6 +796,7 @@ REASONING_SUPPORTED.forEach((p) => {
   PROVIDER_HANDLERS[p] = {
     extractMessage: DEFAULT_HANDLER.extractMessage,
     extractReasoning: GENERIC_REASONING_EXTRACTOR,
+    extractToolCalls: extractToolsGeneric,
     getStreamingReply: GENERIC_REASONING_STREAMER,
   };
 });
@@ -1066,6 +1247,7 @@ export const PROVIDER_INJECTIONS: Partial<Record<string, InjectionFunction>> = {
         messages: payload.messages,
         stream: payload.stream,
         stream_options: { include_usage: true },
+        tools: payload.tools,
       };
 
       const ignoredPayloadKeys = [
@@ -1130,13 +1312,6 @@ export const MODEL_INJECTIONS: ModelInjection[] = [
     inject: (payload, { samplerSettings, provider, model, modelList }) => {
       if (!samplerSettings.reasoning_effort) return;
       if (!REASONING_EFFORT_PROVIDERS.includes(provider)) {
-        // For non-listed providers, pass through if set
-        // (but usually they won't support it unless added)
-        // We keep behavior consistent: if set in UI, send it if not explicitly blocked?
-        // But original code blocked it if not in list, EXCEPT for specific override logic.
-        // Actually original logic: if (!INCLUDES) { payload = effort; return; }
-        // So it sent it for everyone else? No, it checked if INCLUDES, then applied rules.
-        // If not in includes, it just assigned it.
         payload.reasoning_effort = samplerSettings.reasoning_effort;
         return;
       }

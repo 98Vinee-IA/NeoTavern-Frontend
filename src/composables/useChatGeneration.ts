@@ -650,6 +650,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
       formatter: context.settings.formatter,
       instructTemplate: context.settings.instructTemplate,
       activeCharacter: activeCharacter,
+      customPromptPostProcessing: postProcessing,
     };
 
     const payloadController = new AbortController();

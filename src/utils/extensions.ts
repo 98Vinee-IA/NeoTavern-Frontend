@@ -341,6 +341,7 @@ const baseExtensionAPI: ExtensionAPI = {
         model: apiStore.activeModel,
         provider: settingsStore.settings.api.provider,
         providerSpecific: settingsStore.settings.api.providerSpecific,
+        customPromptPostProcessing: settingsStore.settings.api.customPromptPostProcessing,
         playerName: uiStore.activePlayerName || 'User',
         modelList: apiStore.modelList,
       });
@@ -683,6 +684,7 @@ const baseExtensionAPI: ExtensionAPI = {
         providerSpecific,
         modelList: apiStore.modelList,
         formatter: effectiveFormatter,
+        customPromptPostProcessing: customPromptPostProcessing ?? CustomPromptPostProcessing.NONE,
         instructTemplate: effectiveInstructTemplate,
         structuredResponse: options.structuredResponse,
       });

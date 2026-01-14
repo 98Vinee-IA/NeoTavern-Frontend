@@ -1,4 +1,9 @@
-import type { GenerationMode, OpenrouterMiddleoutType, ReasoningEffort } from '../constants';
+import type {
+  CustomPromptPostProcessing,
+  GenerationMode,
+  OpenrouterMiddleoutType,
+  ReasoningEffort,
+} from '../constants';
 import type { ApiModel, ApiProvider } from './api';
 import type { Character } from './character';
 import type { ChatMessage, ChatMetadata } from './chat';
@@ -7,6 +12,7 @@ import type { InstructTemplate } from './instruct';
 import type { Persona } from './persona';
 import type { ApiFormatter, Proxy, ReasoningTemplate, SamplerSettings, Settings } from './settings';
 import type { Tokenizer } from './tokenizer';
+import type { ToolDefinition, ToolInvocation } from './tools';
 import type { WorldInfoBook, WorldInfoEntry, WorldInfoSettings } from './world-info';
 
 export { type MessageRole, type ReasoningEffort };
@@ -24,10 +30,21 @@ export interface ApiChatContentPart {
   audio_url?: { url: string };
 }
 
+export interface ApiChatToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
 export interface ApiChatMessage {
   role: MessageRole;
   content: string | ApiChatContentPart[];
   name: string;
+  tool_calls?: ApiChatToolCall[];
+  tool_call_id?: string;
 }
 
 export interface StructuredResponseSchema {
@@ -58,6 +75,36 @@ export interface StructuredResponsePrompted extends StructuredResponseBase {
 
 export type StructuredResponseOptions = StructuredResponseNative | StructuredResponsePrompted;
 
+export interface ApiToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    parameters?: any;
+  };
+}
+
+export interface ToolGenerationConfig {
+  /**
+   * Whether to include tools registered in the global ToolStore.
+   * Defaults to true.
+   */
+  includeRegisteredTools?: boolean;
+  /**
+   * Additional tool definitions to include for this specific generation.
+   */
+  additionalTools?: ToolDefinition[];
+  /**
+   * Names of tools to exclude from the generation.
+   */
+  excludeTools?: string[];
+  /**
+   * Tool choice preference.
+   */
+  toolChoice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+}
+
 export type ChatCompletionPayload = Partial<{
   stream: boolean;
   // For chat
@@ -86,6 +133,10 @@ export type ChatCompletionPayload = Partial<{
   reverse_proxy?: string;
   proxy_password?: string;
   json_schema?: StructuredResponseSchema;
+
+  // Tools
+  tools?: ApiToolDefinition[];
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
 
   // KoboldCpp Specific
   rep_pen?: number;
@@ -161,12 +212,14 @@ export interface GenerationResponse {
   token_count?: number;
   images?: string[];
   structured_content?: object;
+  tool_calls?: ApiChatToolCall[];
 }
 
 export interface StreamedChunk {
   delta: string;
   reasoning?: string; // Full reasoning
   images?: string[];
+  tool_calls?: ApiChatToolCall[];
 }
 
 export type BuildChatCompletionPayloadOptions = {
@@ -175,6 +228,7 @@ export type BuildChatCompletionPayloadOptions = {
   model: string;
   provider: ApiProvider;
   providerSpecific: Settings['api']['providerSpecific'];
+  customPromptPostProcessing: CustomPromptPostProcessing;
   proxy?: Omit<Proxy, 'id' | 'name'>;
   playerName?: string;
   modelList?: ApiModel[];
@@ -182,6 +236,7 @@ export type BuildChatCompletionPayloadOptions = {
   instructTemplate?: InstructTemplate;
   activeCharacter?: Character;
   structuredResponse?: StructuredResponseOptions;
+  toolConfig?: ToolGenerationConfig;
 };
 
 export type GenerationContext = {
@@ -255,6 +310,7 @@ export interface ItemizedPrompt {
   timestamp: number;
 
   worldInfoEntries: Record<string, WorldInfoEntry[]>;
+  toolInvocations?: ToolInvocation[];
 }
 
 export interface GenerationTrackingOptions {

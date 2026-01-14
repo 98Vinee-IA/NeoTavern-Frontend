@@ -1,10 +1,13 @@
 import { aiConfigDefinition } from '../ai-config-definition';
 import { CustomPromptPostProcessing } from '../constants';
+import { ToolService } from '../services/tool.service';
 import { useApiStore } from '../stores/api.store';
 import { useSettingsStore } from '../stores/settings.store';
 import type {
   ApiChatMessage,
+  ApiChatToolCall,
   ApiProvider,
+  ApiToolDefinition,
   ChatCompletionPayload,
   ConnectionProfile,
   GenerationOptions,
@@ -37,7 +40,7 @@ export interface ResolvedConnectionProfileSettings {
   instructTemplate?: InstructTemplate;
   reasoningTemplate?: ReasoningTemplate;
   providerSpecific: Settings['api']['providerSpecific'];
-  customPromptPostProcessing?: CustomPromptPostProcessing;
+  customPromptPostProcessing: CustomPromptPostProcessing;
 }
 
 /**
@@ -122,7 +125,7 @@ export async function resolveConnectionProfileSettings(options: {
     instructTemplate: effectiveTemplate,
     reasoningTemplate: effectiveReasoningTemplate,
     providerSpecific: effectiveProviderSpecific,
-    customPromptPostProcessing: profileSettings?.customPromptPostProcessing,
+    customPromptPostProcessing: profileSettings?.customPromptPostProcessing ?? CustomPromptPostProcessing.NONE,
   };
 }
 
@@ -240,6 +243,8 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
     playerName,
     activeCharacter,
     structuredResponse,
+    customPromptPostProcessing,
+    toolConfig,
   } = options;
 
   const payload: ChatCompletionPayload = {
@@ -263,6 +268,36 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
         content: systemPrompt,
         name: 'System',
       });
+    }
+  }
+
+  // Handle Tools
+  if (ToolService.isToolCallingSupported(provider, model, customPromptPostProcessing)) {
+    const finalTools: ApiToolDefinition[] = [];
+
+    // 1. Registered Tools (Default: true)
+    if (toolConfig?.includeRegisteredTools !== false) {
+      const registeredTools = ToolService.getTools();
+      finalTools.push(...registeredTools);
+    }
+
+    // 2. Additional Tools
+    if (toolConfig?.additionalTools && toolConfig.additionalTools.length > 0) {
+      const additionalApiTools = toolConfig.additionalTools
+        .filter((t) => t.disabled !== true)
+        .map((t) => ToolService.toApiTool(t));
+      finalTools.push(...additionalApiTools);
+    }
+
+    // 3. Exclude Tools
+    let effectiveTools = finalTools;
+    if (toolConfig?.excludeTools && toolConfig.excludeTools.length > 0) {
+      effectiveTools = finalTools.filter((t) => !toolConfig.excludeTools!.includes(t.function.name));
+    }
+
+    if (effectiveTools.length > 0) {
+      payload.tools = effectiveTools;
+      payload.tool_choice = toolConfig?.toolChoice || 'auto';
     }
   }
 
@@ -513,6 +548,40 @@ class StreamReasoningParser {
   }
 }
 
+class ToolCallAccumulator {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private tools: Record<number, any> = {};
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  add(deltas: any[]) {
+    if (!Array.isArray(deltas)) return;
+    for (const delta of deltas) {
+      const index = delta.index ?? 0;
+
+      if (!this.tools[index]) {
+        this.tools[index] = {
+          id: delta.id || '',
+          type: delta.type || 'function',
+          function: {
+            name: delta.function?.name || '',
+            arguments: delta.function?.arguments || '',
+          },
+        };
+      } else {
+        const t = this.tools[index];
+        if (delta.id) t.id = delta.id;
+        if (delta.type) t.type = delta.type;
+        if (delta.function?.name) t.function.name += delta.function.name;
+        if (delta.function?.arguments) t.function.arguments += delta.function.arguments;
+      }
+    }
+  }
+
+  getCalls(): ApiChatToolCall[] {
+    return Object.values(this.tools);
+  }
+}
+
 export class ChatCompletionService {
   static async formatMessages(messages: ApiChatMessage[], type: CustomPromptPostProcessing): Promise<ApiChatMessage[]> {
     const payload = {
@@ -641,6 +710,7 @@ export class ChatCompletionService {
       }
 
       let reasoning = responseHandler.extractReasoning ? responseHandler.extractReasoning(responseData) : undefined;
+      const toolCalls = responseHandler.extractToolCalls ? responseHandler.extractToolCalls(responseData) : undefined;
       let finalContent = messageContent.trim();
       const images = responseHandler.extractImages ? responseHandler.extractImages(responseData) : undefined;
 
@@ -682,6 +752,7 @@ export class ChatCompletionService {
         token_count: tokenCount,
         images,
         structured_content,
+        tool_calls: toolCalls,
       };
     }
 
@@ -711,6 +782,7 @@ export class ChatCompletionService {
       const shouldParseReasoning =
         options.reasoningTemplate && options.reasoningTemplate.prefix && options.reasoningTemplate.suffix;
       const reasoningParser = shouldParseReasoning ? new StreamReasoningParser(options.reasoningTemplate!) : null;
+      const toolAccumulator = new ToolCallAccumulator();
 
       try {
         while (true) {
@@ -743,6 +815,11 @@ export class ChatCompletionService {
                   reasoning += chunk.reasoning;
                 }
 
+                if (chunk.tool_calls) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  toolAccumulator.add(chunk.tool_calls as any[]);
+                }
+
                 let deltaToYield = chunk.delta || '';
                 let reasoningDelta = '';
 
@@ -758,14 +835,20 @@ export class ChatCompletionService {
                 const hasContentChange = deltaToYield.length > 0;
                 const hasReasoningChange = (chunk.reasoning && chunk.reasoning.length > 0) || reasoningDelta.length > 0;
                 const hasImages = chunk.images && chunk.images.length > 0;
+                const hasToolCalls = chunk.tool_calls && chunk.tool_calls.length > 0;
 
-                if (hasContentChange || hasReasoningChange || hasImages) {
+                if (hasContentChange || hasReasoningChange || hasImages || hasToolCalls) {
                   if (isFirstChunk && deltaToYield) {
                     deltaToYield = deltaToYield.trimStart();
                     isFirstChunk = false;
                   }
 
-                  yield { delta: deltaToYield, reasoning: reasoning, images: chunk.images };
+                  yield {
+                    delta: deltaToYield,
+                    reasoning: reasoning,
+                    images: chunk.images,
+                    tool_calls: toolAccumulator.getCalls(), // Send cumulative state
+                  };
                 }
               } catch (e) {
                 console.error('Error parsing stream chunk:', data, e);

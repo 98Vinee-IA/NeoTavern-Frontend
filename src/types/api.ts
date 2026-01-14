@@ -30,7 +30,7 @@ export const api_providers = {
 } as const;
 
 export type ApiProvider = (typeof api_providers)[keyof typeof api_providers];
-export type ModelCapability = 'vision' | 'video' | 'audio';
+export type ModelCapability = 'vision' | 'video' | 'audio' | 'tools';
 
 export type ModelCapabilities = Record<ModelCapability, boolean>;
 

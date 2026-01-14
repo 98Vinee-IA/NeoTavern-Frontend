@@ -1,4 +1,4 @@
-import type { GenerationMode } from '../constants';
+import type { CustomPromptPostProcessing, GenerationMode } from '../constants';
 import type { ApiModel, ApiProvider } from './api';
 import type { Character } from './character';
 import type { ChatMessage } from './chat';
@@ -13,6 +13,7 @@ import type {
 import type { InstructTemplate } from './instruct';
 import type { Persona } from './persona';
 import type { ApiFormatter, Proxy, ReasoningTemplate, SamplerSettings, Settings, SettingsPath } from './settings';
+import type { ToolDefinition, ToolInvocation } from './tools';
 import type { ProcessedWorldInfo, WorldInfoBook, WorldInfoEntry, WorldInfoOptions } from './world-info';
 
 export interface GenerationPayloadBuilderConfig {
@@ -26,6 +27,7 @@ export interface GenerationPayloadBuilderConfig {
   modelList?: ApiModel[];
   formatter?: ApiFormatter;
   instructTemplate?: InstructTemplate;
+  customPromptPostProcessing: CustomPromptPostProcessing;
   reasoningTemplate?: ReasoningTemplate;
   activeCharacter?: Character;
 }
@@ -152,6 +154,11 @@ export interface ExtensionEventMap {
     chunk: StreamedChunk,
     context: { payload: ChatCompletionPayload; controller: AbortController; generationId: string },
   ];
+
+  // Tool Events
+  'tool:registered': [tool: ToolDefinition];
+  'tool:unregistered': [name: string];
+  'tool:calls-performed': [invocations: ToolInvocation[]];
 
   // Analytics / Usage
   'llm:usage': [data: LlmUsageData];
