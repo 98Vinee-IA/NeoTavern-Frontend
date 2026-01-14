@@ -173,6 +173,7 @@ export class ToolService {
 
   /**
    * Checks if tool calling is supported for the current configuration.
+   * generation.ts is already calling this. So no need to call earlier.
    */
   static isToolCallingSupported(
     provider: ApiProvider,

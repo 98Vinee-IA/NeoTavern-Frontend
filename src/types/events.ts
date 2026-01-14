@@ -9,6 +9,7 @@ import type {
   GenerationResponse,
   PromptBuilderOptions,
   StreamedChunk,
+  ToolGenerationConfig,
 } from './generation';
 import type { InstructTemplate } from './instruct';
 import type { Persona } from './persona';
@@ -30,6 +31,7 @@ export interface GenerationPayloadBuilderConfig {
   customPromptPostProcessing: CustomPromptPostProcessing;
   reasoningTemplate?: ReasoningTemplate;
   activeCharacter?: Character;
+  toolConfig?: ToolGenerationConfig;
 }
 
 export interface LlmUsageData {
