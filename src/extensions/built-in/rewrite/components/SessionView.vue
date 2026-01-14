@@ -422,6 +422,13 @@ async function handleDelete(msgId: string) {
   border-radius: var(--base-border-radius);
   padding: 2px;
   box-shadow: 0 2px 4px var(--theme-shadow-color);
+
+  @include mobile-override() {
+    opacity: 1;
+    background-color: var(--black-50a);
+    border: 1px solid var(--theme-border-color);
+    top: -28px;
+  }
 }
 
 .message:hover .message-hover-actions {
