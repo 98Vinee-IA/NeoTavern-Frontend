@@ -5,6 +5,7 @@ import { useToolStore } from '../stores/tool.store';
 import { type ApiProvider } from '../types/api';
 import type { ApiChatToolCall, ApiToolDefinition } from '../types/generation';
 import type { ToolDefinition, ToolInvocation } from '../types/tools';
+import { eventEmitter } from '../utils/extensions';
 
 export class ToolService {
   /**
@@ -39,12 +40,31 @@ export class ToolService {
   }
 
   /**
-   * Invokes a single tool by name with provided arguments.
-   * Checks both registered tools and optionally provided ad-hoc tools (if we passed them to a context, but here we just check store).
-   * For ad-hoc tools execution, the caller usually handles it or registers them temporarily.
-   * This service primarily handles global tools.
+   * Safe parameter parsing helper.
+   * Handles string JSON, empty strings, and pre-parsed objects.
    */
-  static async invokeTool(name: string, argsJson: string): Promise<string> {
+  static parseParameters(parameters: string | object | unknown): Record<string, unknown> {
+    if (parameters === '' || parameters === null || parameters === undefined) {
+      return {};
+    }
+    if (typeof parameters === 'string') {
+      try {
+        return JSON.parse(parameters);
+      } catch (e) {
+        console.warn('[ToolService] Failed to parse tool parameters:', parameters, e);
+        return {};
+      }
+    }
+    if (typeof parameters === 'object') {
+      return parameters as Record<string, unknown>;
+    }
+    return {};
+  }
+
+  /**
+   * Invokes a single tool by name with provided arguments.
+   */
+  static async invokeTool(name: string, args: string | object): Promise<string> {
     const toolStore = useToolStore();
     const tool = toolStore.getTool(name);
 
@@ -53,10 +73,8 @@ export class ToolService {
     }
 
     try {
-      // Parse arguments if string, or keep if already object (depending on provider output quirks)
-      // Usually LLM output is a JSON string.
-      const args = argsJson ? JSON.parse(argsJson) : {};
-      const result = await tool.action(args);
+      const parsedArgs = this.parseParameters(args);
+      const result = await tool.action(parsedArgs);
 
       if (typeof result === 'string') return result;
       return JSON.stringify(result);
@@ -72,16 +90,16 @@ export class ToolService {
   /**
    * Formats the tool invocation for display (e.g. system message).
    */
-  static async formatToolMessage(name: string, argsJson: string): Promise<string> {
+  static async formatToolMessage(name: string, args: string | object): Promise<string> {
     const toolStore = useToolStore();
     const tool = toolStore.getTool(name);
 
     if (!tool) return `Invoking tool: ${name}`;
 
     try {
-      const args = argsJson ? JSON.parse(argsJson) : {};
+      const parsedArgs = this.parseParameters(args);
       if (tool.formatMessage) {
-        return await tool.formatMessage(args);
+        return await tool.formatMessage(parsedArgs);
       }
       return `Invoking tool: ${tool.displayName || tool.name}`;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -103,6 +121,10 @@ export class ToolService {
     const errors: Error[] = [];
     const toolStore = useToolStore();
 
+    if (!Array.isArray(toolCalls) || toolCalls.length === 0) {
+      return { invocations, stealthCalls, errors };
+    }
+
     for (const call of toolCalls) {
       if (call.type !== 'function') continue;
 
@@ -110,11 +132,17 @@ export class ToolService {
       const tool = toolStore.getTool(name);
 
       if (!tool) {
-        errors.push(new Error(`Unknown tool: ${name}`));
+        const error = new Error(`Unknown tool: ${name}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (error as any).cause = name;
+        errors.push(error);
         continue;
       }
 
       try {
+        const displayMessage = await this.formatToolMessage(name, args);
+        await eventEmitter.emit('tool:call-started', { name, message: displayMessage });
+
         const result = await this.invokeTool(name, args);
 
         if (tool.stealth) {
@@ -124,15 +152,20 @@ export class ToolService {
             id: call.id,
             name: name,
             displayName: tool.displayName || name,
-            parameters: args,
+            parameters: typeof args === 'string' ? args : JSON.stringify(args),
             result: result,
-            // @ts-expect-error custom field potentially added by provider handlers
-            signature: call.signature,
+            signature: call.signature, // Pass through signature (e.g. Google thought signature, OR encryption)
           });
         }
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (err as any).cause = name;
         errors.push(err as Error);
       }
+    }
+
+    if (invocations.length > 0) {
+      await eventEmitter.emit('tool:calls-performed', invocations);
     }
 
     return { invocations, stealthCalls, errors };

@@ -158,6 +158,7 @@ export interface ExtensionEventMap {
   // Tool Events
   'tool:registered': [tool: ToolDefinition];
   'tool:unregistered': [name: string];
+  'tool:call-started': [payload: { name: string; message: string }];
   'tool:calls-performed': [invocations: ToolInvocation[]];
 
   // Analytics / Usage

@@ -374,7 +374,6 @@ export function getModelCapabilities(
       api_providers.AZURE_OPENAI,
       api_providers.ZAI,
       api_providers.NANOGPT,
-      api_providers.KOBOLDCPP,
     ];
     capabilities.tools = supportedSources.includes(provider);
   }
@@ -517,28 +516,54 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
       return [];
     },
     getStreamingReply: (data) => {
-      // Claude Streaming Logic for Tools is complex as it comes in different event types
-      // This is a simplified handler assuming normalized events or specific delta structure
-      // Usually handled by the stream loop logic in generation.ts adapting events
-      // But if we map 'content_block_delta' etc., we need to handle it.
-      // For now, basic text/thinking support.
-      // Tool support in streams requires careful accumulation which is done in generation.ts via getStreamingReply
-      // Here we just map what we see in a chunk.
+      // Claude Streaming Logic
+      const deltaText = data?.delta?.text || '';
+      const thinking = data?.delta?.thinking || '';
+      const toolCalls: ApiChatToolCall[] = [];
 
-      // Note: Claude sends 'content_block_start' with 'tool_use', then 'delta' for 'input_json'
-      // That logic needs to be in the stream consumption loop or we return a specific structure here
-      // The default loop expects 'delta' property.
+      // 1. Tool Start (content_block_start with tool_use)
+      // data: { type: 'content_block_start', index: X, content_block: { type: 'tool_use', id: '...', name: '...' } }
+      // The calling code often passes 'data' as the event data object.
+      // Need to verify how the generator in generation.ts calls this.
+      // It passes `parsed` JSON from the stream line.
 
-      const delta = data?.delta?.text || '';
+      if (data?.type === 'content_block_start' && data.content_block?.type === 'tool_use') {
+        toolCalls.push({
+          // @ts-expect-error index property used by accumulator
+          index: data.index,
+          id: data.content_block.id,
+          type: 'function',
+          function: {
+            name: data.content_block.name,
+            arguments: '',
+          },
+        });
+      }
+
+      // 2. Tool Delta (content_block_delta with input_json_delta)
+      // data: { type: 'content_block_delta', index: X, delta: { type: 'input_json_delta', partial_json: '...' } }
+      if (data?.type === 'content_block_delta' && data.delta?.type === 'input_json_delta') {
+        toolCalls.push({
+          // @ts-expect-error index property used by accumulator
+          index: data.index,
+          type: 'function',
+          function: {
+            name: '',
+            arguments: data.delta.partial_json,
+          },
+        });
+      }
 
       return {
-        delta: delta,
-        reasoning: data?.delta?.thinking || '',
+        delta: deltaText,
+        reasoning: thinking,
+        tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
       };
     },
   },
   [api_providers.OLLAMA]: {
     extractMessage: (data) => data?.response ?? data?.message?.content ?? '',
+    extractToolCalls: extractToolsGeneric, // Ollama uses standard OpenAI format now
     getStreamingReply: (data, formatter) => {
       if (formatter === 'chat') {
         return { delta: data?.response ?? data?.message?.content ?? '' };
@@ -608,6 +633,29 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
         images.push(...inlineData.map((x: any) => `data:${x.mimeType};base64,${x.data}`).filter(isDataURL));
       }
 
+      // Handle Google Streaming Tool Calls
+      // Google sends full function calls in parts, not deltas usually, but in streaming it might come chunked.
+      // However, typical Google AI Studio streaming behavior sends full parts when complete or text deltas.
+      // We'll check for functionCall in parts.
+      const toolCalls: ApiChatToolCall[] = [];
+      const parts = data?.candidates?.[0]?.content?.parts;
+      if (Array.isArray(parts)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        parts.forEach((p: any) => {
+          if (p.functionCall) {
+            toolCalls.push({
+              id: Math.random().toString(36).substring(7),
+              type: 'function',
+              function: {
+                name: p.functionCall.name,
+                arguments: JSON.stringify(p.functionCall.args),
+              },
+              signature: p.thoughtSignature,
+            });
+          }
+        });
+      }
+
       return {
         delta:
           data?.candidates?.[0]?.content?.parts
@@ -619,7 +667,7 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
         images,
-        // Streaming tools for google is tricky without accumulating JSON, omitting for now
+        tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
       };
     },
   },
@@ -682,6 +730,26 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
         images.push(...inlineData.map((x: any) => `data:${x.mimeType};base64,${x.data}`).filter(isDataURL));
       }
 
+      // Handle Vertex Streaming Tool Calls (Same as MakerSuite)
+      const toolCalls: ApiChatToolCall[] = [];
+      const parts = data?.candidates?.[0]?.content?.parts;
+      if (Array.isArray(parts)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        parts.forEach((p: any) => {
+          if (p.functionCall) {
+            toolCalls.push({
+              id: Math.random().toString(36).substring(7),
+              type: 'function',
+              function: {
+                name: p.functionCall.name,
+                arguments: JSON.stringify(p.functionCall.args),
+              },
+              signature: p.thoughtSignature,
+            });
+          }
+        });
+      }
+
       return {
         delta:
           data?.candidates?.[0]?.content?.parts
@@ -693,6 +761,7 @@ export const PROVIDER_HANDLERS: Partial<Record<ApiProvider, ProviderResponseHand
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data?.candidates?.[0]?.content?.parts?.filter((x: any) => x.thought)?.map((x: any) => x.text)?.[0] || '',
         images,
+        tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
       };
     },
   },

@@ -431,9 +431,6 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
     }
   }
 
-  // 4. ToolManager integration (placeholder)
-  // if (!canMultiSwipe && ToolManager.canPerformToolCalls(type)) { ... }
-
   return payload;
 }
 
@@ -556,6 +553,7 @@ class ToolCallAccumulator {
   add(deltas: any[]) {
     if (!Array.isArray(deltas)) return;
     for (const delta of deltas) {
+      // Use index from delta if present, or infer from list order if implied (rare in streams, usually explicit)
       const index = delta.index ?? 0;
 
       if (!this.tools[index]) {
@@ -566,6 +564,8 @@ class ToolCallAccumulator {
             name: delta.function?.name || '',
             arguments: delta.function?.arguments || '',
           },
+          // Copy signature if present (e.g. from Google or decrypted metadata)
+          signature: delta.signature || undefined,
         };
       } else {
         const t = this.tools[index];
@@ -573,6 +573,8 @@ class ToolCallAccumulator {
         if (delta.type) t.type = delta.type;
         if (delta.function?.name) t.function.name += delta.function.name;
         if (delta.function?.arguments) t.function.arguments += delta.function.arguments;
+        // Signature might come late or in chunks, just overwrite if present
+        if (delta.signature) t.signature = delta.signature;
       }
     }
   }

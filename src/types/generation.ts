@@ -37,6 +37,7 @@ export interface ApiChatToolCall {
     name: string;
     arguments: string;
   };
+  signature?: string;
 }
 
 export interface ApiChatMessage {
