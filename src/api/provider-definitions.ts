@@ -10,7 +10,7 @@ import type {
   StreamedChunk,
 } from '../types';
 import { api_providers } from '../types';
-import type { BuildChatCompletionPayloadOptions } from '../types/generation';
+import type { ApiUserMessage, BuildChatCompletionPayloadOptions } from '../types/generation';
 import type { ApiFormatter, SamplerSettings } from '../types/settings';
 import { isDataURL } from '../utils/media';
 
@@ -1456,7 +1456,8 @@ export const MODEL_INJECTIONS: ModelInjection[] = [
     inject: (payload) => {
       if (payload.model?.startsWith('o1')) {
         payload.messages?.forEach((msg) => {
-          if (msg.role === 'system') msg.role = 'user';
+          // Ugly
+          if (msg.role === 'system') (msg as unknown as ApiUserMessage).role = 'user';
         });
       }
       // Clean up params not supported by O-series

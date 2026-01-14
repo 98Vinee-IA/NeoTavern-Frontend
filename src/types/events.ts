@@ -97,7 +97,7 @@ export interface ExtensionEventMap {
 
   'prompt:building-started': [options: PromptBuilderOptions];
   'prompt:history-message-processing': [
-    apiMessage: ApiChatMessage,
+    apiMessages: ApiChatMessage[],
     context: {
       originalMessage: ChatMessage;
       isGroupContext: boolean;

@@ -55,13 +55,42 @@ export type ApiChatToolCallDelta = {
   signature?: string;
 };
 
-export interface ApiChatMessage {
-  role: MessageRole;
-  content: string | ApiChatContentPart[];
+// Base interface for all message types
+interface ApiMessageBase {
   name: string;
-  tool_calls?: ApiChatToolCall[];
-  tool_call_id?: string;
 }
+
+// Specific message types for the discriminated union
+export interface ApiSystemMessage extends ApiMessageBase {
+  role: 'system';
+  content: string;
+}
+
+export interface ApiUserMessage extends ApiMessageBase {
+  role: 'user';
+  content: string | ApiChatContentPart[];
+}
+
+export type ApiAssistantMessage = ApiMessageBase & {
+  role: 'assistant';
+} & (
+    | {
+        content: string | ApiChatContentPart[];
+        tool_calls?: ApiChatToolCall[];
+      }
+    | {
+        content: null;
+        tool_calls: ApiChatToolCall[];
+      }
+  );
+
+export interface ApiToolMessage extends ApiMessageBase {
+  role: 'tool';
+  content: string;
+  tool_call_id: string;
+}
+
+export type ApiChatMessage = ApiSystemMessage | ApiUserMessage | ApiAssistantMessage | ApiToolMessage;
 
 export interface StructuredResponseSchema {
   name: string;
