@@ -64,6 +64,26 @@ watch(
   { deep: true, immediate: true },
 );
 
+// State Calculation
+// Calculates the text state BEFORE each message index.
+// textStates[i] corresponds to the text content before message[i] was applied.
+const messageStates = computed(() => {
+  const states: string[] = [];
+  let current = props.currentText;
+
+  for (const msg of props.messages) {
+    states.push(current);
+
+    if (msg.role === 'assistant') {
+      const response = getResponseText(msg);
+      if (response) {
+        current = response;
+      }
+    }
+  }
+  return states;
+});
+
 function handleSend() {
   if (userInput.value.trim() && !props.isGenerating) {
     emit('send', userInput.value.trim());
@@ -95,11 +115,16 @@ function getResponseText(msg: RewriteSessionMessage): string | undefined {
   return content.response;
 }
 
-function showDiff(msg: RewriteSessionMessage) {
-  if (msg.role !== 'assistant' || !msg.previousTextState) return;
+function showDiff(msg: RewriteSessionMessage, index: number) {
+  if (msg.role !== 'assistant') return;
   const current = getResponseText(msg);
   if (!current) return;
-  emit('show-diff', msg.previousTextState, current);
+
+  // The state before this message is stored in messageStates at the same index
+  const previous = messageStates.value[index];
+
+  if (previous === undefined) return;
+  emit('show-diff', previous, current);
 }
 
 // Edit Logic
@@ -138,7 +163,7 @@ async function handleDelete(msgId: string) {
 <template>
   <div class="session-view">
     <div ref="chatContainer" class="chat-container">
-      <div v-for="msg in messages" :key="msg.id" class="message" :class="`role-${msg.role}`">
+      <div v-for="(msg, index) in messages" :key="msg.id" class="message" :class="`role-${msg.role}`">
         <!-- System Message -->
         <div v-if="msg.role === 'system'" class="system-message">
           <div class="system-header" @click="toggleSystemCollapse">
@@ -203,12 +228,12 @@ async function handleDelete(msgId: string) {
           <!-- Message Controls -->
           <div class="assistant-controls">
             <Button
-              v-if="msg.previousTextState && getResponseText(msg)"
+              v-if="getResponseText(msg)"
               icon="fa-code-compare"
               variant="ghost"
               :title="t('extensionsBuiltin.rewrite.popup.showDiff')"
               class="control-btn"
-              @click="showDiff(msg)"
+              @click="showDiff(msg, index)"
             />
             <div class="spacer"></div>
             <!-- Delete for assistant (deletes from here down) -->

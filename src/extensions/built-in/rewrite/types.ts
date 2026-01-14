@@ -9,7 +9,6 @@ export interface RewriteSessionMessage {
   id: string;
   role: MessageRole;
   content: string | RewriteLLMResponse;
-  previousTextState?: string;
   timestamp: number;
 }
 
@@ -53,6 +52,8 @@ export interface RewriteTemplateOverride {
   selectedContextEntries?: Record<string, number[]>; // Map bookName -> list of entry UIDs
   selectedContextCharacters?: string[];
   structuredResponseFormat?: StructuredResponseFormat;
+  isCharacterContextCollapsed?: boolean;
+  isWorldInfoContextCollapsed?: boolean;
 }
 
 export interface RewriteSettings {

@@ -52,6 +52,10 @@ const selectedContextLorebooks = ref<string[]>([]);
 const selectedContextEntries = ref<Record<string, number[]>>({});
 const selectedContextCharacters = ref<string[]>([]);
 
+const isSidebarCollapsed = ref(false);
+const isCharacterContextOpen = ref(false);
+const isWorldInfoContextOpen = ref(false);
+
 // Data Cache
 const allBookHeaders = ref<WorldInfoHeader[]>([]);
 const bookCache = ref<Record<string, WorldInfoBook>>({});
@@ -135,6 +139,9 @@ watch(selectedContextLorebooks, async (newBooks) => {
   }
 });
 
+watch(isCharacterContextOpen, () => saveState());
+watch(isWorldInfoContextOpen, () => saveState());
+
 async function ensureBookLoaded(bookName: string) {
   if (!bookCache.value[bookName]) {
     try {
@@ -208,6 +215,8 @@ function loadTemplateOverrides() {
   selectedContextEntries.value = overrides.selectedContextEntries ? { ...overrides.selectedContextEntries } : {};
   selectedContextCharacters.value = overrides.selectedContextCharacters || [];
   structuredResponseFormat.value = overrides.structuredResponseFormat || 'native';
+  isCharacterContextOpen.value = !(overrides.isCharacterContextCollapsed ?? true);
+  isWorldInfoContextOpen.value = !(overrides.isWorldInfoContextCollapsed ?? true);
 
   const args: Record<string, boolean | number | string> = {};
   if (tpl?.args) {
@@ -240,6 +249,8 @@ function saveState() {
     selectedContextEntries: { ...selectedContextEntries.value },
     selectedContextCharacters: selectedContextCharacters.value,
     structuredResponseFormat: structuredResponseFormat.value,
+    isCharacterContextCollapsed: !isCharacterContextOpen.value,
+    isWorldInfoContextCollapsed: !isWorldInfoContextOpen.value,
   };
 
   settings.value.templateOverrides[tplId] = overrides;
@@ -512,30 +523,11 @@ async function executeSessionGeneration() {
       abortController.value?.signal,
     );
 
-    // Calculate previous state for diff
-    let previousState = activeSession.value.originalText;
-    const messages = activeSession.value.messages;
-    // Iterate backwards to find the last assistant message
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role === 'assistant') {
-        const content = m.content;
-        if (typeof content === 'string') {
-          previousState = content;
-          break;
-        } else if ((content as RewriteLLMResponse).response) {
-          previousState = (content as RewriteLLMResponse).response as string;
-          break;
-        }
-      }
-    }
-
     activeSession.value.messages.push({
       id: props.api.uuid(),
       role: 'assistant',
       content: response,
       timestamp: Date.now(),
-      previousTextState: previousState,
     });
 
     await service.saveSession(deepToRaw(activeSession.value));
@@ -726,9 +718,9 @@ function handleGeneralDiff() {
       <!-- Character Context -->
       <CollapsibleSection
         v-if="showCharacterContextSection"
+        v-model:is-open="isCharacterContextOpen"
         class="inner-collapsible"
         :title="t('extensionsBuiltin.rewrite.popup.relatedCharacters')"
-        :is-open="false"
       >
         <FormItem
           :label="t('extensionsBuiltin.rewrite.popup.contextCharacters')"
@@ -747,9 +739,9 @@ function handleGeneralDiff() {
       <!-- World Info Context -->
       <CollapsibleSection
         v-if="showWorldInfoContextSection"
+        v-model:is-open="isWorldInfoContextOpen"
         class="inner-collapsible"
         :title="t('extensionsBuiltin.rewrite.popup.worldInfoContext')"
-        :is-open="false"
       >
         <div v-if="selectedEntryContext && IS_WORLD_INFO_FIELD" class="current-context-info">
           {{ t('extensionsBuiltin.rewrite.popup.currentEntry') }}:
@@ -854,7 +846,7 @@ function handleGeneralDiff() {
 
       <!-- Session View -->
       <div v-show="activeTab === 'session'" class="view-container session-mode">
-        <SplitPane :initial-width="250" :min-width="200" :max-width="400">
+        <SplitPane v-model:collapsed="isSidebarCollapsed" :initial-width="250" :min-width="200" :max-width="400">
           <template #side>
             <div class="session-sidebar">
               <SessionManager

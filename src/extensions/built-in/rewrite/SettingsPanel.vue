@@ -18,6 +18,7 @@ const settings = ref<RewriteSettings>({
   lastUsedTemplates: {},
   templateOverrides: {},
 });
+const isSidebarCollapsed = ref(false);
 
 onMounted(() => {
   const saved = props.api.settings.get();
@@ -211,7 +212,7 @@ function onArgTypeChange(arg: RewriteTemplateArg) {
       </div>
 
       <div class="templates-layout">
-        <SplitPane :initial-width="200" :min-width="150" :max-width="500">
+        <SplitPane v-model:collapsed="isSidebarCollapsed" :initial-width="300" :min-width="150" :max-width="500">
           <template #side>
             <div class="template-list">
               <div
