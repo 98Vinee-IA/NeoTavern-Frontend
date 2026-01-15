@@ -20,6 +20,16 @@ Why another frontend for [SillyTavern?](https://github.com/SillyTavern/SillyTave
 - All chats are group chats. Add/remove a member anytime.
 - Assigning multiple lorebooks per persona/chat.
 - Assigning a connection profile per chat.
+- Tools: The ability to enable/disable tools. 2 built-in tools: Web search and URL inspector.
+- Media attachments: If the message has a markdown image link(`![alt](url)`), AI will see the image.
+
+**Built-in extensions compared to SillyTavern:**
+
+- Standard Tools: Web Search and URL Inspector.
+- Chat Memory: 2 modes. 1) The simpler version of [MemoryBooks](https://github.com/aikohanasaki/SillyTavern-MemoryBooks). Select the range of messages -> summarize it with AI -> auto hide messages -> create a lorebook entry 2) [qvikn's memory](https://github.com/qvink/SillyTavern-MessageSummarize). Select the range of messages -> summarize each of them with AI -> summarized messages are shown in the chat and they are used as context.
+- Chat Translation: Translate messages in the chat with AI.
+- Magic Rewrite: Rewrite most inputs with AI.
+- Usage Tracker: Show token/usage statistics. (Price/cache tokens are not calculated yet.)
 
 **What things did not implement:**
 
