@@ -55,6 +55,7 @@ const editTextarea = ref<InstanceType<typeof Textarea>>();
 const isEditing = computed(() => chatStore.activeMessageEditState?.index === props.index);
 const hasReasoning = computed(() => props.message.extra?.reasoning && props.message.extra.reasoning.trim().length > 0);
 const hasItemizedPrompt = computed(() => !!promptStore.getItemizedPrompt(props.index, props.message.swipe_id ?? 0));
+const isSmallSys = computed(() => !!props.message.extra?.isSmallSys);
 
 const isSelectionMode = computed(() => chatSelectionStore.isSelectionMode);
 const isSelected = computed(() => chatSelectionStore.selectedMessageIndices.has(props.index));
@@ -431,6 +432,7 @@ const editTools = computed<TextareaToolDefinition[]>(() => {
       'is-selection-mode': isSelectionMode,
       'animations-disabled': animationsDisabled,
       'is-system-message': message.is_system,
+      'is-small-sys': isSmallSys,
     }"
     :data-message-index="index"
     :aria-label="`${props.message.name} - ${formattedTimestamp}`"
@@ -472,7 +474,7 @@ const editTools = computed<TextareaToolDefinition[]>(() => {
         <!-- Buttons for Normal Mode -->
         <div v-show="!isEditing && !isSelectionMode" class="message-buttons">
           <Button
-            v-if="hasItemizedPrompt"
+            v-if="hasItemizedPrompt && !isSmallSys"
             variant="ghost"
             icon="fa-square-poll-horizontal"
             :title="t('chat.buttons.itemization')"
@@ -480,12 +482,13 @@ const editTools = computed<TextareaToolDefinition[]>(() => {
           />
           <Button variant="ghost" icon="fa-copy" :title="t('chat.buttons.copyMessage')" @click="copyMessage" />
           <Button
+            v-if="!isSmallSys"
             variant="ghost"
             :icon="message.is_system ? 'fa-eye' : 'fa-eye-slash'"
             :title="message.is_system ? t('chat.buttons.showInPrompt') : t('chat.buttons.hideFromPrompt')"
             @click="toggleHidden"
           />
-          <Button variant="ghost" icon="fa-pencil" title="Edit" @click="startEditing" />
+          <Button v-if="!isSmallSys" variant="ghost" icon="fa-pencil" title="Edit" @click="startEditing" />
           <Button
             icon="fa-trash-can"
             variant="danger"

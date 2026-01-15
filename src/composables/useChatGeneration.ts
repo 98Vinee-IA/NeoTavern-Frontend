@@ -328,7 +328,7 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
               swipes: [finalContent],
               swipe_id: 0,
               swipe_info: [{ send_date: getMessageTimeStamp(), extra: {} }],
-              extra: {},
+              extra: { isSmallSys: true },
             };
             currentChatContext.messages.push(toolResultMessage);
             await nextTick();

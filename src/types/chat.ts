@@ -76,6 +76,7 @@ export interface ChatMessage {
     media?: ChatMediaItem[];
     ignored_media?: string[];
     tool_invocations?: ToolInvocation[];
+    isSmallSys?: boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } & Record<string, any>;
 }
