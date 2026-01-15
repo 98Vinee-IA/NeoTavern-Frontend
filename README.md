@@ -26,7 +26,6 @@ Why another frontend for [SillyTavern?](https://github.com/SillyTavern/SillyTave
 - STScript, QRs, slash commands, detailed macro system.
 - More built-in extensions.
 - NovelAI/Horde/KoboldClassic. If they have OpenAI compatible API, we can add later. If not, we are not planning to add them.
-- Tool calling.
 
 **Thing that not implemented fully:**
 
