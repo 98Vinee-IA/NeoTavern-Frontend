@@ -7,7 +7,8 @@ import ChatMessage from './ChatMessage.vue';
 
 const chatStore = useChatStore();
 const { t } = useStrictI18n();
-const { visibleMessages, hasMoreMessages, loadMoreMessages } = useChatView();
+// @ts-expect-error -- ref typing
+const { visibleMessages, hasMoreMessages, loadMoreMessages, messagesContainer } = useChatView();
 </script>
 
 <template>
