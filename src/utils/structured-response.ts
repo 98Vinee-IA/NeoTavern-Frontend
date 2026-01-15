@@ -1,5 +1,5 @@
-import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import Ajv from 'ajv';
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { macroService } from '../services/macro-service';
 import type { StructuredResponsePrompted } from '../types';
 

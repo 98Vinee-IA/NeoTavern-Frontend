@@ -12,5 +12,5 @@ export interface StandardToolsSettings {
 export const DEFAULT_SETTINGS: StandardToolsSettings = {
   corsProxy: 'https://corsproxy.io/?',
   webSearchMaxResults: 5,
-  urlInspectorMaxContentLength: 8000,
+  urlInspectorMaxContentLength: 20000,
 };

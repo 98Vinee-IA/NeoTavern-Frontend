@@ -27,6 +27,15 @@ watch(
   },
   { deep: true },
 );
+
+const getResetTool = (field: keyof StandardToolsSettings) => ({
+  id: 'reset',
+  title: t('common.reset'),
+  icon: 'fa-undo',
+  onClick: ({ setValue }: { value: string; setValue: (val: string) => void }) => {
+    setValue(String(DEFAULT_SETTINGS[field]));
+  },
+});
 </script>
 
 <template>
@@ -38,7 +47,11 @@ watch(
         :label="t('extensionsBuiltin.standardTools.corsProxy')"
         :description="t('extensionsBuiltin.standardTools.corsProxyHint')"
       >
-        <Input v-model="settings.corsProxy" placeholder="e.g. https://corsproxy.io/?" />
+        <Input
+          v-model="settings.corsProxy"
+          placeholder="e.g. https://corsproxy.io/?"
+          :tools="[getResetTool('corsProxy')]"
+        />
       </FormItem>
     </div>
 
@@ -49,7 +62,13 @@ watch(
         :label="t('extensionsBuiltin.standardTools.maxResults')"
         :description="t('extensionsBuiltin.standardTools.maxResultsHint')"
       >
-        <Input v-model.number="settings.webSearchMaxResults" type="number" :min="1" :max="20" />
+        <Input
+          v-model.number="settings.webSearchMaxResults"
+          type="number"
+          :min="1"
+          :max="20"
+          :tools="[getResetTool('webSearchMaxResults')]"
+        />
       </FormItem>
     </div>
 
@@ -60,7 +79,13 @@ watch(
         :label="t('extensionsBuiltin.standardTools.maxContentLength')"
         :description="t('extensionsBuiltin.standardTools.maxContentLengthHint')"
       >
-        <Input v-model.number="settings.urlInspectorMaxContentLength" type="number" :min="100" :step="500" />
+        <Input
+          v-model.number="settings.urlInspectorMaxContentLength"
+          type="number"
+          :min="100"
+          :step="500"
+          :tools="[getResetTool('urlInspectorMaxContentLength')]"
+        />
       </FormItem>
     </div>
   </div>
