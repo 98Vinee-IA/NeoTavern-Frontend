@@ -691,6 +691,11 @@ export interface MessageSchema {
     tools: {
       title: string;
       noTools: string;
+      disabled: {
+        setting: string;
+        postProcessing: string;
+        model: string;
+      };
     };
   };
   character: {

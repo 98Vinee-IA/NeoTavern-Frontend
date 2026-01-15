@@ -141,6 +141,24 @@
   max-height: 60vh;
   overflow-y: auto;
 
+  .tools-warning {
+    background-color: var(--black-30a);
+    border: 1px solid var(--color-warning-amber);
+    color: var(--color-warning-amber);
+    padding: var(--spacing-sm);
+    border-radius: var(--base-border-radius);
+    font-size: 0.85em;
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+
+    i {
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+  }
+
   .empty-state {
     padding: var(--spacing-md);
     text-align: center;

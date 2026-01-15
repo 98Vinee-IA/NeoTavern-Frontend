@@ -687,7 +687,12 @@
     },
     "tools": {
       "title": "Tools",
-      "noTools": "No tools available"
+      "noTools": "No tools available",
+      "disabled": {
+        "setting": "Tools are disabled in sampler settings.",
+        "postProcessing": "Tools are incompatible with the current Prompt Post-Processing setting.",
+        "model": "The active model does not support tool calling."
+      }
     }
   },
   "character": {

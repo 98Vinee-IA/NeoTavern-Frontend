@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue';
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { isCapabilitySupported } from '../../api/provider-definitions';
 import { useChatMedia } from '../../composables/useChatMedia';
 import { useMobile } from '../../composables/useMobile';
 import { useStrictI18n } from '../../composables/useStrictI18n';
-import { GenerationMode } from '../../constants';
+import { CustomPromptPostProcessing, GenerationMode } from '../../constants';
+import { useApiStore } from '../../stores/api.store';
 import { useChatSelectionStore } from '../../stores/chat-selection.store';
 import { useChatUiStore } from '../../stores/chat-ui.store';
 import { useChatStore } from '../../stores/chat.store';
@@ -27,6 +29,7 @@ const settingsStore = useSettingsStore();
 const chatSelectionStore = useChatSelectionStore();
 const promptStore = usePromptStore();
 const toolStore = useToolStore();
+const apiStore = useApiStore();
 const { isDeviceMobile } = useMobile();
 const { t } = useStrictI18n();
 
@@ -70,6 +73,38 @@ const { floatingStyles: toolsMenuStyles } = useFloating(optionsButtonRef, toolsM
   open: isToolsMenuVisible,
   whileElementsMounted: autoUpdate,
   middleware: [offset(8), flip(), shift({ padding: 10 })],
+});
+
+const toolsWarning = computed<string | null>(() => {
+  // 1. Check if tools are enabled in settings
+  if (!settingsStore.settings.api.toolsEnabled) {
+    return t('chat.tools.disabled.setting');
+  }
+
+  // 2. Check Custom Prompt Post Processing compatibility
+  const currentPostProcessing = settingsStore.settings.api.customPromptPostProcessing;
+  const allowedPostProcessing = [
+    CustomPromptPostProcessing.NONE,
+    CustomPromptPostProcessing.MERGE_TOOLS,
+    CustomPromptPostProcessing.SEMI_TOOLS,
+    CustomPromptPostProcessing.STRICT_TOOLS,
+  ];
+
+  if (!allowedPostProcessing.includes(currentPostProcessing)) {
+    return t('chat.tools.disabled.postProcessing');
+  }
+
+  // 3. Check Capabilities (Provider/Model support)
+  const provider = settingsStore.settings.api.provider;
+  const model = settingsStore.settings.api.selectedProviderModels
+    ? settingsStore.settings.api.selectedProviderModels[provider]
+    : null;
+
+  if (provider && model && !isCapabilitySupported('tools', provider, model, apiStore.modelList)) {
+    return t('chat.tools.disabled.model');
+  }
+
+  return null;
 });
 
 async function submitMessage() {
@@ -362,6 +397,11 @@ defineExpose({
       role="dialog"
       :aria-label="t('chat.tools.title')"
     >
+      <div v-if="toolsWarning" class="tools-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ toolsWarning }}</span>
+      </div>
+
       <div v-if="toolStore.toolList.length === 0" class="empty-state">
         {{ t('chat.tools.noTools') }}
       </div>
