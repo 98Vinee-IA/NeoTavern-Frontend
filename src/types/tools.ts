@@ -2,6 +2,7 @@ export interface ToolDefinition {
   name: string;
   displayName?: string;
   description: string;
+  icon?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parameters: Record<string, any> | object;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

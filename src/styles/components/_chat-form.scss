@@ -96,7 +96,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  max-height: 300px;
+  max-height: 50vh;
   overflow-y: auto;
 
   &-item {
@@ -136,8 +136,10 @@
 
 .tools-menu {
   @extend .options-menu;
-  width: 250px;
+  max-width: 700px;
   padding: var(--spacing-sm);
+  max-height: 60vh;
+  overflow-y: auto;
 
   .empty-state {
     padding: var(--spacing-md);
@@ -148,12 +150,58 @@
 
   .tool-item {
     display: flex;
-    align-items: center;
-    padding: var(--spacing-xs);
+    align-items: flex-start;
+    padding: var(--spacing-sm);
     border-radius: var(--base-border-radius);
+    cursor: pointer;
+    gap: var(--spacing-sm);
+    transition: background-color var(--animation-duration-sm);
 
     &:hover {
       background-color: var(--white-20a);
+    }
+
+    &-checkbox {
+      flex-shrink: 0;
+      /* Adjust vertical alignment to match title */
+      padding-top: 2px;
+      pointer-events: none; // Let click bubble to row
+    }
+
+    &-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    &-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    &-title {
+      font-weight: 600;
+      font-size: 0.95em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &-icon {
+      opacity: 0.8;
+      width: 16px;
+      text-align: center;
+      font-size: 0.9em;
+      flex-shrink: 0;
+    }
+
+    &-description {
+      font-size: 0.85em;
+      opacity: 0.7;
+      line-height: 1.3;
+      word-break: break-word;
     }
   }
 }

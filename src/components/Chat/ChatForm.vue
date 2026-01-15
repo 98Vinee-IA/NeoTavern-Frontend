@@ -364,13 +364,29 @@ defineExpose({
         {{ t('chat.tools.noTools') }}
       </div>
       <div v-else class="tools-list">
-        <div v-for="tool in toolStore.toolList" :key="tool.name" class="tool-item">
-          <Checkbox
-            :model-value="!toolStore.isToolDisabled(tool.name)"
-            :label="tool.displayName || tool.name"
-            :title="tool.description"
-            @update:model-value="toolStore.toggleTool(tool.name)"
-          />
+        <div
+          v-for="tool in toolStore.toolList"
+          :key="tool.name"
+          class="tool-item"
+          role="button"
+          tabindex="0"
+          :aria-pressed="!toolStore.isToolDisabled(tool.name)"
+          @click="toolStore.toggleTool(tool.name)"
+          @keydown.enter.prevent="toolStore.toggleTool(tool.name)"
+          @keydown.space.prevent="toolStore.toggleTool(tool.name)"
+        >
+          <div class="tool-item-checkbox">
+            <Checkbox :model-value="!toolStore.isToolDisabled(tool.name)" label="" />
+          </div>
+          <div class="tool-item-content">
+            <div class="tool-item-header">
+              <i v-if="tool.icon" :class="['tool-item-icon', tool.icon]"></i>
+              <span class="tool-item-title">{{ tool.displayName || tool.name }}</span>
+            </div>
+            <div class="tool-item-description">
+              {{ tool.description }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
