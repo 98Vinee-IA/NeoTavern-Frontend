@@ -565,6 +565,8 @@ export interface MessageSchema {
     login: string;
     copy: string;
     regenerate: string;
+    expand: string;
+    collapse: string;
   };
   popup: {
     cropAvatar: {

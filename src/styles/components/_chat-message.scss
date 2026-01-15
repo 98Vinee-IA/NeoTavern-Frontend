@@ -440,6 +440,31 @@
       opacity: 0.8;
     }
   }
+
+  &-system-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: bold;
+    opacity: 0.8;
+    margin-bottom: var(--spacing-xs);
+    background-color: var(--black-30a);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--base-border-radius);
+    border: 1px solid var(--theme-border-color);
+    font-size: 0.9em;
+
+    &:hover {
+      opacity: 1;
+      background-color: var(--black-50a);
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--theme-emphasis-color);
+      outline-offset: 2px;
+    }
+  }
 }
 
 // Transitions

@@ -52,10 +52,19 @@ const isEditingReasoning = ref(false);
 const isReasoningCollapsed = ref(false);
 const editTextarea = ref<InstanceType<typeof Textarea>>();
 
+const isContentCollapsed = ref(false);
+
 const isEditing = computed(() => chatStore.activeMessageEditState?.index === props.index);
 const hasReasoning = computed(() => props.message.extra?.reasoning && props.message.extra.reasoning.trim().length > 0);
 const hasItemizedPrompt = computed(() => !!promptStore.getItemizedPrompt(props.index, props.message.swipe_id ?? 0));
 const isSmallSys = computed(() => !!props.message.extra?.isSmallSys);
+
+onMounted(() => {
+  isReasoningCollapsed.value = settingsStore.settings.ui?.chat?.reasoningCollapsed ?? false;
+  if (isSmallSys.value) {
+    isContentCollapsed.value = true;
+  }
+});
 
 const isSelectionMode = computed(() => chatSelectionStore.isSelectionMode);
 const isSelected = computed(() => chatSelectionStore.selectedMessageIndices.has(props.index));
@@ -65,10 +74,6 @@ function handleSelectionClick() {
     chatSelectionStore.toggleMessageSelection(props.index, chatStore.activeChat!.messages.length);
   }
 }
-
-onMounted(() => {
-  isReasoningCollapsed.value = settingsStore.settings.ui?.chat?.reasoningCollapsed ?? false;
-});
 
 watch(isEditing, async (editing) => {
   if (editing) {
@@ -522,13 +527,32 @@ const editTools = computed<TextareaToolDefinition[]>(() => {
         </transition>
       </div>
 
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <div
-        v-show="!isEditing && formattedContent"
-        class="message-content"
-        @click="handleContentClick"
-        v-html="formattedContent"
-      ></div>
+      <!-- Main Content Area with conditional collapse for SmallSys -->
+      <div v-if="!isEditing && formattedContent">
+        <!-- System Collapse Header -->
+        <div
+          v-if="isSmallSys"
+          class="message-system-header"
+          role="button"
+          tabindex="0"
+          @click.stop="isContentCollapsed = !isContentCollapsed"
+          @keydown.enter.stop.prevent="isContentCollapsed = !isContentCollapsed"
+          @keydown.space.stop.prevent="isContentCollapsed = !isContentCollapsed"
+        >
+          <span>{{ isContentCollapsed ? t('common.expand') : t('common.collapse') }}</span>
+          <i class="fa-solid" :class="isContentCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+        </div>
+
+        <transition :name="isSmallSys ? 'expand' : ''">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div
+            v-show="!isSmallSys || !isContentCollapsed"
+            class="message-content"
+            @click="handleContentClick"
+            v-html="formattedContent"
+          ></div>
+        </transition>
+      </div>
 
       <div v-if="!isEditing && hasAttachments" class="message-media-container">
         <div
@@ -604,7 +628,6 @@ const editTools = computed<TextareaToolDefinition[]>(() => {
           ></i>
         </div>
       </div>
-      <!-- TODO: Implement media, etc. -->
     </div>
   </article>
 </template>

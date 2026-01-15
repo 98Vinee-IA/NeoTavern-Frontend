@@ -561,7 +561,9 @@
     "back": "Back",
     "login": "Login",
     "copy": "Copy",
-    "regenerate": "Regenerate"
+    "regenerate": "Regenerate",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "popup": {
     "cropAvatar": {
