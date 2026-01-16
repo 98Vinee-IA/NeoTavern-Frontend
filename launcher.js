@@ -33,6 +33,7 @@ const DEFAULT_CONFIG = {
   internalBackendPort: 8001,
   externalBackendUrl: 'http://127.0.0.1:8000',
   autoUpdateBackend: true,
+  exposeInternalBackend: false,
 };
 
 function loadConfig() {
@@ -45,7 +46,14 @@ function loadConfig() {
       const loaded = JSON.parse(fs.readFileSync(PATHS.CONFIG, 'utf8'));
       config = { ...DEFAULT_CONFIG, ...loaded };
 
-      if (Object.keys(DEFAULT_CONFIG).some((key) => !Object.prototype.hasOwnProperty.call(loaded, key))) {
+      let needsSave = false;
+      for (const key of Object.keys(DEFAULT_CONFIG)) {
+        if (!Object.prototype.hasOwnProperty.call(loaded, key)) {
+          config[key] = DEFAULT_CONFIG[key];
+          needsSave = true;
+        }
+      }
+      if (needsSave) {
         fs.writeFileSync(PATHS.CONFIG, JSON.stringify(config, null, 2));
       }
     } catch {
@@ -62,6 +70,8 @@ function loadConfig() {
   if (process.env.NEO_EXTERNAL_BACKEND_URL) config.externalBackendUrl = process.env.NEO_EXTERNAL_BACKEND_URL;
   if (process.env.NEO_AUTO_UPDATE_BACKEND)
     config.autoUpdateBackend = process.env.NEO_AUTO_UPDATE_BACKEND.toLowerCase() === 'true';
+  if (process.env.NEO_EXPOSE_INTERNAL_BACKEND)
+    config.exposeInternalBackend = process.env.NEO_EXPOSE_INTERNAL_BACKEND.toLowerCase() === 'true';
 
   return config;
 }
@@ -172,6 +182,33 @@ async function setupInternalBackend() {
   if (stConf.browserLaunch.enabled !== false) {
     stConf.browserLaunch.enabled = false;
     modified = true;
+  }
+
+  // Enforce Listen, Whitelist & Security Override based on configuration
+  if (config.exposeInternalBackend) {
+    // Exposed: Bind to 0.0.0.0, disable whitelist, silence security warning
+    if (stConf.listen !== true) {
+      stConf.listen = true;
+      modified = true;
+    }
+    if (stConf.whitelistMode !== false) {
+      stConf.whitelistMode = false;
+      modified = true;
+    }
+    if (stConf.securityOverride !== true) {
+      stConf.securityOverride = true;
+      modified = true;
+    }
+  } else {
+    // Not Exposed: Bind to localhost, re-enable security checks
+    if (stConf.listen === true) {
+      stConf.listen = false;
+      modified = true;
+    }
+    if (stConf.securityOverride === true) {
+      stConf.securityOverride = false;
+      modified = true;
+    }
   }
 
   if (modified) {
