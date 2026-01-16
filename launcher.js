@@ -191,6 +191,23 @@ async function ensureFrontendBuilt() {
 // --- Main ---
 
 async function start() {
+  let backendProcess = null;
+  const cleanup = () => {
+    if (backendProcess) {
+      try {
+        backendProcess.kill();
+      } catch (e) {
+        // ignore
+      }
+      backendProcess = null;
+    }
+  };
+
+  // Ensure cleanup on exit
+  process.on('exit', cleanup);
+  process.on('SIGINT', () => process.exit());
+  process.on('SIGTERM', () => process.exit());
+
   try {
     process.env.NEO_APP_PORT = config.appPort.toString();
     process.env.NEO_APP_HOST = config.appHost;
@@ -203,15 +220,12 @@ async function start() {
       await setupInternalBackend();
       log(`Starting Internal Backend (Port ${config.internalBackendPort})...`, 'START');
 
-      const backend = spawn('node', ['server.js'], {
+      backendProcess = spawn('node', ['server.js'], {
         cwd: PATHS.BACKEND,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
-      backend.stdout.on('data', (d) => process.stdout.write(`[ST] ${d}`));
-      backend.stderr.on('data', (d) => process.stderr.write(`[ST-ERR] ${d}`));
-
-      process.on('SIGINT', () => backend.kill());
-      process.on('SIGTERM', () => backend.kill());
+      backendProcess.stdout.on('data', (d) => process.stdout.write(`[ST] ${d}`));
+      backendProcess.stderr.on('data', (d) => process.stderr.write(`[ST-ERR] ${d}`));
     } else {
       log(`External Backend Mode: ${config.externalBackendUrl}`, 'START');
     }
