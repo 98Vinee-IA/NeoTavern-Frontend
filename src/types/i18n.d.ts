@@ -917,6 +917,7 @@ export interface MessageSchema {
       delete: string;
       import: string;
       export: string;
+      save: string;
       none: string;
       createPopupTitle: string;
       profileName: string;
@@ -928,6 +929,7 @@ export interface MessageSchema {
         deleteNone: string;
         renameNone: string;
         nameExists: string;
+        notFound: string;
       };
     };
     provider: string;

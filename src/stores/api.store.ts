@@ -468,6 +468,82 @@ export const useApiStore = defineStore('api', () => {
     selectConnectionProfile(newProfile.name);
   }
 
+  async function updateConnectionProfile() {
+    const name = selectedConnectionProfileName.value;
+    if (!name) {
+      toast.error(t('apiConnections.profileManagement.errors.noSelection'));
+      return;
+    }
+
+    const profileIndex = connectionProfiles.value.findIndex((p) => p.name === name);
+    if (profileIndex === -1) {
+      toast.error(t('apiConnections.profileManagement.errors.notFound'));
+      return;
+    }
+
+    const profile = connectionProfiles.value[profileIndex];
+    // Create a copy to update
+    const updatedProfile: ConnectionProfile = { ...profile };
+
+    // Update only fields that exist in the profile
+    const currentProvider = settingsStore.settings.api.provider;
+
+    if (updatedProfile.provider) {
+      updatedProfile.provider = currentProvider;
+    }
+
+    if (updatedProfile.model !== undefined) {
+      // Model depends on provider, but since we are updating with current settings,
+      // we take the model that is currently selected for the current provider
+      updatedProfile.model = settingsStore.settings.api.selectedProviderModels[currentProvider];
+    }
+
+    if (updatedProfile.sampler) {
+      updatedProfile.sampler = settingsStore.settings.api.selectedSampler;
+    }
+
+    if (updatedProfile.formatter) {
+      updatedProfile.formatter = settingsStore.settings.api.formatter;
+    }
+
+    if (updatedProfile.customPromptPostProcessing !== undefined) {
+      updatedProfile.customPromptPostProcessing = settingsStore.settings.api.customPromptPostProcessing;
+    }
+
+    if (updatedProfile.instructTemplate) {
+      updatedProfile.instructTemplate = settingsStore.settings.api.instructTemplateName;
+    }
+
+    if (updatedProfile.reasoningTemplate) {
+      updatedProfile.reasoningTemplate = settingsStore.settings.api.reasoningTemplateName;
+    }
+
+    if (updatedProfile.apiUrl !== undefined) {
+      if (currentProvider === api_providers.CUSTOM) {
+        updatedProfile.apiUrl = settingsStore.settings.api.providerSpecific.custom.url;
+      } else if (currentProvider === api_providers.KOBOLDCPP) {
+        updatedProfile.apiUrl = settingsStore.settings.api.providerSpecific.koboldcpp.url;
+      } else if (currentProvider === api_providers.OLLAMA) {
+        updatedProfile.apiUrl = settingsStore.settings.api.providerSpecific.ollama.url;
+      }
+    }
+
+    if (updatedProfile.secretId !== undefined) {
+      const secretKey = getSecretKeyForProvider(currentProvider);
+      if (secretKey) {
+        const activeSecret = secretStore.secrets[secretKey]?.find((s) => s.active);
+        if (activeSecret) {
+          updatedProfile.secretId = activeSecret.id;
+        }
+      }
+    }
+
+    // Save back to store
+    const newProfiles = [...connectionProfiles.value];
+    newProfiles[profileIndex] = updatedProfile;
+    connectionProfiles.value = newProfiles;
+  }
+
   async function renameConnectionProfile() {
     const oldName = selectedConnectionProfileName.value;
     if (!oldName) {
@@ -679,6 +755,7 @@ export const useApiStore = defineStore('api', () => {
     connectionProfiles,
     selectedConnectionProfileName,
     createConnectionProfile,
+    updateConnectionProfile,
     renameConnectionProfile,
     deleteConnectionProfile,
     importConnectionProfiles,

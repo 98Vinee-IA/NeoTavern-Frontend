@@ -914,6 +914,7 @@
       "delete": "Delete current profile",
       "import": "Import profiles",
       "export": "Export current profile",
+      "save": "Save changes to current profile",
       "none": "None",
       "createPopupTitle": "New Connection Profile",
       "profileName": "Profile Name",
@@ -924,7 +925,8 @@
         "noSelection": "No profile selected.",
         "deleteNone": "Cannot delete the base profile.",
         "renameNone": "Cannot rename the base profile.",
-        "nameExists": "A profile with this name already exists."
+        "nameExists": "A profile with this name already exists.",
+        "notFound": "Profile couldn't be found."
       }
     },
     "provider": "Provider",

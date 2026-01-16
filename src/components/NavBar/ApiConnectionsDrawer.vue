@@ -210,16 +210,19 @@ async function testMessage() {
           allow-create
           allow-edit
           allow-delete
+          allow-save
           allow-import
           allow-export
           :create-title="'apiConnections.profileManagement.create'"
           :edit-title="'apiConnections.profileManagement.rename'"
           :delete-title="'apiConnections.profileManagement.delete'"
+          :save-title="'apiConnections.profileManagement.save'"
           :import-title="'apiConnections.profileManagement.import'"
           :export-title="'apiConnections.profileManagement.export'"
           @create="isProfilePopupVisible = true"
           @edit="apiStore.renameConnectionProfile"
           @delete="apiStore.deleteConnectionProfile"
+          @save="apiStore.updateConnectionProfile"
           @import="apiStore.importConnectionProfiles"
           @export="apiStore.exportConnectionProfile"
         >
