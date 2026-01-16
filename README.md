@@ -57,7 +57,7 @@ Why another frontend for [SillyTavern?](https://github.com/SillyTavern/SillyTave
 
 ## Installation and Usage
 
-NeoTavern acts as an "All-In-One" launcher. It will automatically download SillyTavern (as a submodule), install the necessary plugins, and run both the backend and frontend.
+NeoTavern acts as an "All-In-One" launcher. It will automatically download SillyTavern, install the necessary plugins, and run both the backend and frontend.
 
 ### Windows
 
