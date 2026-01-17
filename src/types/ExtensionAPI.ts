@@ -218,9 +218,8 @@ export interface MountableComponentPropsMap {
   [MountableComponent.Select]: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     modelValue: any;
-    options: (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      | { label: string; value: any; disabled?: boolean }
+    options: (// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    | { label: string; value: any; disabled?: boolean }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       | { label: string; options: { label: string; value: any; disabled?: boolean }[] }
     )[];
