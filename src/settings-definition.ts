@@ -36,6 +36,24 @@ export const settingsDefinition: SettingDefinition[] = [
       { value: TagImportSetting.ASK, label: 'settings.powerUser.tagImportSetting.options.ask' },
     ],
   },
+  {
+    id: 'character.hideEmbeddedTagsInPanel',
+    label: 'settings.character.hideEmbeddedTagsInPanel.label',
+    description: 'settings.character.hideEmbeddedTagsInPanel.description',
+    category: 'Character Handling',
+    type: 'boolean',
+    widget: 'checkbox',
+    defaultValue: true,
+  },
+  {
+    id: 'character.hideEmbeddedTagsInSuggestions',
+    label: 'settings.character.hideEmbeddedTagsInSuggestions.label',
+    description: 'settings.character.hideEmbeddedTagsInSuggestions.description',
+    category: 'Character Handling',
+    type: 'boolean',
+    widget: 'checkbox',
+    defaultValue: true,
+  },
 
   // --- Chat/Message Handling ---
   {

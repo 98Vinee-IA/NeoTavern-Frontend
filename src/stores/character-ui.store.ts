@@ -27,9 +27,11 @@ export const useCharacterUiStore = defineStore('character-ui', () => {
 
   const availableTags = computed<string[]>(() => {
     const tags = new Set<string>();
-    characterStore.characters.forEach((char) => {
-      char.tags?.forEach((tag) => tags.add(tag));
-    });
+    if (!settingsStore.settings.character.hideEmbeddedTagsInSuggestions) {
+      characterStore.characters.forEach((char) => {
+        char.tags?.forEach((tag) => tags.add(tag));
+      });
+    }
     tagStore.customTags.forEach((tag) => tags.add(tag.name));
     return Array.from(tags).sort((a, b) => a.localeCompare(b));
   });

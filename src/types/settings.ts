@@ -338,6 +338,8 @@ export interface Settings {
     tagImportSetting: TagImportSetting;
     customTags: CustomTag[];
     customTagAssignments: Record<string, string[]>;
+    hideEmbeddedTagsInPanel: boolean;
+    hideEmbeddedTagsInSuggestions: boolean;
   };
   persona: {
     showNotifications: boolean;

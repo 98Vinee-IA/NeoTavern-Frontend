@@ -1165,6 +1165,16 @@
         }
       }
     },
+    "character": {
+      "hideEmbeddedTagsInPanel": {
+        "label": "Hide embedded tags",
+        "description": "If enabled, tags saved directly inside character cards (embedded) will not be displayed in the character browser or editor. Only custom tags will be visible."
+      },
+      "hideEmbeddedTagsInSuggestions": {
+        "label": "Hide embedded tags in suggestions",
+        "description": "If enabled, tags from character cards will not appear in the auto-complete suggestions for tag fields."
+      }
+    },
     "ui": {
       "disableAnimations": {
         "label": "Disable all animations",

@@ -57,6 +57,8 @@ export function createDefaultSettings(): Settings {
       tagImportSetting: TagImportSetting.ASK,
       customTags: [{ name: 'NT Default', backgroundColor: 'rgba(108, 32, 32, 1)', foregroundColor: null }],
       customTagAssignments: {},
+      hideEmbeddedTagsInPanel: true,
+      hideEmbeddedTagsInSuggestions: true,
     },
     chat: {
       sendOnEnter: SendOnEnterOptions.AUTO,
@@ -291,6 +293,8 @@ export function migrateLegacyUserSettings(
         },
         {} as Record<string, string[]>,
       ),
+      hideEmbeddedTagsInPanel: true,
+      hideEmbeddedTagsInSuggestions: true,
     },
     persona: {
       showNotifications: p.persona_show_notifications,

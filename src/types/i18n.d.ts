@@ -1168,6 +1168,16 @@ export interface MessageSchema {
         };
       };
     };
+    character: {
+      hideEmbeddedTagsInPanel: {
+        label: string;
+        description: string;
+      };
+      hideEmbeddedTagsInSuggestions: {
+        label: string;
+        description: string;
+      };
+    };
     ui: {
       disableAnimations: {
         label: string;

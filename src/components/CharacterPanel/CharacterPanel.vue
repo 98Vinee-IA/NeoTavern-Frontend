@@ -96,11 +96,14 @@ function openTagManager() {
   });
 }
 
-function getCharacterAllTags(character: Character): string[] {
-  const allTags = new Set([
-    ...(character.tags ?? []),
-    ...characterUiStore.tagStore.getCustomTagsForCharacter(character.avatar),
-  ]);
+function getDisplayedCharacterTags(character: Character): string[] {
+  const customTags = characterUiStore.tagStore.getCustomTagsForCharacter(character.avatar);
+
+  if (settingsStore.settings.character.hideEmbeddedTagsInPanel) {
+    return customTags;
+  }
+
+  const allTags = new Set([...(character.tags ?? []), ...customTags]);
   return [...allTags];
 }
 
@@ -268,9 +271,9 @@ onMounted(async () => {
                 >
                   {{ character.description || '&nbsp;' }}
                 </div>
-                <div v-if="getCharacterAllTags(character).length" class="character-tags">
+                <div v-if="getDisplayedCharacterTags(character).length" class="character-tags">
                   <span
-                    v-for="tag in getCharacterAllTags(character)"
+                    v-for="tag in getDisplayedCharacterTags(character)"
                     :key="tag"
                     class="ui-tag"
                     :style="{
