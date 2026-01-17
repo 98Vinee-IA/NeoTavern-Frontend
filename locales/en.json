@@ -1549,7 +1549,8 @@
       "removeTag": "Remove tag: {tag}",
       "addTag": "Add Tag",
       "added": "{count} tag(s) added: {tags}",
-      "removed": "Removed tag: {tag}"
+      "removed": "Removed tag: {tag}",
+      "suggestionsList": "Suggestions"
     },
     "imageCropper": {
       "cropBoxLabel": "Crop selection box. Drag to move or resize.",

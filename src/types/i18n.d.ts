@@ -1553,6 +1553,7 @@ export interface MessageSchema {
       addTag: string;
       added: string;
       removed: string;
+      suggestionsList: string;
     };
     imageCropper: {
       cropBoxLabel: string;
