@@ -40,20 +40,36 @@ const sortedTags = computed(() => {
   return [...tagStore.customTags].sort((a, b) => a.name.localeCompare(b.name));
 });
 
+const tagsForDisplay = computed(() => {
+  return sortedTags.value.map((tag) => {
+    const isCurrentlyEditing = isEditing.value && selectedTag.value?.name === tag.name;
+
+    return {
+      originalName: tag.name,
+      name: isCurrentlyEditing ? formState.value.name : tag.name,
+      backgroundColor: isCurrentlyEditing ? formState.value.backgroundColor : tag.backgroundColor,
+      foregroundColor: isCurrentlyEditing ? formState.value.foregroundColor : tag.foregroundColor,
+    };
+  });
+});
+
 watch(selectedTag, (newTag) => {
   if (newTag) {
     formState.value = {
       name: newTag.name,
-      backgroundColor: newTag.backgroundColor ?? null,
-      foregroundColor: newTag.foregroundColor ?? null,
+      backgroundColor: newTag.backgroundColor ?? DEFAULT_FORM_STATE.backgroundColor,
+      foregroundColor: newTag.foregroundColor ?? DEFAULT_FORM_STATE.foregroundColor,
     };
   } else {
     formState.value = { ...DEFAULT_FORM_STATE };
   }
 });
 
-function handleSelectTag(tag: CustomTag) {
-  selectedTag.value = tag;
+function handleSelectTag(tagName: string) {
+  const originalTag = sortedTags.value.find((t) => t.name === tagName);
+  if (originalTag) {
+    selectedTag.value = originalTag;
+  }
 }
 
 function handleClearSelection() {
@@ -97,22 +113,21 @@ function handleDeleteTag() {
           {{ t('characterPanel.tags.noTags') }}
         </div>
         <ListItem
-          v-for="tag in sortedTags"
-          :key="tag.name"
+          v-for="tag in tagsForDisplay"
+          :key="tag.originalName"
           class="tag-item"
-          :active="selectedTag?.name === tag.name"
-          @click="handleSelectTag(tag)"
+          :active="selectedTag?.name === tag.originalName"
+          @click="handleSelectTag(tag.originalName)"
         >
           <template #start>
             <div class="tag-preview-wrapper">
               <span
-                class="tag-preview"
+                class="ui-tag"
                 :class="{ 'no-color': !tag.backgroundColor }"
-                :style="
-                  tag.backgroundColor
-                    ? 'background-color: ' + tag.backgroundColor + '; color: ' + (tag.foregroundColor || '#FFFFFF')
-                    : ''
-                "
+                :style="{
+                  backgroundColor: tag.backgroundColor ?? undefined,
+                  color: tag.foregroundColor ?? undefined,
+                }"
               >
                 {{ tag.name }}
               </span>

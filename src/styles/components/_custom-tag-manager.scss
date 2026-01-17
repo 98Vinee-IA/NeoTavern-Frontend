@@ -39,20 +39,6 @@
     align-items: center;
   }
 
-  .tag-preview {
-    padding: 2px 8px;
-    border-radius: var(--base-border-radius);
-    font-weight: 600;
-    font-size: 0.9em;
-    display: inline-block;
-    border: 1px solid transparent;
-
-    &.no-color {
-      background-color: var(--black-30a);
-      border-color: var(--theme-border-color);
-    }
-  }
-
   .tag-actions {
     display: flex;
     gap: var(--spacing-xs);

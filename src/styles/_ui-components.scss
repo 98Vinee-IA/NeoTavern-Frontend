@@ -750,6 +750,23 @@
   }
 }
 
+// --- UI Tag ---
+.ui-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--base-border-radius);
+  font-weight: 600;
+  font-size: 0.8em;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  text-align: center;
+  background-color: var(--grey-5050a);
+  color: var(--theme-text-color);
+}
+
 // Sidebar/Main Page Header
 .sidebar-header,
 .drawer-header,

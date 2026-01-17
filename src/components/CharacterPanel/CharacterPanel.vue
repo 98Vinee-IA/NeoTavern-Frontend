@@ -272,7 +272,7 @@ onMounted(async () => {
                   <span
                     v-for="tag in getCharacterAllTags(character)"
                     :key="tag"
-                    class="character-tag"
+                    class="ui-tag"
                     :style="{
                       backgroundColor: characterUiStore.tagStore.getTagProperties(tag)?.backgroundColor ?? undefined,
                       color: characterUiStore.tagStore.getTagProperties(tag)?.foregroundColor ?? undefined,

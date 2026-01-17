@@ -485,6 +485,35 @@ const embeddedLorebookName = computed({
     }
   },
 });
+
+const allCharacterTags = computed<string[]>({
+  get() {
+    if (!localCharacter.value) return [];
+    const embeddedTags = localCharacter.value.tags ?? [];
+    // Custom tags for this specific character
+    const customTags = characterUiStore.tagStore.getCustomTagsForCharacter(localCharacter.value.avatar);
+    return [...new Set([...embeddedTags, ...customTags])];
+  },
+  set(newTags: string[]) {
+    if (!localCharacter.value) return;
+
+    const embeddedTags: string[] = [];
+    const customTags: string[] = [];
+
+    // Separate tags into embedded and custom based on whether they are defined in the tag store
+    newTags.forEach((tag) => {
+      if (characterUiStore.tagStore.getTagProperties(tag)) {
+        customTags.push(tag);
+      } else {
+        embeddedTags.push(tag);
+      }
+    });
+
+    localCharacter.value.tags = embeddedTags;
+    // Persist custom tag assignments
+    characterUiStore.tagStore.setCustomTagsForCharacter(localCharacter.value.avatar, customTags);
+  },
+});
 </script>
 
 <template>
@@ -638,9 +667,10 @@ const embeddedLorebookName = computed({
 
       <div class="character-edit-form-tags-block">
         <TagInput
-          v-model="localCharacter.tags!"
+          v-model="allCharacterTags!"
           :placeholder="t('characterEditor.searchTags')"
           :label="t('characterEditor.tags')"
+          :suggestions="characterUiStore.availableTags"
         />
       </div>
 
