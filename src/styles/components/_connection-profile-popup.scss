@@ -28,5 +28,15 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    &.view-only {
+      align-items: baseline;
+
+      .field-label {
+        font-weight: 600;
+        text-align: right;
+        white-space: nowrap;
+      }
+    }
   }
 }

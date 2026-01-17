@@ -925,6 +925,7 @@ export interface MessageSchema {
   apiConnections: {
     profile: string;
     profileManagement: {
+      view: string;
       create: string;
       rename: string;
       delete: string;
@@ -933,8 +934,10 @@ export interface MessageSchema {
       save: string;
       none: string;
       createPopupTitle: string;
+      viewPopupTitle: string;
       profileName: string;
       fieldsToInclude: string;
+      fieldsIncluded: string;
       renamePopupTitle: string;
       deletePopupContent: string;
       errors: {

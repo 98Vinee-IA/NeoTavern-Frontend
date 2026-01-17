@@ -4,6 +4,16 @@ import { useStrictI18n } from '../../composables/useStrictI18n';
 import type { I18nKey } from '../../types/i18n';
 import { Button, Select } from '../UI';
 
+export interface CustomAction {
+  key: string;
+  icon: string;
+  title: I18nKey;
+  event: string;
+  variant?: 'ghost' | 'danger';
+}
+
+type InternalAction = CustomAction & { visible?: boolean };
+
 const props = withDefaults(
   defineProps<{
     modelValue?: string | number;
@@ -29,9 +39,23 @@ const props = withDefaults(
     allowSave?: boolean;
 
     deleteVariant?: 'ghost' | 'danger';
+
+    // Customization
+    customActions?: CustomAction[];
+    actionOrder?: string[];
   }>(),
   {
     deleteVariant: 'ghost',
+    customActions: () => [],
+    actionOrder: () => ['save', 'create', 'edit', 'delete', 'import', 'export'],
+    modelValue: undefined,
+    options: undefined,
+    createTitle: undefined,
+    editTitle: undefined,
+    deleteTitle: undefined,
+    importTitle: undefined,
+    exportTitle: undefined,
+    saveTitle: undefined,
   },
 );
 
@@ -43,6 +67,7 @@ const emit = defineEmits<{
   (e: 'import'): void;
   (e: 'export'): void;
   (e: 'save'): void;
+  (e: 'view'): void;
 }>();
 
 const internalValue = computed({
@@ -51,6 +76,70 @@ const internalValue = computed({
 });
 
 const { t } = useStrictI18n();
+
+const defaultActions = computed<InternalAction[]>(() => [
+  {
+    key: 'save',
+    icon: 'fa-save',
+    title: props.saveTitle ?? ('common.save' satisfies I18nKey),
+    event: 'save',
+    variant: 'ghost',
+    visible: props.allowSave,
+  },
+  {
+    key: 'create',
+    icon: 'fa-file-circle-plus',
+    title: props.createTitle ?? ('common.create' satisfies I18nKey),
+    event: 'create',
+    variant: 'ghost',
+    visible: props.allowCreate,
+  },
+  {
+    key: 'edit',
+    icon: 'fa-pencil',
+    title: props.editTitle ?? ('common.edit' satisfies I18nKey),
+    event: 'edit',
+    variant: 'ghost',
+    visible: props.allowEdit,
+  },
+  {
+    key: 'delete',
+    icon: 'fa-trash-can',
+    title: props.deleteTitle ?? ('common.delete' satisfies I18nKey),
+    event: 'delete',
+    variant: props.deleteVariant,
+    visible: props.allowDelete,
+  },
+  {
+    key: 'import',
+    icon: 'fa-file-import',
+    title: props.importTitle ?? ('common.import' satisfies I18nKey),
+    event: 'import',
+    variant: 'ghost',
+    visible: props.allowImport,
+  },
+  {
+    key: 'export',
+    icon: 'fa-file-export',
+    title: props.exportTitle ?? ('common.export' satisfies I18nKey),
+    event: 'export',
+    variant: 'ghost',
+    visible: props.allowExport,
+  },
+]);
+
+const finalActions = computed<CustomAction[]>(() => {
+  const allVisibleActions: InternalAction[] = [
+    ...defaultActions.value.filter((a) => a.visible),
+    ...props.customActions.map((a) => ({ ...a, visible: true })),
+  ];
+
+  const actionsMap = new Map(allVisibleActions.map((a) => [a.key, a]));
+  const orderedActions = props.actionOrder.map((key) => actionsMap.get(key)).filter((a): a is InternalAction => !!a);
+  const remainingActions = allVisibleActions.filter((a) => !props.actionOrder.includes(a.key));
+
+  return [...orderedActions, ...remainingActions];
+});
 </script>
 
 <template>
@@ -69,52 +158,13 @@ const { t } = useStrictI18n();
 
     <div class="preset-control-actions">
       <Button
-        v-if="allowSave"
-        variant="ghost"
-        icon="fa-save"
-        :title="saveTitle ? t(saveTitle) : t('common.save')"
+        v-for="action in finalActions"
+        :key="action.key"
+        :variant="action.variant || 'ghost'"
+        :icon="action.icon"
+        :title="t(action.title satisfies I18nKey)"
         :disabled="disabled || loading"
-        @click="emit('save')"
-      />
-      <Button
-        v-if="allowCreate"
-        variant="ghost"
-        icon="fa-file-circle-plus"
-        :title="createTitle ? t(createTitle) : t('common.create')"
-        :disabled="disabled || loading"
-        @click="emit('create')"
-      />
-      <Button
-        v-if="allowEdit"
-        variant="ghost"
-        icon="fa-pencil"
-        :title="editTitle ? t(editTitle) : t('common.edit')"
-        :disabled="disabled || loading"
-        @click="emit('edit')"
-      />
-      <Button
-        v-if="allowDelete"
-        :variant="deleteVariant"
-        icon="fa-trash-can"
-        :title="deleteTitle ? t(deleteTitle) : t('common.delete')"
-        :disabled="disabled || loading"
-        @click="emit('delete')"
-      />
-      <Button
-        v-if="allowImport"
-        variant="ghost"
-        icon="fa-file-import"
-        :title="importTitle ? t(importTitle) : t('common.import')"
-        :disabled="disabled || loading"
-        @click="emit('import')"
-      />
-      <Button
-        v-if="allowExport"
-        variant="ghost"
-        icon="fa-file-export"
-        :title="exportTitle ? t(exportTitle) : t('common.export')"
-        :disabled="disabled || loading"
-        @click="emit('export')"
+        @click="emit(action.event as any)"
       />
       <slot name="actions" />
     </div>

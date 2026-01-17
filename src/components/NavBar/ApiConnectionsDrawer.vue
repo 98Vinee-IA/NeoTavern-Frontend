@@ -15,6 +15,7 @@ import { uuidv4 } from '../../utils/commons';
 import AiConfigItemRenderer from '../AiConfig/AiConfigItemRenderer.vue';
 import ApiFormattingPanel from '../AiConfig/ApiFormattingPanel.vue';
 import { ConnectionProfileSelector, PresetControl } from '../common';
+import type { CustomAction } from '../common/PresetControl.vue';
 import { Button, CollapsibleSection, FormItem, Input, Select } from '../UI';
 import ConnectionProfilePopup from './ConnectionProfilePopup.vue';
 
@@ -27,11 +28,31 @@ const popupStore = usePopupStore();
 const secretStore = useSecretStore();
 
 const isProfilePopupVisible = ref(false);
+const profilePopupMode = ref<'create' | 'view'>('create');
+const profileForView = ref<ConnectionProfile | null>(null);
+
 const provider = computed(() => settingsStore.settings.api.provider);
 const formatter = computed(() => settingsStore.settings.api.formatter);
 
 function handleProfileSave(profile: Omit<ConnectionProfile, 'id'>) {
   apiStore.createConnectionProfile(profile);
+}
+
+function openCreateProfilePopup() {
+  profilePopupMode.value = 'create';
+  profileForView.value = null;
+  isProfilePopupVisible.value = true;
+}
+
+function openViewProfilePopup() {
+  const selectedProfile = apiStore.connectionProfiles.find((p) => p.name === apiStore.selectedConnectionProfileName);
+  if (selectedProfile) {
+    profilePopupMode.value = 'view';
+    profileForView.value = selectedProfile;
+    isProfilePopupVisible.value = true;
+  } else {
+    toast.info(t('apiConnections.profileManagement.errors.noSelection'));
+  }
 }
 
 function checkConditions(conditions?: AiConfigCondition | AiConfigCondition[]): boolean {
@@ -199,6 +220,16 @@ async function testMessage() {
     isTestingMessage.value = false;
   }
 }
+
+const profileCustomActions: CustomAction[] = [
+  {
+    key: 'info',
+    icon: 'fa-circle-info',
+    title: 'apiConnections.profileManagement.view',
+    event: 'view',
+  },
+];
+const profileActionOrder = ['info', 'save', 'create', 'edit', 'delete', 'import', 'export'];
 </script>
 
 <template>
@@ -213,13 +244,16 @@ async function testMessage() {
           allow-save
           allow-import
           allow-export
+          :custom-actions="profileCustomActions"
+          :action-order="profileActionOrder"
           :create-title="'apiConnections.profileManagement.create'"
           :edit-title="'apiConnections.profileManagement.rename'"
           :delete-title="'apiConnections.profileManagement.delete'"
           :save-title="'apiConnections.profileManagement.save'"
           :import-title="'apiConnections.profileManagement.import'"
           :export-title="'apiConnections.profileManagement.export'"
-          @create="isProfilePopupVisible = true"
+          @create="openCreateProfilePopup"
+          @view="openViewProfilePopup"
           @edit="apiStore.renameConnectionProfile"
           @delete="apiStore.deleteConnectionProfile"
           @save="apiStore.updateConnectionProfile"
@@ -401,6 +435,8 @@ async function testMessage() {
     </div>
     <ConnectionProfilePopup
       :visible="isProfilePopupVisible"
+      :mode="profilePopupMode"
+      :profile="profileForView"
       @close="isProfilePopupVisible = false"
       @save="handleProfileSave"
     />
