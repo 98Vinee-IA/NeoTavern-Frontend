@@ -299,8 +299,8 @@ export type CodeMirrorTarget =
 
 export interface CustomTag {
   name: string;
-  backgroundColor?: string;
-  foregroundColor?: string;
+  backgroundColor: string | null;
+  foregroundColor: string | null;
 }
 
 export interface Settings {
@@ -337,6 +337,7 @@ export interface Settings {
     worldImportDialog: boolean;
     tagImportSetting: TagImportSetting;
     customTags: CustomTag[];
+    customTagAssignments: Record<string, string[]>;
   };
   persona: {
     showNotifications: boolean;

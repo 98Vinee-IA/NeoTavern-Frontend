@@ -96,6 +96,14 @@ function openTagManager() {
   });
 }
 
+function getCharacterAllTags(character: Character): string[] {
+  const allTags = new Set([
+    ...(character.tags ?? []),
+    ...characterUiStore.tagStore.getCustomTagsForCharacter(character.avatar),
+  ]);
+  return [...allTags];
+}
+
 const sortOptions = [
   { value: 'name:asc', label: t('characterPanel.sorting.nameAsc') },
   { value: 'name:desc', label: t('characterPanel.sorting.nameDesc') },
@@ -128,6 +136,7 @@ onMounted(async () => {
       }
     }
   }
+  characterUiStore.tagStore.initialize();
 });
 </script>
 
@@ -259,14 +268,14 @@ onMounted(async () => {
                 >
                   {{ character.description || '&nbsp;' }}
                 </div>
-                <div v-if="character.tags?.length" class="character-tags">
+                <div v-if="getCharacterAllTags(character).length" class="character-tags">
                   <span
-                    v-for="tag in character.tags"
+                    v-for="tag in getCharacterAllTags(character)"
                     :key="tag"
                     class="character-tag"
                     :style="{
-                      backgroundColor: characterUiStore.tagStore.getTagProperties(tag)?.backgroundColor,
-                      color: characterUiStore.tagStore.getTagProperties(tag)?.foregroundColor,
+                      backgroundColor: characterUiStore.tagStore.getTagProperties(tag)?.backgroundColor ?? undefined,
+                      color: characterUiStore.tagStore.getTagProperties(tag)?.foregroundColor ?? undefined,
                     }"
                   >
                     {{ tag }}

@@ -526,6 +526,7 @@ export interface MessageSchema {
     delete: string;
     of: string;
     search: string;
+    clear: string;
     resetToDefaults: string;
     confirmDelete: string;
     by: string;
@@ -768,6 +769,7 @@ export interface MessageSchema {
       background: string;
       foreground: string;
       add: string;
+      removeColor: string;
     };
   };
   characterEditor: {

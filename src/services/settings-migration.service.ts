@@ -55,7 +55,8 @@ export function createDefaultSettings(): Settings {
       spoilerFreeMode: false,
       worldImportDialog: true,
       tagImportSetting: TagImportSetting.ASK,
-      customTags: [{ name: 'NT Default', backgroundColor: 'rgba(108, 32, 32, 1)' }],
+      customTags: [{ name: 'NT Default', backgroundColor: 'rgba(108, 32, 32, 1)', foregroundColor: null }],
+      customTagAssignments: {},
     },
     chat: {
       sendOnEnter: SendOnEnterOptions.AUTO,
@@ -277,7 +278,19 @@ export function migrateLegacyUserSettings(
       spoilerFreeMode: p.spoiler_free_mode,
       worldImportDialog: p.world_import_dialog,
       tagImportSetting: p.tag_import_setting,
-      customTags: [{ name: 'NT Default', backgroundColor: 'rgba(108, 32, 32, 1)' }], // TODO: Merge from legacy
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      customTags: Object.entries(legacy.tags || {}).map(([_, tag]) => ({
+        name: tag.name,
+        backgroundColor: tag.color || null,
+        foregroundColor: tag.color2 || null,
+      })),
+      customTagAssignments: Object.entries(legacy.tag_map || {}).reduce(
+        (acc, [tagName, charIds]) => {
+          acc[tagName] = charIds.map((id) => id.toString());
+          return acc;
+        },
+        {} as Record<string, string[]>,
+      ),
     },
     persona: {
       showNotifications: p.persona_show_notifications,

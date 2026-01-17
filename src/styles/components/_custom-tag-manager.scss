@@ -35,6 +35,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
   }
 
   .tag-preview {
@@ -43,6 +45,12 @@
     font-weight: 600;
     font-size: 0.9em;
     display: inline-block;
+    border: 1px solid transparent;
+
+    &.no-color {
+      background-color: var(--black-30a);
+      border-color: var(--theme-border-color);
+    }
   }
 
   .tag-actions {
@@ -68,6 +76,12 @@
   &.editing-form {
     border-color: var(--theme-quote-color);
   }
+}
+
+.color-picker-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .color-pickers {

@@ -523,6 +523,7 @@
     "delete": "Delete",
     "of": "of",
     "search": "Search",
+    "clear": "Clear",
     "resetToDefaults": "Reset to Defaults",
     "confirmDelete": "Confirm Deletion",
     "by": "by",
@@ -764,7 +765,8 @@
       "addTitle": "Add New Tag",
       "background": "Background",
       "foreground": "Text",
-      "add": "Add Tag"
+      "add": "Add Tag",
+      "removeColor": "Remove Color"
     }
   },
   "characterEditor": {

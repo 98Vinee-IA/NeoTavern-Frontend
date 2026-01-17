@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useStrictI18n } from '../../composables/useStrictI18n';
 import { useTagStore } from '../../stores/tag.store';
 import type { CustomTag } from '../../types';
@@ -8,63 +8,83 @@ import { Button, ColorPicker, FormItem, Input, ListItem } from '../UI';
 const { t } = useStrictI18n();
 const tagStore = useTagStore();
 
-const newTagName = ref('');
-const newTagBackgroundColor = ref('#808080');
-const newTagForegroundColor = ref('#FFFFFF');
+const selectedTag = ref<CustomTag | null>(null);
 
-const editingTag = ref<CustomTag | null>(null);
-const editingTagOriginalName = ref('');
+const DEFAULT_FORM_STATE = {
+  name: '',
+  backgroundColor: '#808080',
+  foregroundColor: '#FFFFFF',
+};
+
+const formState = ref<Omit<CustomTag, 'name'> & { name: string }>({ ...DEFAULT_FORM_STATE });
+
+// Proxy computed property for the background color picker
+const backgroundColorProxy = computed({
+  get: () => formState.value.backgroundColor ?? '#FFFFFF', // Provide a default string if null
+  set: (value: string) => {
+    formState.value.backgroundColor = value;
+  },
+});
+
+// Proxy computed property for the foreground color picker
+const foregroundColorProxy = computed({
+  get: () => formState.value.foregroundColor ?? '#000000', // Provide a default string if null
+  set: (value: string) => {
+    formState.value.foregroundColor = value;
+  },
+});
+
+const isEditing = computed(() => !!selectedTag.value);
 
 const sortedTags = computed(() => {
   return [...tagStore.customTags].sort((a, b) => a.name.localeCompare(b.name));
 });
 
-function handleAddTag() {
-  if (!newTagName.value.trim()) return;
+watch(selectedTag, (newTag) => {
+  if (newTag) {
+    formState.value = {
+      name: newTag.name,
+      backgroundColor: newTag.backgroundColor ?? null,
+      foregroundColor: newTag.foregroundColor ?? null,
+    };
+  } else {
+    formState.value = { ...DEFAULT_FORM_STATE };
+  }
+});
 
-  const success = tagStore.addTag({
-    name: newTagName.value.trim(),
-    backgroundColor: newTagBackgroundColor.value,
-    foregroundColor: newTagForegroundColor.value,
-  });
+function handleSelectTag(tag: CustomTag) {
+  selectedTag.value = tag;
+}
+
+function handleClearSelection() {
+  selectedTag.value = null;
+}
+
+function handleSaveTag() {
+  if (!formState.value.name.trim()) return;
+
+  const tagData: CustomTag = {
+    name: formState.value.name.trim(),
+    backgroundColor: formState.value.backgroundColor,
+    foregroundColor: formState.value.foregroundColor,
+  };
+
+  let success = false;
+  if (isEditing.value && selectedTag.value) {
+    success = tagStore.updateTag(selectedTag.value.name, tagData);
+  } else {
+    success = tagStore.addTag(tagData);
+  }
 
   if (success) {
-    newTagName.value = '';
-  } else {
-    // Optionally, show a toast notification for duplicate tag
+    handleClearSelection();
   }
 }
 
-function startEditing(tag: CustomTag) {
-  editingTagOriginalName.value = tag.name;
-  editingTag.value = { ...tag };
-}
-
-function cancelEditing() {
-  editingTag.value = null;
-  editingTagOriginalName.value = '';
-}
-
-function handleUpdateTag() {
-  if (!editingTag.value || !editingTagOriginalName.value) return;
-
-  const success = tagStore.updateTag(editingTagOriginalName.value, {
-    ...editingTag.value,
-    name: editingTag.value.name.trim(),
-  });
-
-  if (success) {
-    cancelEditing();
-  } else {
-    // Optionally, show a toast notification for duplicate tag name
-  }
-}
-
-function handleDeleteTag(tagName: string) {
-  tagStore.deleteTag(tagName);
-  if (editingTag.value?.name === tagName) {
-    cancelEditing();
-  }
+function handleDeleteTag() {
+  if (!selectedTag.value) return;
+  tagStore.deleteTag(selectedTag.value.name);
+  handleClearSelection();
 }
 </script>
 
@@ -76,23 +96,26 @@ function handleDeleteTag(tagName: string) {
         <div v-if="sortedTags.length === 0" class="empty-list">
           {{ t('characterPanel.tags.noTags') }}
         </div>
-        <ListItem v-for="tag in sortedTags" :key="tag.name" class="tag-item">
+        <ListItem
+          v-for="tag in sortedTags"
+          :key="tag.name"
+          class="tag-item"
+          :active="selectedTag?.name === tag.name"
+          @click="handleSelectTag(tag)"
+        >
           <template #start>
             <div class="tag-preview-wrapper">
-              <span class="tag-preview" :style="{ backgroundColor: tag.backgroundColor, color: tag.foregroundColor }">
+              <span
+                class="tag-preview"
+                :class="{ 'no-color': !tag.backgroundColor }"
+                :style="
+                  tag.backgroundColor
+                    ? 'background-color: ' + tag.backgroundColor + '; color: ' + (tag.foregroundColor || '#FFFFFF')
+                    : ''
+                "
+              >
                 {{ tag.name }}
               </span>
-            </div>
-          </template>
-          <template #end>
-            <div class="tag-actions">
-              <Button variant="ghost" icon="fa-solid fa-pencil" :title="t('common.edit')" @click="startEditing(tag)" />
-              <Button
-                variant="ghost"
-                icon="fa-solid fa-trash"
-                :title="t('common.delete')"
-                @click="handleDeleteTag(tag.name)"
-              />
             </div>
           </template>
         </ListItem>
@@ -100,32 +123,39 @@ function handleDeleteTag(tagName: string) {
     </div>
 
     <div class="tag-form-section">
-      <div v-if="editingTag" class="tag-form editing-form">
-        <h3>{{ t('characterPanel.tags.editTitle') }}</h3>
+      <div class="tag-form" :class="{ 'editing-form': isEditing }">
+        <h3>{{ isEditing ? t('characterPanel.tags.editTitle') : t('characterPanel.tags.addTitle') }}</h3>
         <FormItem :label="t('common.name')">
-          <Input v-model="editingTag.name" />
+          <Input v-model="formState.name" />
         </FormItem>
         <div class="color-pickers">
-          <ColorPicker v-model="editingTag.backgroundColor!" :label="t('characterPanel.tags.background')" />
-          <ColorPicker v-model="editingTag.foregroundColor!" :label="t('characterPanel.tags.foreground')" />
+          <div class="color-picker-group">
+            <ColorPicker v-model="backgroundColorProxy" :label="t('characterPanel.tags.background')" />
+            <Button
+              variant="ghost"
+              icon="fa-solid fa-xmark"
+              :title="t('characterPanel.tags.removeColor')"
+              @click="formState.backgroundColor = null"
+            />
+          </div>
+          <div class="color-picker-group">
+            <ColorPicker v-model="foregroundColorProxy" :label="t('characterPanel.tags.foreground')" />
+            <Button
+              variant="ghost"
+              icon="fa-solid fa-xmark"
+              :title="t('characterPanel.tags.removeColor')"
+              @click="formState.foregroundColor = null"
+            />
+          </div>
         </div>
         <div class="form-actions">
-          <Button @click="cancelEditing">{{ t('common.cancel') }}</Button>
-          <Button variant="confirm" @click="handleUpdateTag">{{ t('common.save') }}</Button>
-        </div>
-      </div>
-      <div v-else class="tag-form">
-        <h3>{{ t('characterPanel.tags.addTitle') }}</h3>
-        <FormItem :label="t('common.name')">
-          <Input v-model="newTagName" />
-        </FormItem>
-        <div class="color-pickers">
-          <ColorPicker v-model="newTagBackgroundColor" :label="t('characterPanel.tags.background')" />
-          <ColorPicker v-model="newTagForegroundColor" :label="t('characterPanel.tags.foreground')" />
-        </div>
-        <div class="form-actions">
-          <Button variant="confirm" :disabled="!newTagName.trim()" @click="handleAddTag">
-            {{ t('characterPanel.tags.add') }}
+          <Button v-if="isEditing" variant="danger" @click="handleDeleteTag">
+            {{ t('common.delete') }}
+          </Button>
+          <div style="flex-grow: 1"></div>
+          <Button @click="handleClearSelection">{{ isEditing ? t('common.cancel') : t('common.clear') }}</Button>
+          <Button variant="confirm" :disabled="!formState.name.trim()" @click="handleSaveTag">
+            {{ isEditing ? t('common.save') : t('characterPanel.tags.add') }}
           </Button>
         </div>
       </div>
