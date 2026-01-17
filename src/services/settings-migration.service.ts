@@ -64,6 +64,7 @@ export function createDefaultSettings(): Settings {
       sendOnEnter: SendOnEnterOptions.AUTO,
       stopOnNameHijack: 'all',
       confirmMessageDelete: true,
+      regenerateOnEdit: true,
     },
     disabledExtensions: [],
     disabledTools: [],
@@ -275,6 +276,7 @@ export function migrateLegacyUserSettings(
       sendOnEnter: p.send_on_enter,
       confirmMessageDelete: p.confirm_message_delete,
       stopOnNameHijack: 'all',
+      regenerateOnEdit: true,
     },
     character: {
       spoilerFreeMode: p.spoiler_free_mode,

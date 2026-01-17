@@ -1241,6 +1241,10 @@
           "group": "Group Chat Only",
           "all": "All Chats"
         }
+      },
+      "regenerateOnEdit": {
+        "label": "Auto-regenerate on Edit",
+        "description": "Automatically regenerate the AI's response when a user message is edited. This does not apply to the first message of the chat."
       }
     }
   },

@@ -1245,6 +1245,10 @@ export interface MessageSchema {
           all: string;
         };
       };
+      regenerateOnEdit: {
+        label: string;
+        description: string;
+      };
     };
   };
   extensionsBuiltin: {

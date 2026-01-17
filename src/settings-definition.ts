@@ -71,6 +71,15 @@ export const settingsDefinition: SettingDefinition[] = [
     ],
   },
   {
+    id: 'chat.regenerateOnEdit',
+    label: 'settings.chat.regenerateOnEdit.label',
+    description: 'settings.chat.regenerateOnEdit.description',
+    category: 'Chat/Message Handling',
+    type: 'boolean',
+    widget: 'checkbox',
+    defaultValue: true,
+  },
+  {
     id: 'chat.confirmMessageDelete',
     label: 'settings.powerUser.confirmMessageDelete.label',
     description: 'settings.powerUser.confirmMessageDelete.description',

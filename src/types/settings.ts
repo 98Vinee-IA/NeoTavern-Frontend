@@ -329,6 +329,7 @@ export interface Settings {
   };
   chat: {
     sendOnEnter: SendOnEnterOptions;
+    regenerateOnEdit: boolean;
     confirmMessageDelete: boolean;
     stopOnNameHijack: StopOnNameHijack;
   };
