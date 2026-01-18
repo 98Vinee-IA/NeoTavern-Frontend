@@ -12,6 +12,11 @@ Handlebars.registerHelper('add', (a, b) => {
   return Number(a) + Number(b);
 });
 
+Handlebars.registerHelper('join', (context, separator) => {
+  if (!Array.isArray(context)) return '';
+  return context.join(separator);
+});
+
 export class Translator {
   constructor(private api: ExtensionAPI<ChatTranslationSettings>) {}
 
