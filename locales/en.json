@@ -939,7 +939,6 @@
       "deletePopupContent": "Are you sure you want to delete the profile \"<b>{name}</b>\"?",
       "errors": {
         "noSelection": "No profile selected.",
-        "deleteNone": "Cannot delete the base profile.",
         "nameExists": "A profile with this name already exists.",
         "notFound": "Profile couldn't be found."
       }

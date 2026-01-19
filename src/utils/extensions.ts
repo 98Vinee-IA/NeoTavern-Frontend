@@ -83,8 +83,8 @@ export async function countTokens(
 
 // --- Event Emitter ---
 
-import { defaultsDeep } from 'lodash-es';
 import { getModelCapabilities } from '../api/provider-definitions';
+import { mergeWithUndefinedMulti } from './commons';
 import { eventEmitter } from './event-emitter';
 export { eventEmitter };
 
@@ -356,7 +356,7 @@ const baseExtensionAPI: ExtensionAPI = {
         ).filter((book): book is WorldInfoBook => book !== undefined);
       }
 
-      const mediaContext: MediaHydrationContext = defaultsDeep({}, options?.mediaContext, {
+      const mediaContext: MediaHydrationContext = mergeWithUndefinedMulti({}, options?.mediaContext, {
         apiSettings: {
           forbidExternalMedia: settingsStore.settings.ui.chat.forbidExternalMedia,
           imageQuality: settingsStore.settings.api.imageQuality,
@@ -376,10 +376,10 @@ const baseExtensionAPI: ExtensionAPI = {
         chatMetadata,
         chatHistory,
         persona,
-        samplerSettings: defaultsDeep({}, options?.samplerSettings, settingsStore.settings.api.samplers),
+        samplerSettings: mergeWithUndefinedMulti({}, options?.samplerSettings, settingsStore.settings.api.samplers),
         tokenizer,
         books,
-        worldInfo: defaultsDeep({}, options?.worldInfo, settingsStore.settings.worldInfo),
+        worldInfo: mergeWithUndefinedMulti({}, options?.worldInfo, settingsStore.settings.worldInfo),
         mediaContext,
       });
 
@@ -424,7 +424,7 @@ const baseExtensionAPI: ExtensionAPI = {
       update: (updates) => {
         const store = useChatStore();
         if (store.activeChat) {
-          store.activeChat.metadata = defaultsDeep({}, updates, store.activeChat.metadata);
+          store.activeChat.metadata = mergeWithUndefinedMulti({}, updates, store.activeChat.metadata);
           store.triggerSave();
         }
       },

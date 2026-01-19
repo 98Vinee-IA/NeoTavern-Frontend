@@ -942,7 +942,6 @@ export interface MessageSchema {
       deletePopupContent: string;
       errors: {
         noSelection: string;
-        deleteNone: string;
         nameExists: string;
         notFound: string;
       };

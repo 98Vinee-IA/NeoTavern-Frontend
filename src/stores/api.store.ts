@@ -567,15 +567,15 @@ export const useApiStore = defineStore('api', () => {
   }
 
   async function deleteConnectionProfile() {
-    const name = connectionProfiles.value.find((p) => p.name === selectedConnectionProfile.value)?.name;
-    if (!name) {
-      toast.warning(t('apiConnections.profileManagement.errors.deleteNone'));
+    const profile = connectionProfiles.value.find((p) => p.id === selectedConnectionProfile.value);
+    if (!profile) {
+      toast.error(t('apiConnections.profileManagement.errors.notFound'));
       return;
     }
 
     const { result } = await popupStore.show({
       title: t('common.confirmDelete'),
-      content: t('apiConnections.profileManagement.deletePopupContent', { name }),
+      content: t('apiConnections.profileManagement.deletePopupContent', { name: profile.name }),
       type: POPUP_TYPE.CONFIRM,
     });
 
