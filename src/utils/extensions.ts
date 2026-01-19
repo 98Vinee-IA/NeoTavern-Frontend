@@ -424,7 +424,7 @@ const baseExtensionAPI: ExtensionAPI = {
       update: (updates) => {
         const store = useChatStore();
         if (store.activeChat) {
-          store.activeChat.metadata = { ...store.activeChat.metadata, ...updates };
+          store.activeChat.metadata = defaultsDeep({}, updates, store.activeChat.metadata);
           store.triggerSave();
         }
       },

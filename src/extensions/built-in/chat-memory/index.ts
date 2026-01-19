@@ -8,6 +8,7 @@ import MemoryPopup from './MemoryPopup.vue';
 import {
   DEFAULT_MESSAGE_SUMMARY_PROMPT,
   EXTENSION_KEY,
+  type ChatMemoryMetadata,
   type ExtensionSettings,
   type MemoryMessageExtra,
 } from './types';
@@ -17,7 +18,7 @@ export { manifest };
 // @ts-expect-error 'i18n.global' is of type 'unknown'
 const t = i18n.global.t as StrictT;
 
-export function activate(api: ExtensionAPI<ExtensionSettings>) {
+export function activate(api: ExtensionAPI<ExtensionSettings, ChatMemoryMetadata, MemoryMessageExtra>) {
   // --- Styles ---
   const injectStyles = () => {
     if (document.getElementById('chat-memory-styles')) return;
@@ -113,17 +114,11 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       const match = fullContent.match(codeBlockRegex);
       const summaryText = match && match[1] ? match[1].trim() : fullContent.trim();
 
-      // Update message
-      const extra: MemoryMessageExtra = (message.extra?.[EXTENSION_KEY] as MemoryMessageExtra) || {};
-      const updatedExtra: MemoryMessageExtra = {
-        ...extra,
-        summary: summaryText,
-      };
-
       await api.chat.updateMessageObject(messageIndex, {
         extra: {
-          ...message.extra,
-          [EXTENSION_KEY]: updatedExtra,
+          'core.chat-memory': {
+            summary: summaryText,
+          },
         },
       });
 
@@ -182,7 +177,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
     const message = history[index];
     if (!message) return;
 
-    const extra = message.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+    const extra = message.extra['core.chat-memory'];
 
     // Summary Display
     if (extra?.summary) {
@@ -332,7 +327,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
         }
       }
 
-      const extra = context.originalMessage.extra?.[EXTENSION_KEY] as MemoryMessageExtra | undefined;
+      const extra = context.originalMessage.extra[EXTENSION_KEY] as MemoryMessageExtra['core.chat-memory'] | undefined;
       if (payload.apiMessages.length >= 1 && extra?.summary && extra.summary.trim().length > 0) {
         payload.apiMessages[0].content = extra.summary;
       }

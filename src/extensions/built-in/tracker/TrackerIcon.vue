@@ -18,7 +18,7 @@ const emit = defineEmits<{
 const t = props.api.i18n.t;
 
 const trackerData = computed<TrackerData | undefined>(() => {
-  return props.message.extra?.[props.api.meta.id]?.tracker as TrackerData | undefined;
+  return props.message.extra[props.api.meta.id]?.tracker as TrackerData | undefined;
 });
 
 const status = computed(() => trackerData.value?.status ?? 'idle');

@@ -224,7 +224,7 @@ class TrackerManager {
       const trackerHistory = this.api.chat
         .getHistory()
         .slice(0, index + 1)
-        .filter((msg) => msg.extra?.[this.extensionId]?.tracker?.status === 'success');
+        .filter((msg) => msg.extra[this.extensionId]?.tracker?.status === 'success');
 
       // Only inject if it's within the N most recent trackers
       if (settings.includeLastXTrackers !== -1 && trackerHistory.length > settings.includeLastXTrackers) {

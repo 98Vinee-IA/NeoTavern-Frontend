@@ -26,7 +26,7 @@ export class Translator {
     // Toggle Off Logic
     if (message.extra?.display_text) {
       await this.api.chat.updateMessageObject(messageIndex, {
-        extra: { ...message.extra, display_text: undefined },
+        extra: { display_text: undefined },
       });
       this.api.ui.showToast('Translation removed', 'info');
       return;
@@ -82,7 +82,7 @@ export class Translator {
 
       // Update Message
       await this.api.chat.updateMessageObject(messageIndex, {
-        extra: { ...message.extra, display_text: translatedText },
+        extra: { display_text: translatedText },
       });
 
       this.api.ui.showToast('Translation complete', 'success');

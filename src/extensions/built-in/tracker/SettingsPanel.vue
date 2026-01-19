@@ -13,7 +13,7 @@ import {
 } from './types';
 
 const props = defineProps<{
-  api: ExtensionAPI;
+  api: ExtensionAPI<TrackerSettings>;
 }>();
 
 const t = props.api.i18n.t;

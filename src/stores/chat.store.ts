@@ -1,3 +1,4 @@
+import { defaultsDeep } from 'lodash-es';
 import { defineStore } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
 import { type ChatExportRequest } from '../api/chat';
@@ -435,7 +436,7 @@ export const useChatStore = defineStore('chat', () => {
         delete message.extra.reasoning_display_text;
       }
 
-      const existingNonInlineMedia = message.extra?.media?.filter((item) => item.source !== 'inline') ?? [];
+      const existingNonInlineMedia = message.extra.media?.filter((item) => item.source !== 'inline') ?? [];
       const newInlineMedia = extractMediaFromMarkdown(newContent);
       const allMedia = [...existingNonInlineMedia, ...newInlineMedia];
 
@@ -476,7 +477,7 @@ export const useChatStore = defineStore('chat', () => {
   async function updateMessageObject(index: number, updates: Partial<ChatMessage>): Promise<void> {
     if (!activeChat.value || index < 0 || index >= activeChat.value.messages.length) return;
     const message = activeChat.value.messages[index];
-    Object.assign(message, updates);
+    defaultsDeep(message, updates);
 
     if (updates.mes !== undefined) {
       if (message.swipes && typeof message.swipe_id === 'number' && message.swipes[message.swipe_id] !== undefined) {
