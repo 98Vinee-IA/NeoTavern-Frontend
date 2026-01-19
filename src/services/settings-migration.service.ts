@@ -464,7 +464,7 @@ export function mergeWithDefaults(
   legacySettings?: LegacySettings,
 ): { settings: Settings; legacy: LegacySettings } {
   const defaults = createDefaultSettings();
-  const mergedSettings = mergeWithUndefinedMulti({}, settings, defaults);
+  const mergedSettings = mergeWithUndefinedMulti({}, defaults, settings);
   const legacy = legacySettings || ({} as LegacySettings);
 
   return { settings: mergedSettings, legacy };

@@ -19,11 +19,27 @@ export interface TrackerSettings {
 
 export interface TrackerData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  trackerJson: Record<string, any>;
-  trackerHtml: string;
-  schemaName: string;
+  trackerJson?: Record<string, any>;
+  trackerHtml?: string;
+  schemaName?: string;
   status: 'idle' | 'pending' | 'success' | 'error';
   error?: string;
+}
+
+export interface TrackerChatExtraData {
+  schemaName?: string;
+}
+
+export interface TrackerMessageExtraData {
+  tracker?: TrackerData;
+}
+
+export interface TrackerChatExtra {
+  'core.tracker'?: TrackerChatExtraData;
+}
+
+export interface TrackerMessageExtra {
+  'core.tracker'?: TrackerMessageExtraData;
 }
 
 export const DEFAULT_PRESETS: TrackerSchemaPreset[] = [

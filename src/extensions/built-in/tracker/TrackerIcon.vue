@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ChatMessage, ExtensionAPI } from '../../../types';
-import type { TrackerData } from './types';
+import type { TrackerChatExtra, TrackerData, TrackerMessageExtra, TrackerSettings } from './types';
 
 const props = defineProps<{
-  api: ExtensionAPI;
+  api: ExtensionAPI<TrackerSettings, TrackerChatExtra, TrackerMessageExtra>;
   message: ChatMessage;
   index: number;
 }>();
@@ -18,7 +18,8 @@ const emit = defineEmits<{
 const t = props.api.i18n.t;
 
 const trackerData = computed<TrackerData | undefined>(() => {
-  return props.message.extra[props.api.meta.id]?.tracker as TrackerData | undefined;
+  const msg = props.message as unknown as { extra: TrackerMessageExtra };
+  return msg.extra?.['core.tracker']?.tracker;
 });
 
 const status = computed(() => trackerData.value?.status ?? 'idle');

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { ChatMessage, ExtensionAPI } from '../../../types';
-import type { TrackerData } from './types';
+import type { TrackerChatExtra, TrackerData, TrackerMessageExtra, TrackerSettings } from './types';
 
 const props = defineProps<{
-  api: ExtensionAPI;
+  api: ExtensionAPI<TrackerSettings, TrackerChatExtra, TrackerMessageExtra>;
   message: ChatMessage;
 }>();
 
@@ -14,7 +14,8 @@ const t = props.api.i18n.t;
 const isCollapsed = ref(true);
 
 const trackerData = computed<TrackerData | undefined>(() => {
-  return props.message.extra[props.api.meta.id]?.tracker as TrackerData | undefined;
+  const msg = props.message as unknown as { extra: TrackerMessageExtra };
+  return msg.extra?.['core.tracker']?.tracker;
 });
 
 const hasContent = computed(() => {

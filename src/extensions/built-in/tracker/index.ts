@@ -6,9 +6,17 @@ import { manifest } from './manifest';
 import SettingsPanel from './SettingsPanel.vue';
 import TrackerDisplay from './TrackerDisplay.vue';
 import TrackerIcon from './TrackerIcon.vue';
-import { DEFAULT_SETTINGS, type TrackerData, type TrackerSettings } from './types';
+import {
+  DEFAULT_SETTINGS,
+  type TrackerChatExtra,
+  type TrackerData,
+  type TrackerMessageExtra,
+  type TrackerSettings,
+} from './types';
 
 export { manifest };
+
+type TrackerExtensionAPI = ExtensionAPI<TrackerSettings, TrackerChatExtra, TrackerMessageExtra>;
 
 interface MountedComponent {
   unmount: () => void;
@@ -21,11 +29,7 @@ class TrackerManager {
   private pendingRequests = new Set<number>();
   private changeSchemaMenuItem: HTMLElement | null = null;
 
-  constructor(private api: ExtensionAPI<TrackerSettings>) {}
-
-  private get extensionId(): string {
-    return this.api.meta.id;
-  }
+  constructor(private api: TrackerExtensionAPI) {}
 
   private getSettings(): TrackerSettings {
     const saved = this.api.settings.get();
@@ -49,7 +53,7 @@ class TrackerManager {
     if (!message) return;
 
     // 1. Determine which schema to use
-    let schemaName = this.api.chat.metadata.get()?.extra?.[this.extensionId]?.schemaName as string | undefined;
+    let schemaName = this.api.chat.metadata.get()?.extra?.['core.tracker']?.schemaName;
 
     if (!schemaName) {
       const { result, value } = await this.promptForSchemaSelection();
@@ -57,8 +61,13 @@ class TrackerManager {
         return; // User cancelled
       }
       schemaName = value;
+
       this.api.chat.metadata.update({
-        extra: { ...this.api.chat.metadata.get()?.extra, [this.extensionId]: { schemaName } },
+        extra: {
+          'core.tracker': {
+            schemaName,
+          },
+        },
       });
     }
 
@@ -76,6 +85,7 @@ class TrackerManager {
       schemaObject = JSON.parse(preset.schema);
     } catch (e) {
       this.api.ui.showToast(this.api.i18n.t('extensionsBuiltin.tracker.toasts.invalidJson'), 'error');
+      console.error('Failed to parse tracker schema JSON:', e);
       return;
     }
 
@@ -143,7 +153,11 @@ class TrackerManager {
     const { result, value } = await this.promptForSchemaSelection();
     if (result === POPUP_RESULT.AFFIRMATIVE && value) {
       this.api.chat.metadata.update({
-        extra: { ...this.api.chat.metadata.get()?.extra, [this.extensionId]: { schemaName: value } },
+        extra: {
+          'core.tracker': {
+            schemaName: value,
+          },
+        },
       });
       this.api.ui.showToast(this.api.i18n.t('extensionsBuiltin.tracker.toasts.schemaSet', { name: value }), 'success');
     }
@@ -152,8 +166,7 @@ class TrackerManager {
   private async promptForSchemaSelection(): Promise<{ result: number; value: string }> {
     const settings = this.getSettings();
     const currentDefault =
-      (this.api.chat.metadata.get()?.extra?.[this.extensionId]?.schemaName as string) ||
-      settings.activeSchemaPresetName;
+      this.api.chat.metadata.get()?.extra?.['core.tracker']?.schemaName || settings.activeSchemaPresetName;
 
     return await this.api.ui.showPopup({
       title: this.api.i18n.t('extensionsBuiltin.tracker.popups.selectSchemaTitle'),
@@ -177,9 +190,8 @@ class TrackerManager {
         : messagesToConsider.slice(-settings.includeLastXMessages);
 
     // Build ApiChatMessage array
-    const apiMessages: ApiChatMessage[] = [];
     const baseApiMessages = await this.api.chat.buildPrompt({ chatHistory: messageHistory });
-    apiMessages.push(...baseApiMessages);
+    const apiMessages: ApiChatMessage[] = [...baseApiMessages];
 
     return apiMessages;
   }
@@ -188,15 +200,16 @@ class TrackerManager {
     const message = this.api.chat.getHistory()[index];
     if (!message) return;
 
-    const existingExtra = message.extra?.[this.extensionId] || {};
-    const existingTracker = existingExtra.tracker || {};
+    const existingExtra = message.extra['core.tracker'] || {};
+    const existingTracker = existingExtra.tracker || { status: 'idle' };
 
-    const newTrackerData = { ...existingTracker, ...partialData };
+    const newTrackerData: TrackerData = { ...existingTracker, ...partialData };
 
     await this.api.chat.updateMessageObject(index, {
       extra: {
-        ...message.extra,
-        [this.extensionId]: { ...existingExtra, tracker: newTrackerData },
+        'core.tracker': {
+          tracker: newTrackerData,
+        },
       },
     });
   }
@@ -216,7 +229,8 @@ class TrackerManager {
   }
 
   public injectContext(apiMessages: ApiChatMessage[], originalMessage: ChatMessage, index: number): void {
-    const trackerData = originalMessage.extra?.[this.extensionId]?.tracker as TrackerData | undefined;
+    const messageWithExtra = originalMessage as unknown as { extra: TrackerMessageExtra };
+    const trackerData = messageWithExtra.extra?.['core.tracker']?.tracker;
 
     if (trackerData?.status === 'success' && trackerData.trackerJson) {
       const settings = this.getSettings();
@@ -224,7 +238,7 @@ class TrackerManager {
       const trackerHistory = this.api.chat
         .getHistory()
         .slice(0, index + 1)
-        .filter((msg) => msg.extra[this.extensionId]?.tracker?.status === 'success');
+        .filter((msg) => msg.extra['core.tracker']?.tracker?.status === 'success');
 
       // Only inject if it's within the N most recent trackers
       if (settings.includeLastXTrackers !== -1 && trackerHistory.length > settings.includeLastXTrackers) {
@@ -368,7 +382,7 @@ class TrackerManager {
   }
 }
 
-export function activate(api: ExtensionAPI<TrackerSettings>) {
+export function activate(api: TrackerExtensionAPI) {
   const settingsContainer = document.getElementById(api.meta.containerId);
   if (settingsContainer) {
     api.ui.mount(settingsContainer, SettingsPanel, { api });

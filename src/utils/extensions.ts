@@ -356,19 +356,23 @@ const baseExtensionAPI: ExtensionAPI = {
         ).filter((book): book is WorldInfoBook => book !== undefined);
       }
 
-      const mediaContext: MediaHydrationContext = mergeWithUndefinedMulti({}, options?.mediaContext, {
-        apiSettings: {
-          forbidExternalMedia: settingsStore.settings.ui.chat.forbidExternalMedia,
-          imageQuality: settingsStore.settings.api.imageQuality,
-          sendMedia: settingsStore.settings.api.sendMedia,
-        },
-        formatter: settingsStore.settings.api.formatter,
-        modelCapabilities: getModelCapabilities(
-          settingsStore.settings.api.provider,
-          apiStore.activeModel,
-          apiStore.modelList,
-        ),
-      } satisfies MediaHydrationContext);
+      const mediaContext: MediaHydrationContext = mergeWithUndefinedMulti(
+        {},
+        {
+          apiSettings: {
+            forbidExternalMedia: settingsStore.settings.ui.chat.forbidExternalMedia,
+            imageQuality: settingsStore.settings.api.imageQuality,
+            sendMedia: settingsStore.settings.api.sendMedia,
+          },
+          formatter: settingsStore.settings.api.formatter,
+          modelCapabilities: getModelCapabilities(
+            settingsStore.settings.api.provider,
+            apiStore.activeModel,
+            apiStore.modelList,
+          ),
+        } satisfies MediaHydrationContext,
+        options?.mediaContext,
+      );
 
       const builder = new PromptBuilder({
         generationId: options?.generationId ?? uuidv4(),
@@ -376,10 +380,10 @@ const baseExtensionAPI: ExtensionAPI = {
         chatMetadata,
         chatHistory,
         persona,
-        samplerSettings: mergeWithUndefinedMulti({}, options?.samplerSettings, settingsStore.settings.api.samplers),
+        samplerSettings: mergeWithUndefinedMulti({}, settingsStore.settings.api.samplers, options?.samplerSettings),
         tokenizer,
         books,
-        worldInfo: mergeWithUndefinedMulti({}, options?.worldInfo, settingsStore.settings.worldInfo),
+        worldInfo: mergeWithUndefinedMulti({}, settingsStore.settings.worldInfo, options?.worldInfo),
         mediaContext,
       });
 
@@ -424,7 +428,7 @@ const baseExtensionAPI: ExtensionAPI = {
       update: (updates) => {
         const store = useChatStore();
         if (store.activeChat) {
-          store.activeChat.metadata = mergeWithUndefinedMulti({}, updates, store.activeChat.metadata);
+          store.activeChat.metadata = mergeWithUndefinedMulti({}, store.activeChat.metadata, updates);
           store.triggerSave();
         }
       },

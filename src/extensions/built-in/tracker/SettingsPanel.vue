@@ -8,12 +8,14 @@ import {
   DEFAULT_PRESETS,
   DEFAULT_PROMPT,
   DEFAULT_SETTINGS,
+  type TrackerChatExtra,
+  type TrackerMessageExtra,
   type TrackerSchemaPreset,
   type TrackerSettings,
 } from './types';
 
 const props = defineProps<{
-  api: ExtensionAPI<TrackerSettings>;
+  api: ExtensionAPI<TrackerSettings, TrackerChatExtra, TrackerMessageExtra>;
 }>();
 
 const t = props.api.i18n.t;
