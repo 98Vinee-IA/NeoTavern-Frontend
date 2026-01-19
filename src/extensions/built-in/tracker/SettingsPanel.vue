@@ -231,10 +231,7 @@ const promptTools = [
     </template>
 
     <div class="group-header">Prompt</div>
-    <FormItem
-      label="Prompt Template"
-      description="The prompt sent to the AI for data extraction."
-    >
+    <FormItem label="Prompt Template" description="The prompt sent to the AI for data extraction.">
       <Textarea
         v-model="settings.prompt"
         allow-maximize
