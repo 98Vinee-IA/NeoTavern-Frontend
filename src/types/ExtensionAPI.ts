@@ -12,6 +12,7 @@ import type {
   ChatCompletionPayload,
   GenerationResponse,
   MediaHydrationContext,
+  PromptBuilderOptions,
   StreamedChunk,
   StructuredResponseOptions,
 } from './generation';
@@ -389,11 +390,13 @@ export interface ExtensionAPI<TSettings = Record<string, any>> {
      * world info, character definitions, persona, and history processing.
      * This replicates the internal prompt building logic used during generation.
      */
-    buildPrompt: (options?: {
-      generationId?: string;
-      characterAvatar?: string;
-      mediaContext?: MediaHydrationContext;
-    }) => Promise<ApiChatMessage[]>;
+    buildPrompt: (
+      options?: Partial<Omit<PromptBuilderOptions, 'samplerSettings' | 'worldInfo' | 'mediaContext'>> & {
+        samplerSettings?: Partial<SamplerSettings>;
+        worldInfo?: Partial<WorldInfoSettings>;
+        mediaContext?: Partial<MediaHydrationContext>;
+      },
+    ) => Promise<ApiChatMessage[]>;
 
     /**
      * Creates a new chat file with the provided content.

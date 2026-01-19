@@ -7,7 +7,7 @@ import { useStrictI18n } from '../../composables/useStrictI18n';
 import { POPUP_RESULT, POPUP_TYPE, type CustomPopupButton } from '../../types';
 import type { I18nKey } from '../../types/i18n';
 import { formatText } from '../../utils/chat';
-import { Button, ImageCropper, Textarea } from '../UI';
+import { Button, ImageCropper, Select, Textarea } from '../UI';
 
 const props = defineProps({
   id: { type: String, required: true },
@@ -16,6 +16,8 @@ const props = defineProps({
   content: { type: String, default: '' },
   type: { type: Number as PropType<POPUP_TYPE>, default: POPUP_TYPE.TEXT },
   inputValue: { type: String, default: '' },
+  selectValue: { type: String, default: '' },
+  selectOptions: { type: Array as PropType<{ label: string; value: string }[]>, default: () => [] },
 
   okButton: { type: [String, Boolean] as PropType<I18nKey | boolean>, default: undefined },
   cancelButton: { type: [String, Boolean] as PropType<I18nKey | boolean>, default: undefined },
@@ -37,6 +39,7 @@ const { t } = useStrictI18n();
 const mainInputComponent = ref<InstanceType<typeof Textarea> | null>(null);
 const cropper = ref<InstanceType<typeof ImageCropper> | null>(null);
 const internalInputValue = ref(props.inputValue);
+const internalSelectValue = ref(props.selectValue);
 const generatedButtons = ref<CustomPopupButton[]>([]);
 const sanitizedTitle = computed(() => DOMPurify.sanitize(props.title));
 const formattedContent = computed(() => formatText(props.content));
@@ -72,6 +75,7 @@ function resolveOptions() {
       break;
     case POPUP_TYPE.INPUT:
     case POPUP_TYPE.CROP:
+    case POPUP_TYPE.SELECT:
       if (showOk) {
         buttons.push({
           text: getButtonText(okButton, 'common.save'),
@@ -111,6 +115,7 @@ watch(
   (isVisible) => {
     if (isVisible) {
       internalInputValue.value = props.inputValue;
+      internalSelectValue.value = props.selectValue;
       resolveOptions();
       setTimeout(() => {
         if (props.type === POPUP_TYPE.INPUT && mainInputComponent.value) {
@@ -126,6 +131,7 @@ watch(
 onMounted(() => {
   if (props.visible) {
     internalInputValue.value = props.inputValue;
+    internalSelectValue.value = props.selectValue;
     resolveOptions();
   }
 });
@@ -138,6 +144,8 @@ function handleResult(result: number) {
       payload.value = internalInputValue.value;
     } else if (props.type === POPUP_TYPE.CROP && cropper.value) {
       payload.value = cropper.value.getData();
+    } else if (props.type === POPUP_TYPE.SELECT) {
+      payload.value = internalSelectValue.value;
     }
   }
   emit('submit', payload);
@@ -177,7 +185,11 @@ function handleResult(result: number) {
             <h3 v-if="title" :id="`${id}-title`" class="popup-title" v-html="sanitizedTitle"></h3>
             <div
               class="popup-content"
-              :class="{ 'is-input': type === POPUP_TYPE.INPUT, 'is-crop': type === POPUP_TYPE.CROP }"
+              :class="{
+                'is-input': type === POPUP_TYPE.INPUT,
+                'is-crop': type === POPUP_TYPE.CROP,
+                'is-select': type === POPUP_TYPE.SELECT,
+              }"
             >
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div v-if="content" :id="`${id}-content`" class="popup-message" v-html="formattedContent"></div>
@@ -190,6 +202,14 @@ function handleResult(result: number) {
                 v-model="internalInputValue"
                 class="popup-input-wrapper"
                 :rows="rows"
+              />
+
+              <Select
+                v-if="type === POPUP_TYPE.SELECT"
+                v-model="internalSelectValue"
+                :searchable="selectOptions.length > 10"
+                class="popup-input-wrapper"
+                :options="selectOptions"
               />
 
               <div v-if="type === POPUP_TYPE.CROP" class="crop-container">

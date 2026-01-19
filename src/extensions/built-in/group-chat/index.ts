@@ -276,10 +276,10 @@ export function activate(api: ExtensionAPI) {
   unbinds.push(
     api.events.on(
       'prompt:history-message-processing',
-      (apiMsgs, context) => {
+      (payload, context) => {
         if (!context.isGroupContext) return;
 
-        for (const apiMsg of apiMsgs) {
+        for (const apiMsg of payload.apiMessages) {
           if (apiMsg.role === 'tool') continue;
           if (typeof apiMsg.content === 'string') {
             const namePrefix = `${context.originalMessage.name}:`;

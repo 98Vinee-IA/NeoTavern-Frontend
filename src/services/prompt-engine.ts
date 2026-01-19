@@ -433,21 +433,33 @@ export class PromptBuilder {
         }
       }
 
-      await eventEmitter.emit(
-        'prompt:history-message-processing',
-        messagesToInsert.map((m) => m.apiMessage),
-        {
-          originalMessage: msg,
-          isGroupContext,
-          characters: this.characters,
-          persona: this.persona,
-          index: i,
-          chatLength: this.chatHistory.length,
-        },
+      const eventPayload = { apiMessages: messagesToInsert.map((m) => m.apiMessage) };
+      await eventEmitter.emit('prompt:history-message-processing', eventPayload, {
+        originalMessage: msg,
+        isGroupContext,
+        characters: this.characters,
+        persona: this.persona,
+        index: i,
+        chatLength: this.chatHistory.length,
+        generationId: this.generationId,
+      });
+
+      // Re-process messages after extensions have had a chance to modify them.
+      const finalMessagesToInsert = await Promise.all(
+        eventPayload.apiMessages.map(async (apiMessage) => {
+          // Find original message to reuse token count if it exists
+          const original = messagesToInsert.find((m) => m.apiMessage === apiMessage);
+          if (original) {
+            return original;
+          }
+          // Otherwise, calculate tokens for new messages added by extensions
+          const tokens = await countTokens(apiMessage.content, this.tokenizer);
+          return { apiMessage, tokens };
+        }),
       );
 
       // Insert the generated messages, checking budget for each one
-      const success = await insertMessages(messagesToInsert);
+      const success = await insertMessages(finalMessagesToInsert);
       if (!success) {
         break;
       }

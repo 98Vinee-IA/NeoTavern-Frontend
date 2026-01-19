@@ -103,7 +103,7 @@ export interface ExtensionEventMap {
 
   'prompt:building-started': [options: PromptBuilderOptions];
   'prompt:history-message-processing': [
-    apiMessages: ApiChatMessage[],
+    payload: { apiMessages: ApiChatMessage[] },
     context: {
       originalMessage: ChatMessage;
       isGroupContext: boolean;
@@ -111,6 +111,7 @@ export interface ExtensionEventMap {
       persona: Persona;
       index: number;
       chatLength: number;
+      generationId: string;
     },
   ];
   'prompt:built': [messages: ApiChatMessage[], context: { generationId: string }];

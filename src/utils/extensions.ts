@@ -4,6 +4,7 @@ import { CustomPromptPostProcessing, GenerationMode, default_avatar } from '../c
 import type {
   ApiChatContentPart,
   ApiChatMessage,
+  Character,
   ChatInfo,
   ChatMessage,
   ExtensionAPI,
@@ -313,34 +314,47 @@ const baseExtensionAPI: ExtensionAPI = {
       const personaStore = usePersonaStore();
       const apiStore = useApiStore();
 
-      if (!chatStore.activeChat) throw new Error('No active chat.');
-      if (!personaStore.activePersona) throw new Error('No active persona.');
+      if (!options?.chatHistory && !chatStore.activeChat) throw new Error('No active chat.');
+      if (!options?.persona && !personaStore.activePersona) throw new Error('No active persona.');
+
+      const chatHistory = options?.chatHistory ?? [...(chatStore.activeChat?.messages ?? [])];
+      const chatMetadata = options?.chatMetadata ?? chatStore.activeChat?.metadata;
+      const persona = options?.persona ?? personaStore.activePersona;
+      if (chatHistory.length === 0) throw new Error('Chat history is empty.');
+      if (!chatMetadata) throw new Error('No chat metadata available.');
+      if (!persona) throw new Error('No active persona.');
 
       // Determine the character context
-      let activeCharacter = characterStore.activeCharacters[0];
-      if (options?.characterAvatar) {
-        const found = characterStore.activeCharacters.find((c) => c.avatar === options.characterAvatar);
-        if (found) activeCharacter = found;
+      let contextCharacters: Character[] = options?.characters || [];
+
+      if (!options?.characters) {
+        const activeCharacter = characterStore.activeCharacters[0];
+        if (!activeCharacter) throw new Error('No active character.');
+
+        contextCharacters = [activeCharacter];
+
+        await eventEmitter.emit(
+          'generation:resolve-context',
+          { characters: contextCharacters },
+          { generationId: options?.generationId },
+        );
       }
-      if (!activeCharacter) throw new Error('No active character.');
 
-      const contextCharacters = [activeCharacter];
-      await eventEmitter.emit(
-        'generation:resolve-context',
-        { characters: contextCharacters },
-        { generationId: options?.generationId },
-      );
+      const tokenizer =
+        options?.tokenizer ??
+        new ApiTokenizer({
+          tokenizerType: settingsStore.settings.api.tokenizer,
+          model: apiStore.activeModel,
+        });
 
-      const tokenizer = new ApiTokenizer({
-        tokenizerType: settingsStore.settings.api.tokenizer,
-        model: apiStore.activeModel,
-      });
-
-      const books = (
-        await Promise.all(
-          worldInfoStore.activeBookNames.map(async (name) => await worldInfoStore.getBookFromCache(name, true)),
-        )
-      ).filter((book): book is WorldInfoBook => book !== undefined);
+      let books: WorldInfoBook[] = options?.books || [];
+      if (!options?.books) {
+        books = (
+          await Promise.all(
+            worldInfoStore.activeBookNames.map(async (name) => await worldInfoStore.getBookFromCache(name, true)),
+          )
+        ).filter((book): book is WorldInfoBook => book !== undefined);
+      }
 
       const mediaContext: MediaHydrationContext = defaultsDeep({}, options?.mediaContext, {
         apiSettings: {
@@ -355,16 +369,17 @@ const baseExtensionAPI: ExtensionAPI = {
           apiStore.modelList,
         ),
       } satisfies MediaHydrationContext);
+
       const builder = new PromptBuilder({
         generationId: options?.generationId ?? uuidv4(),
         characters: contextCharacters,
-        chatMetadata: chatStore.activeChat.metadata,
-        chatHistory: [...chatStore.activeChat.messages],
-        persona: personaStore.activePersona,
-        samplerSettings: settingsStore.settings.api.samplers,
+        chatMetadata,
+        chatHistory,
+        persona,
+        samplerSettings: defaultsDeep({}, options?.samplerSettings, settingsStore.settings.api.samplers),
         tokenizer,
         books,
-        worldInfo: settingsStore.settings.worldInfo,
+        worldInfo: defaultsDeep({}, options?.worldInfo, settingsStore.settings.worldInfo),
         mediaContext,
       });
 

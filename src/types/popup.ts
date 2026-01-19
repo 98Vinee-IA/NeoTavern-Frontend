@@ -7,6 +7,7 @@ export enum POPUP_TYPE {
   INPUT = 3,
   DISPLAY = 4,
   CROP = 5,
+  SELECT = 6,
 }
 
 export enum POPUP_RESULT {
@@ -32,6 +33,8 @@ export interface PopupOptions {
   defaultResult?: number;
   cropImage?: string;
   component?: Component;
+  selectOptions?: { text: string; value: string }[];
+  selectValue?: string;
   // TODO: Is there way to make type-safe...?
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   componentProps?: Record<string, any>;
@@ -43,6 +46,7 @@ export interface PopupState extends PopupOptions {
   content: string;
   type: POPUP_TYPE;
   inputValue?: string;
+  selectValue?: string;
 }
 
 export type PopupShowOptions = Partial<Omit<PopupState, 'id' | 'visible'>>;
