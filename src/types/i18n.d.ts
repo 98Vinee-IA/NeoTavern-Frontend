@@ -702,6 +702,11 @@ export interface MessageSchema {
     };
     quickActions: {
       title: string;
+      configure: string;
+      layout: string;
+      layoutRow: string;
+      layoutColumn: string;
+      enabledActions: string;
     };
   };
   character: {

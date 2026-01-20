@@ -698,7 +698,12 @@
       }
     },
     "quickActions": {
-      "title": "Quick Actions"
+      "title": "Quick Actions",
+      "configure": "Configure Quick Actions",
+      "layout": "Layout",
+      "layoutRow": "Row",
+      "layoutColumn": "Column",
+      "enabledActions": "Enabled Actions"
     }
   },
   "character": {
