@@ -707,6 +707,8 @@ export interface MessageSchema {
       layoutRow: string;
       layoutColumn: string;
       enabledActions: string;
+      displayOptions: string;
+      showLabels: string;
       group: {
         generation: string;
         inputMessage: string;

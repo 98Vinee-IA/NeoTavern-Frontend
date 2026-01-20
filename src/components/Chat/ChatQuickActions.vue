@@ -17,7 +17,7 @@ const configButtonRef = ref<HTMLElement | null>(null);
 const configMenuRef = ref<HTMLElement | null>(null);
 
 const { floatingStyles: configMenuStyles } = useFloating(configButtonRef, configMenuRef, {
-  placement: 'top-start',
+  placement: 'top-end',
   open: isConfigVisible,
   whileElementsMounted: autoUpdate,
   middleware: [offset(8), flip(), shift({ padding: 10 })],
@@ -89,7 +89,7 @@ onUnmounted(() => {
         @keydown.enter.prevent="toggleExpanded"
         @keydown.space.prevent="toggleExpanded"
       >
-        <i class="icon fa-solid fa-chevron-right"></i>
+        <i class="icon fa-solid fa-chevron-up"></i>
         <span v-if="!isExpanded">{{ t('chat.quickActions.title') }}</span>
       </div>
       <div
@@ -121,7 +121,7 @@ onUnmounted(() => {
                 variant="ghost"
                 :icon="action.icon"
                 :disabled="action.disabled"
-                :label="action.label"
+                :label="chatUiStore.quickActionsShowLabels ? action.label : undefined"
                 :title="action.title ?? action.label"
                 :data-opens-popover="action.opensPopover"
                 @click="action.onClick"
@@ -151,6 +151,15 @@ onUnmounted(() => {
             {{ t('chat.quickActions.layoutColumn') }}
           </Button>
         </div>
+      </div>
+
+      <div class="chat-quick-actions-config-section">
+        <div class="chat-quick-actions-config-title">{{ t('chat.quickActions.displayOptions') }}</div>
+        <Checkbox
+          :model-value="chatUiStore.quickActionsShowLabels"
+          :label="t('chat.quickActions.showLabels')"
+          @update:model-value="chatUiStore.setQuickActionsShowLabels($event)"
+        />
       </div>
 
       <div class="chat-quick-actions-config-section">

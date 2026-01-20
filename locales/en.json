@@ -704,6 +704,8 @@
       "layoutRow": "Row",
       "layoutColumn": "Column",
       "enabledActions": "Enabled Actions",
+      "displayOptions": "Display Options",
+      "showLabels": "Show Labels",
       "group": {
         "generation": "Generation",
         "inputMessage": "Input & Message",

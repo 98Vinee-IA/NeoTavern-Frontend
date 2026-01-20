@@ -30,6 +30,7 @@ watch(
   settings,
   (newSettings) => {
     props.api.settings.set(undefined, newSettings);
+    // TODO: Emit event to update options menu and quick actions for enabled/disabled state
     props.api.settings.save();
   },
   { deep: true },

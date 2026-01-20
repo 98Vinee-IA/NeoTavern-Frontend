@@ -16,6 +16,7 @@ export const useChatUiStore = defineStore('chat-ui', () => {
 
   // TODO: Move to settings
   const quickActionsLayout = ref<QuickActionsLayout>('row');
+  const quickActionsShowLabels = ref(true);
   const disabledQuickActions = ref<Set<string>>(new Set());
 
   function startEditing(index: number, content: string) {
@@ -46,6 +47,10 @@ export const useChatUiStore = defineStore('chat-ui', () => {
     quickActionsLayout.value = layout;
   }
 
+  function setQuickActionsShowLabels(show: boolean) {
+    quickActionsShowLabels.value = show;
+  }
+
   function isQuickActionDisabled(id: string): boolean {
     return disabledQuickActions.value.has(id);
   }
@@ -66,6 +71,7 @@ export const useChatUiStore = defineStore('chat-ui', () => {
     renderedMessagesCount,
     chatInputElement,
     quickActionsLayout,
+    quickActionsShowLabels,
     disabledQuickActions,
     startEditing,
     cancelEditing,
@@ -73,6 +79,7 @@ export const useChatUiStore = defineStore('chat-ui', () => {
     loadMoreMessages,
     setChatInputElement,
     setQuickActionsLayout,
+    setQuickActionsShowLabels,
     isQuickActionDisabled,
     toggleQuickAction,
   };
