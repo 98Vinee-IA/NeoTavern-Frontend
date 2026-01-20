@@ -1,6 +1,6 @@
 import * as Vue from 'vue';
 import { createVNode, render, type App } from 'vue';
-import { CustomPromptPostProcessing, GenerationMode, default_avatar } from '../constants';
+import { CustomPromptPostProcessing, default_avatar } from '../constants';
 import type {
   ApiChatContentPart,
   ApiChatMessage,
@@ -51,8 +51,7 @@ import { useComponentRegistryStore } from '../stores/component-registry.store';
 import { useLayoutStore } from '../stores/layout.store';
 import { useToolStore } from '../stores/tool.store';
 import { useWorldInfoUiStore } from '../stores/world-info-ui.store';
-import type { LlmGenerationOptions, TextareaToolDefinition } from '../types/ExtensionAPI';
-import type { CodeMirrorTarget } from '../types/settings';
+import type { LlmGenerationOptions } from '../types/ExtensionAPI';
 
 /**
  * A centralized utility to count tokens for message content (string or array of parts).
@@ -255,14 +254,8 @@ const baseExtensionAPI: ExtensionAPI = {
     deleteMessage: async (index) => {
       await useChatStore().deleteMessage(index);
     },
-    regenerateResponse: async (options) => {
-      return await useChatStore().generateResponse(GenerationMode.REGENERATE, options);
-    },
-    continueResponse: async (options) => {
-      return await useChatStore().generateResponse(GenerationMode.CONTINUE, options);
-    },
-    generateResponse: async (options) => {
-      return await useChatStore().generateResponse(GenerationMode.NEW, options);
+    generateResponse: async (initialMode, options) => {
+      return await useChatStore().generateResponse(initialMode, options);
     },
     clear: async () => {
       return await useChatStore().clearChat(true);
@@ -601,6 +594,9 @@ const baseExtensionAPI: ExtensionAPI = {
       await Vue.nextTick();
       return id;
     },
+    unregisterSidebar(id, side) {
+      useComponentRegistryStore().unregisterSidebar(id, side);
+    },
     registerNavBarItem: async (id, options) => {
       useComponentRegistryStore().registerNavBarItem(id, {
         icon: options.icon,
@@ -615,6 +611,20 @@ const baseExtensionAPI: ExtensionAPI = {
     unregisterNavBarItem: (id) => {
       useComponentRegistryStore().unregisterNavBarItem(id);
     },
+    registerChatFormOptionsMenuItem(item) {
+      useComponentRegistryStore().registerChatFormOptionsMenuItem(item);
+      return () => useComponentRegistryStore().unregisterChatFormOptionsMenuItem(item.id);
+    },
+    unregisterChatFormOptionsMenuItem(itemId) {
+      useComponentRegistryStore().unregisterChatFormOptionsMenuItem(itemId);
+    },
+    registerChatQuickAction(groupId, groupLabel, action) {
+      useComponentRegistryStore().registerChatQuickAction(groupId, groupLabel, action);
+      return () => useComponentRegistryStore().unregisterChatQuickAction(groupId, action.id);
+    },
+    unregisterChatQuickAction(groupId, actionId) {
+      useComponentRegistryStore().unregisterChatQuickAction(groupId, actionId);
+    },
     openSidebar: (id) => useLayoutStore().toggleRightSidebar(id),
     activateNavBarItem: (id) => useLayoutStore().activateNavBarItem(id),
     autoCloseSidebarsOnMobile: () => useLayoutStore().autoCloseSidebarsOnMobile(),
@@ -625,9 +635,16 @@ const baseExtensionAPI: ExtensionAPI = {
       useComponentRegistryStore().registerTextareaTool(identifier, definition);
       return () => useComponentRegistryStore().unregisterTextareaTool(identifier, definition.id);
     },
+    unregisterTextareaTool(identifier, toolId) {
+      useComponentRegistryStore().unregisterTextareaTool(identifier, toolId);
+    },
     registerChatSettingsTab: (id, title, component) => {
-      useComponentRegistryStore().registerChatSettingsTab(id, title, component);
-      return () => useComponentRegistryStore().unregisterChatSettingsTab(id);
+      const store = useComponentRegistryStore();
+      store.registerChatSettingsTab(id, title, component);
+      return () => store.unregisterChatSettingsTab(id);
+    },
+    unregisterChatSettingsTab: (id) => {
+      useComponentRegistryStore().unregisterChatSettingsTab(id);
     },
     mountComponent: async (container, componentName, props) => {
       if (!container) return;
@@ -872,6 +889,10 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
       await Vue.nextTick();
       return namespacedId;
     },
+    unregisterSidebar: (id: string, side: 'left' | 'right') => {
+      const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
+      useComponentRegistryStore().unregisterSidebar(namespacedId, side);
+    },
     registerNavBarItem: async (
       id: string,
       options: {
@@ -905,16 +926,6 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
         const namespacedId = `${extensionId}.${id}`;
         if (componentRegistryStore.rightSidebarRegistry.has(namespacedId)) layoutStore.toggleRightSidebar(namespacedId);
       }
-    },
-    registerTextareaTool: (identifier: CodeMirrorTarget | string | RegExp, definition: TextareaToolDefinition) => {
-      const toolId = definition.id.startsWith(extensionId) ? definition.id : `${extensionId}.${definition.id}`;
-      useComponentRegistryStore().registerTextareaTool(identifier, { ...definition, id: toolId });
-      return () => useComponentRegistryStore().unregisterTextareaTool(identifier, toolId);
-    },
-    registerChatSettingsTab: (id: string, title: string, component: Vue.Component) => {
-      const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
-      useComponentRegistryStore().registerChatSettingsTab(namespacedId, title, component);
-      return () => useComponentRegistryStore().unregisterChatSettingsTab(namespacedId);
     },
   };
 

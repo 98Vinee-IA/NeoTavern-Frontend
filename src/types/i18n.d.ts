@@ -700,6 +700,21 @@ export interface MessageSchema {
         model: string;
       };
     };
+    quickActions: {
+      title: string;
+      configure: string;
+      layout: string;
+      layoutRow: string;
+      layoutColumn: string;
+      enabledActions: string;
+      displayOptions: string;
+      showLabels: string;
+      group: {
+        generation: string;
+        inputMessage: string;
+        contextAI: string;
+      };
+    };
   };
   character: {
     import: {
@@ -1268,31 +1283,42 @@ export interface MessageSchema {
       promptTemplate: string;
       promptHint: string;
     };
-    rerollContinue: {
-      buttonLabel: string;
+    generationTools: {
+      rerollButtonLabel: string;
+      swipeButtonLabel: string;
+      impersonateButtonLabel: string;
+      generateButtonLabel: string;
+      generateDisabled: string;
+      generateNoInput: string;
+      rerollDisabled: string;
       noSnapshot: string;
       contextChanged: string;
       divergenceError: string;
       swipeError: string;
       reverting: string;
       error: string;
-      rerollDisabled: string;
-      impersonateButtonLabel: string;
       impersonateDisabled: string;
       noPersona: string;
       buildPromptFailed: string;
       noConnectionProfile: string;
       impersonating: string;
       impersonationFailed: string;
+      swipeDisabled: string;
+      swipeNotApplicable: string;
+      swiping: string;
       settings: {
+        reset: string;
         rerollEnabled: string;
         impersonateEnabled: string;
+        generateEnabled: string;
+        swipeEnabled: string;
         impersonateTitle: string;
         connectionProfileLabel: string;
         connectionProfileDesc: string;
-        promptDesc: string;
         promptLabel: string;
-        reset: string;
+        promptDesc: string;
+        generateTitle: string;
+        generatePromptDesc: string;
       };
     };
     chatBranching: {

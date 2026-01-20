@@ -1,6 +1,6 @@
 import type { Component } from 'vue';
 import type { StrictT } from '../composables/useStrictI18n';
-import type { EventPriority } from '../constants';
+import type { EventPriority, GenerationMode } from '../constants';
 import type { PromptBuilder } from '../services/prompt-engine';
 import type { WorldInfoProcessor } from '../services/world-info';
 import type { Character } from './character';
@@ -61,6 +61,29 @@ export interface TextareaToolDefinition {
   variant?: 'default' | 'danger' | 'confirm' | 'ghost';
   active?: boolean;
   onClick: (payload: { value: string; setValue: (val: string) => void }) => void;
+}
+
+export interface ChatFormOptionsMenuItemDefinition {
+  id: string;
+  icon: string;
+  label: string;
+  onClick: (event: Event) => void;
+  separator?: 'before' | 'after';
+  disabled?: boolean;
+  title?: string;
+  visible?: boolean;
+  opensPopover?: string; // TODO: I'm not sure how to make this for extensions except a generic popover store, which I don't wanna create it.
+}
+
+export interface ChatQuickActionDefinition {
+  id: string;
+  icon: string;
+  label?: string;
+  onClick: (event: Event) => void;
+  disabled?: boolean;
+  title?: string;
+  visible?: boolean;
+  opensPopover?: string; // TODO: I'm not sure how to make this for extensions except a generic popover store, which I don't wanna create it.
 }
 
 export enum MountableComponent {
@@ -390,9 +413,10 @@ export interface ExtensionAPI<
     updateMessage: (index: number, newContent: string, newReasoning?: string) => Promise<void>;
     updateMessageObject: (index: number, updates: Partial<TypedChatMessage<TMessageExtra>>) => Promise<void>;
     deleteMessage: (index: number) => Promise<void>;
-    regenerateResponse: (options?: { generationId?: string; forceSpeakerAvatar?: string }) => Promise<void>;
-    continueResponse: (options?: { generationId?: string }) => Promise<void>;
-    generateResponse: (options?: { generationId?: string; forceSpeakerAvatar?: string }) => Promise<void>;
+    generateResponse: (
+      initialMode: GenerationMode,
+      options?: { generationId?: string; forceSpeakerAvatar?: string },
+    ) => Promise<void>;
     clear: () => Promise<void>;
     abortGeneration: () => void;
     getChatInput: () => ChatInputDetail | null;
@@ -592,6 +616,8 @@ export interface ExtensionAPI<
       options?: { title?: string; icon?: string; props?: Record<string, any>; layoutId?: string },
     ) => Promise<string>;
 
+    unregisterSidebar: (id: string, side: 'left' | 'right') => void;
+
     /**
      * Registers a custom item in the main navigation bar (and optional drawer).
      * @param id Unique identifier for the item.
@@ -654,6 +680,28 @@ export interface ExtensionAPI<
       definition: TextareaToolDefinition,
     ) => () => void;
 
+    unregisterTextareaTool: (identifier: CodeMirrorTarget | string | RegExp, toolId: string) => void;
+
+    /**
+     * Registers an item in the chat form's options menu (three-bar icon).
+     * @param item The menu item definition. The ID will be namespaced to the extension.
+     * @returns A cleanup function to unregister the item.
+     */
+    registerChatFormOptionsMenuItem: (item: ChatFormOptionsMenuItemDefinition) => () => void;
+
+    unregisterChatFormOptionsMenuItem: (itemId: string) => void;
+
+    /**
+     * Registers a button in the chat's "Quick Actions" bar.
+     * @param groupId A unique ID for the group this action belongs to (e.g., 'memory', 'rewrite'). If the group doesn't exist, it will be created with the provided label.
+     * @param groupLabel The display name for the group (only used when creating it for the first time).
+     * @param action The action button definition. The ID will be namespaced to the extension.
+     * @returns A cleanup function to unregister the action.
+     */
+    registerChatQuickAction: (groupId: string, groupLabel: string, action: ChatQuickActionDefinition) => () => void;
+
+    unregisterChatQuickAction: (groupId: string, actionId: string) => void;
+
     /**
      * Registers a custom tab in the Chat Management sidebar.
      * @param id Unique identifier for the tab.
@@ -662,6 +710,8 @@ export interface ExtensionAPI<
      * @returns A cleanup function to unregister the tab.
      */
     registerChatSettingsTab: (id: string, title: string, component: Component) => () => void;
+
+    unregisterChatSettingsTab: (tabId: string) => void;
 
     /**
      * Mounts a predefined system component to the DOM.

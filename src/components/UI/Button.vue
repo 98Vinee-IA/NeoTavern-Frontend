@@ -12,6 +12,7 @@ interface Props {
   title?: string;
   active?: boolean;
   role?: string;
+  label?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,6 +23,7 @@ const props = withDefaults(defineProps<Props>(), {
   icon: undefined,
   active: false,
   role: undefined,
+  label: undefined,
 });
 
 const { t } = useStrictI18n();
@@ -74,8 +76,8 @@ function onClick(event: MouseEvent) {
   >
     <Icon v-if="loading" icon="fa-spinner" spin aria-hidden="true" />
     <Icon v-else-if="icon" :icon="icon" aria-hidden="true" />
-    <span v-if="$slots.default" :class="{ 'ml-2': icon || loading }">
-      <slot />
+    <span v-if="$slots.default || label" :class="{ 'ml-2': icon || loading }">
+      <slot>{{ label }}</slot>
     </span>
   </button>
 </template>

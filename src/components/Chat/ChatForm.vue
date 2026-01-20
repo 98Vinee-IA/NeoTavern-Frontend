@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue';
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { autoUpdate, flip, offset, shift, useFloating, type Placement } from '@floating-ui/vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
 import { isCapabilitySupported } from '../../api/provider-definitions';
 import { useChatMedia } from '../../composables/useChatMedia';
 import { useMobile } from '../../composables/useMobile';
@@ -10,9 +10,11 @@ import { useApiStore } from '../../stores/api.store';
 import { useChatSelectionStore } from '../../stores/chat-selection.store';
 import { useChatUiStore } from '../../stores/chat-ui.store';
 import { useChatStore } from '../../stores/chat.store';
+import { useComponentRegistryStore } from '../../stores/component-registry.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useToolStore } from '../../stores/tool.store';
+import type { ChatFormOptionsMenuItemDefinition } from '../../types/ExtensionAPI';
 import { Button, Checkbox, Textarea } from '../UI';
 
 const props = defineProps<{
@@ -30,10 +32,14 @@ const chatSelectionStore = useChatSelectionStore();
 const promptStore = usePromptStore();
 const toolStore = useToolStore();
 const apiStore = useApiStore();
+const componentRegistryStore = useComponentRegistryStore();
 const { isDeviceMobile } = useMobile();
 const { t } = useStrictI18n();
 
 const chatInput = ref<InstanceType<typeof Textarea> | null>(null);
+const chatFormContainerRef = ref<HTMLElement | null>(null);
+const chatFormInnerRef = ref<HTMLElement | null>(null);
+console.debug(chatFormContainerRef); // Dummy log to avoid unused variable warning
 
 const {
   fileInput,
@@ -67,9 +73,16 @@ const { floatingStyles: optionsMenuStyles } = useFloating(optionsButtonRef, opti
 // --- Tools Menu ---
 const isToolsMenuVisible = ref(false);
 const toolsMenuRef = ref<HTMLElement | null>(null);
+const toolsMenuTriggerEl = ref<HTMLElement | null>(null); // The real element that triggered the menu
+const toolsMenuPlacement = ref<Placement>('top');
 
-const { floatingStyles: toolsMenuStyles } = useFloating(optionsButtonRef, toolsMenuRef, {
-  placement: 'top-start',
+// Virtual anchor for positioning, based on a snapshot of the trigger's rect
+const toolsMenuAnchor = ref({
+  getBoundingClientRect: () => new DOMRect(),
+});
+
+const { floatingStyles: toolsMenuStyles } = useFloating(toolsMenuAnchor, toolsMenuRef, {
+  placement: toolsMenuPlacement,
   open: isToolsMenuVisible,
   whileElementsMounted: autoUpdate,
   middleware: [offset(8), flip(), shift({ padding: 10 })],
@@ -152,15 +165,129 @@ function toggleSelectionMode() {
   isOptionsMenuVisible.value = false;
 }
 
-function openToolsMenu() {
-  isToolsMenuVisible.value = true;
-  isOptionsMenuVisible.value = false;
+function openToolsMenu(event: Event) {
+  const target = event.currentTarget as HTMLElement | null;
+  if (!target) return;
+
+  // If clicking the same element that opened the menu, close it.
+  if (isToolsMenuVisible.value && toolsMenuTriggerEl.value === target) {
+    isToolsMenuVisible.value = false;
+    toolsMenuTriggerEl.value = null;
+    return;
+  }
+
+  // Determine the anchor element and placement for positioning.
+  const clickedFromOptionsMenu = optionsMenuRef.value?.contains(target);
+  const anchorElement = clickedFromOptionsMenu ? chatFormInnerRef.value : target;
+
+  if (anchorElement) {
+    // Set placement based on context
+    toolsMenuPlacement.value = clickedFromOptionsMenu ? 'top-start' : 'top';
+
+    // Set up the virtual anchor based on the chosen element's position.
+    toolsMenuAnchor.value = {
+      getBoundingClientRect: () => anchorElement.getBoundingClientRect(),
+    };
+    toolsMenuTriggerEl.value = target; // Still track original trigger for closing logic.
+    isToolsMenuVisible.value = true;
+  }
 }
 
 function handleAttachMedia() {
   if (!isMediaAttachDisabled.value) {
     triggerFileUpload();
     isOptionsMenuVisible.value = false;
+  }
+}
+
+// --- Menu Item Definitions ---
+
+const allPossibleCoreActions = computed<ChatFormOptionsMenuItemDefinition[]>(() => {
+  const hasMessages = (chatStore.activeChat?.messages.length ?? 0) > 0;
+  return [
+    {
+      id: 'core.regenerate',
+      icon: 'fa-solid fa-repeat',
+      label: t('chat.optionsMenu.regenerate'),
+      onClick: regenerate,
+      visible: hasMessages,
+    },
+    {
+      id: 'core.continue',
+      icon: 'fa-solid fa-arrow-right',
+      label: t('chat.optionsMenu.continue'),
+      onClick: continueGeneration,
+      separator: 'after',
+      visible: hasMessages,
+    },
+    {
+      id: 'core.select',
+      icon: 'fa-solid fa-check-double',
+      label: t('chat.optionsMenu.selectMessages'),
+      onClick: toggleSelectionMode,
+      separator: 'after',
+      visible: hasMessages,
+    },
+    {
+      id: 'core.attach',
+      icon: 'fa-solid fa-paperclip',
+      label: t('chat.media.attach'),
+      onClick: handleAttachMedia,
+      disabled: isMediaAttachDisabled.value,
+      title: mediaAttachTitle.value,
+      visible: hasMessages,
+    },
+    {
+      id: 'core.tools',
+      icon: 'fa-solid fa-screwdriver-wrench',
+      label: t('chat.tools.title'),
+      onClick: openToolsMenu,
+      visible: true,
+      opensPopover: 'tools',
+    },
+  ];
+});
+
+const builtInMenuItems = computed(() => {
+  const visibleItems = allPossibleCoreActions.value.filter((item) => item.visible ?? true);
+
+  if (componentRegistryStore.chatFormOptionsMenuRegistry.size === 0 || visibleItems.length === 0) {
+    return visibleItems;
+  }
+
+  // Create copies to avoid mutating computed properties
+  const itemsWithSeparator = visibleItems.map((item) => ({ ...item }));
+  const lastItem = itemsWithSeparator[itemsWithSeparator.length - 1];
+
+  // Add a separator before any extension items
+  if (lastItem.separator !== 'after') {
+    lastItem.separator = 'after';
+  }
+
+  return itemsWithSeparator;
+});
+
+const allMenuItems = computed(() =>
+  [...builtInMenuItems.value, ...Array.from(componentRegistryStore.chatFormOptionsMenuRegistry.values())].filter(
+    (item) => item.visible ?? true,
+  ),
+);
+
+function shouldShowSeparatorBefore(item: ChatFormOptionsMenuItemDefinition, index: number): boolean {
+  if (index === 0) return false; // Never before the first item
+  const prevItem = allMenuItems.value[index - 1];
+  return item.separator === 'before' || prevItem.separator === 'after';
+}
+
+function handleMenuItemClick(item: ChatFormOptionsMenuItemDefinition, event: Event) {
+  item.onClick(event);
+  if (!item.opensPopover) {
+    isOptionsMenuVisible.value = false;
+  } else {
+    // Give the new popover a moment to open before closing the parent
+    nextTick(() => {
+      isOptionsMenuVisible.value = false;
+    });
   }
 }
 
@@ -172,24 +299,67 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function handleClickOutside(event: MouseEvent) {
-  const target = event.target as Node;
+  const target = event.target as HTMLElement;
 
-  // Options Menu
-  const isOutsideOptionsMenu = optionsMenuRef.value && !optionsMenuRef.value.contains(target);
-  const isOutsideOptionsButton = optionsButtonRef.value && !optionsButtonRef.value.contains(target);
-
-  if (isOutsideOptionsMenu && isOutsideOptionsButton) {
+  // Close Options Menu
+  const isInsideOptionsMenu = optionsMenuRef.value?.contains(target);
+  const isInsideOptionsButton = optionsButtonRef.value?.contains(target);
+  if (!isInsideOptionsMenu && !isInsideOptionsButton) {
     isOptionsMenuVisible.value = false;
   }
 
-  // Tools Menu
-  const isOutsideToolsMenu = toolsMenuRef.value && !toolsMenuRef.value.contains(target);
-  const isOutsideToolsButton = optionsButtonRef.value && !optionsButtonRef.value.contains(target);
+  // Close Tools Menu
+  if (isToolsMenuVisible.value) {
+    const isInsideToolsMenu = toolsMenuRef.value?.contains(target);
+    const isInsideAnchor = toolsMenuTriggerEl.value?.contains(target);
 
-  if (isOutsideToolsMenu && isOutsideToolsButton) {
-    isToolsMenuVisible.value = false;
+    if (!isInsideToolsMenu && !isInsideAnchor) {
+      isToolsMenuVisible.value = false;
+      toolsMenuTriggerEl.value = null;
+    }
   }
 }
+
+// --- Quick Action Registration ---
+const quickActionGroups = computed(() => [
+  {
+    id: 'core.generation',
+    label: t('chat.quickActions.group.generation'),
+    actionIds: ['core.regenerate', 'core.continue'],
+  },
+  {
+    id: 'core.input-message',
+    label: t('chat.quickActions.group.inputMessage'),
+    actionIds: ['core.select', 'core.attach'],
+  },
+  {
+    id: 'core.context-ai',
+    label: t('chat.quickActions.group.contextAI'),
+    actionIds: ['core.tools'],
+  },
+]);
+
+watchEffect(() => {
+  const actionsById = new Map(allPossibleCoreActions.value.map((action) => [action.id, action]));
+
+  for (const group of quickActionGroups.value) {
+    for (const actionId of group.actionIds) {
+      const action = actionsById.get(actionId);
+      if (action) {
+        componentRegistryStore.registerChatQuickAction(group.id, group.label, {
+          id: action.id,
+          icon: action.icon,
+          title: action.title ?? action.label,
+          label: action.label,
+          onClick: action.onClick,
+          disabled: action.disabled,
+          visible: action.visible,
+          opensPopover: action.opensPopover,
+        });
+      }
+    }
+  }
+});
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
@@ -211,6 +381,12 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   chatUiStore.setChatInputElement(null);
+
+  for (const group of quickActionGroups.value) {
+    for (const actionId of group.actionIds) {
+      componentRegistryStore.unregisterChatQuickAction(group.id, actionId);
+    }
+  }
 });
 
 watch(
@@ -254,7 +430,7 @@ defineExpose({
 </script>
 
 <template>
-  <div id="chat-form" class="chat-form">
+  <div id="chat-form" ref="chatFormContainerRef" class="chat-form">
     <div v-if="attachedMedia.length > 0" class="chat-form-media-previews">
       <div v-for="(media, index) in attachedMedia" :key="index" class="media-preview-item">
         <img :src="media.url" :alt="media.title" />
@@ -264,7 +440,7 @@ defineExpose({
       </div>
     </div>
 
-    <div class="chat-form-inner">
+    <div ref="chatFormInnerRef" class="chat-form-inner">
       <div class="chat-form-actions-left">
         <!-- Options Menu Button -->
         <div ref="optionsButtonRef" class="chat-form-action-wrapper">
@@ -288,7 +464,7 @@ defineExpose({
         :model-value="userInput"
         :placeholder="t('chat.inputPlaceholder')"
         autocomplete="off"
-        :disabled="chatStore.isGenerating || isUploading"
+        :disabled="isUploading"
         :allow-maximize="false"
         identifier="chat.input"
         @update:model-value="emit('update:userInput', $event)"
@@ -327,65 +503,23 @@ defineExpose({
       role="menu"
       aria-labelledby="chat-options-button"
     >
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click="regenerate"
-        @keydown.enter.prevent="regenerate"
-        @keydown.space.prevent="regenerate"
-      >
-        <i class="fa-solid fa-repeat"></i>
-        <span>{{ t('chat.optionsMenu.regenerate') }}</span>
-      </a>
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click="continueGeneration"
-        @keydown.enter.prevent="continueGeneration"
-        @keydown.space.prevent="continueGeneration"
-      >
-        <i class="fa-solid fa-arrow-right"></i>
-        <span>{{ t('chat.optionsMenu.continue') }}</span>
-      </a>
-      <hr role="separator" />
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click="toggleSelectionMode"
-        @keydown.enter.prevent="toggleSelectionMode"
-        @keydown.space.prevent="toggleSelectionMode"
-      >
-        <i class="fa-solid fa-check-double"></i>
-        <span>{{ t('chat.optionsMenu.selectMessages') }}</span>
-      </a>
-      <hr role="separator" />
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        :disabled="isMediaAttachDisabled"
-        :title="mediaAttachTitle"
-        @click="handleAttachMedia"
-        @keydown.enter.prevent="handleAttachMedia"
-        @keydown.space.prevent="handleAttachMedia"
-      >
-        <i class="fa-solid fa-paperclip"></i>
-        <span>{{ t('chat.media.attach') }}</span>
-      </a>
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click.stop="openToolsMenu"
-        @keydown.enter.prevent="openToolsMenu"
-        @keydown.space.prevent="openToolsMenu"
-      >
-        <i class="fa-solid fa-screwdriver-wrench"></i>
-        <span>{{ t('chat.tools.title') }}</span>
-      </a>
+      <template v-for="(item, index) in allMenuItems" :key="item.id">
+        <hr v-if="shouldShowSeparatorBefore(item, index)" role="separator" />
+        <a
+          class="options-menu-item"
+          role="menuitem"
+          tabindex="0"
+          :disabled="item.disabled"
+          :title="item.title"
+          :data-opens-popover="item.opensPopover"
+          @click="handleMenuItemClick(item, $event)"
+          @keydown.enter.prevent="handleMenuItemClick(item, $event)"
+          @keydown.space.prevent="handleMenuItemClick(item, $event)"
+        >
+          <i :class="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      </template>
     </div>
 
     <!-- Tools Menu Popover -->

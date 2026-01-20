@@ -146,22 +146,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
 
   // 3. Input Options Injection
   const injectInputOption = () => {
-    const menu = document.querySelector('#chat-form .options-menu');
-    if (!menu || menu.querySelector('.rewrite-input-option')) return;
-
-    const item = document.createElement('a');
-    item.className = 'options-menu-item rewrite-input-option';
-    item.setAttribute('role', 'menuitem');
-    item.tabIndex = 0;
-    item.innerHTML =
-      '<i class="fa-solid fa-wand-magic-sparkles"></i><span>' +
-      t('extensionsBuiltin.rewrite.buttons.rewriteInput') +
-      '</span>';
-
-    item.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
+    const onClick = () => {
       const input = api.chat.getChatInput();
       if (!input || !input.value) return;
 
@@ -171,15 +156,21 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
           api.chat.setChatInput(newVal);
         },
         'chat.input',
-        api.chat.getHistory().length, // Implicit end of chat
+        api.chat.getHistory().length,
       );
-
-      const btn = document.getElementById('chat-options-button');
-      if (btn && getComputedStyle(menu).display !== 'none') {
-        btn.click(); // Close menu
-      }
     };
-    menu.appendChild(item);
+    api.ui.registerChatFormOptionsMenuItem({
+      id: 'rewrite-input-option',
+      icon: 'fa-solid fa-wand-magic-sparkles',
+      label: t('extensionsBuiltin.rewrite.buttons.rewriteInput'),
+      onClick,
+    });
+    api.ui.registerChatQuickAction('core.input-message', '', {
+      id: 'rewrite-input-option',
+      icon: 'fa-solid fa-wand-magic-sparkles',
+      label: t('extensionsBuiltin.rewrite.buttons.rewriteInput'),
+      onClick,
+    });
   };
 
   // Listeners
@@ -206,6 +197,7 @@ export function activate(api: ExtensionAPI<RewriteSettings>) {
   return () => {
     unbinds.forEach((u) => u());
     document.querySelectorAll('.rewrite-button-wrapper').forEach((el) => el.remove());
-    document.querySelectorAll('.rewrite-input-option').forEach((el) => el.remove());
+    api.ui.unregisterChatFormOptionsMenuItem('rewrite-input-option');
+    api.ui.unregisterChatQuickAction('core.input-message', 'rewrite-input-option');
   };
 }

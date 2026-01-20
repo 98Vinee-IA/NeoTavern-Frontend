@@ -16,8 +16,6 @@
     flex-grow: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    // Subtract form height to ensure space
-    max-height: calc(100% - var(--send-form-height));
     background-color: var(--theme-chat-tint);
     padding: var(--spacing-lg);
     gap: var(--spacing-lg);

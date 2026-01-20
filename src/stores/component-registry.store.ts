@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia';
 import { markRaw, ref, type Component } from 'vue';
 import type { NavBarItemDefinition, SidebarDefinition } from '../types';
-import type { TextareaToolDefinition } from '../types/ExtensionAPI';
+import type {
+  ChatFormOptionsMenuItemDefinition,
+  ChatQuickActionDefinition,
+  TextareaToolDefinition,
+} from '../types/ExtensionAPI';
 import type { CodeMirrorTarget } from '../types/settings';
 
 export interface ChatSettingsTabDefinition {
@@ -15,6 +19,13 @@ interface RegexToolRegistration {
   tools: TextareaToolDefinition[];
 }
 
+export interface ChatQuickActionGroupDefinition {
+  id: string;
+  label: string;
+  actions: ChatQuickActionDefinition[];
+  visible?: boolean;
+}
+
 export const useComponentRegistryStore = defineStore('component-registry', () => {
   const leftSidebarRegistry = ref<Map<string, SidebarDefinition>>(new Map());
   const rightSidebarRegistry = ref<Map<string, SidebarDefinition>>(new Map());
@@ -26,6 +37,8 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
   const textareaToolRegexRegistry = ref<RegexToolRegistration[]>([]);
 
   const chatSettingsTabRegistry = ref<Map<string, ChatSettingsTabDefinition>>(new Map());
+  const chatFormOptionsMenuRegistry = ref<Map<string, ChatFormOptionsMenuItemDefinition>>(new Map());
+  const chatQuickActionsRegistry = ref<Map<string, ChatQuickActionGroupDefinition>>(new Map());
 
   function registerSidebar(id: string, definition: Omit<SidebarDefinition, 'id'>, side: 'left' | 'right') {
     const rawComponent = markRaw(definition.component);
@@ -60,10 +73,13 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
       });
 
       if (existingEntry) {
-        // Prevent duplicates by ID
-        const exists = existingEntry.tools.find((t) => t.id === definition.id);
-        if (exists) return;
-        existingEntry.tools.push(definition);
+        // Update if exists, else add
+        const toolIndex = existingEntry.tools.findIndex((t) => t.id === definition.id);
+        if (toolIndex !== -1) {
+          existingEntry.tools[toolIndex] = definition;
+        } else {
+          existingEntry.tools.push(definition);
+        }
       } else {
         textareaToolRegexRegistry.value.push({
           regex: identifier,
@@ -73,10 +89,13 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
     } else {
       // Handle Exact String registration
       const list = textareaToolRegistry.value.get(identifier) || [];
-      // Prevent duplicates by ID
-      const exists = list.find((t) => t.id === definition.id);
-      if (exists) return;
-      list.push(definition);
+      // Update if exists, else add
+      const toolIndex = list.findIndex((t) => t.id === definition.id);
+      if (toolIndex !== -1) {
+        list[toolIndex] = definition;
+      } else {
+        list.push(definition);
+      }
       textareaToolRegistry.value.set(identifier, list);
     }
   }
@@ -129,6 +148,41 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
     return Array.from(uniqueTools.values());
   }
 
+  function registerChatFormOptionsMenuItem(item: ChatFormOptionsMenuItemDefinition) {
+    chatFormOptionsMenuRegistry.value.set(item.id, item);
+  }
+
+  function unregisterChatFormOptionsMenuItem(id: string) {
+    chatFormOptionsMenuRegistry.value.delete(id);
+  }
+
+  function registerChatQuickAction(groupId: string, groupLabel: string, action: ChatQuickActionDefinition) {
+    let group = chatQuickActionsRegistry.value.get(groupId);
+    if (!group) {
+      group = { id: groupId, label: groupLabel, actions: [] };
+      chatQuickActionsRegistry.value.set(groupId, group);
+    }
+    // Update if exists, else add
+    const actionIndex = group.actions.findIndex((a) => a.id === action.id);
+    if (actionIndex !== -1) {
+      group.actions[actionIndex] = action;
+    } else {
+      group.actions.push(action);
+    }
+  }
+
+  function unregisterChatQuickAction(groupId: string, actionId: string) {
+    const group = chatQuickActionsRegistry.value.get(groupId);
+    if (!group) return;
+
+    group.actions = group.actions.filter((a) => a.id !== actionId);
+
+    // If group becomes empty, remove it
+    if (group.actions.length === 0) {
+      chatQuickActionsRegistry.value.delete(groupId);
+    }
+  }
+
   function registerChatSettingsTab(id: string, title: string, component: Component) {
     chatSettingsTabRegistry.value.set(id, {
       id,
@@ -148,6 +202,8 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
     textareaToolRegistry,
     textareaToolRegexRegistry,
     chatSettingsTabRegistry,
+    chatFormOptionsMenuRegistry,
+    chatQuickActionsRegistry,
     registerSidebar,
     unregisterSidebar,
     registerNavBarItem,
@@ -155,6 +211,10 @@ export const useComponentRegistryStore = defineStore('component-registry', () =>
     registerTextareaTool,
     unregisterTextareaTool,
     getTextareaTools,
+    registerChatFormOptionsMenuItem,
+    unregisterChatFormOptionsMenuItem,
+    registerChatQuickAction,
+    unregisterChatQuickAction,
     registerChatSettingsTab,
     unregisterChatSettingsTab,
     getNavBarItem: (id: string) => navBarRegistry.value.get(id),

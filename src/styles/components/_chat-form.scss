@@ -5,7 +5,6 @@
   align-items: flex-end; // Align to bottom for multiline
   flex-wrap: wrap;
   margin: 0 auto;
-  border-top: 1px solid var(--theme-border-color);
   width: 100%;
   background-color: var(--theme-background-tint);
   position: relative;
@@ -136,6 +135,7 @@
 
 .tools-menu {
   @extend .options-menu;
+  white-space: normal;
   max-width: 700px;
   padding: var(--spacing-sm);
   max-height: 60vh;
