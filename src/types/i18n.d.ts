@@ -700,6 +700,9 @@ export interface MessageSchema {
         model: string;
       };
     };
+    quickActions: {
+      title: string;
+    };
   };
   character: {
     import: {

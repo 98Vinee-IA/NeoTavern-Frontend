@@ -7,6 +7,8 @@ import { AutoTranslateMode, type ChatTranslationSettings } from './types';
 
 export { manifest };
 
+// TODO: i18n
+
 export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
   const translator = new Translator(api);
   let settingsApp: {
@@ -54,29 +56,15 @@ export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
   };
 
   const injectInputOption = () => {
-    const menu = document.querySelector('#chat-form .options-menu');
-    if (!menu) return;
-
-    if (menu.querySelector('.translation-input-option')) return;
-
-    const item = document.createElement('a');
-    item.className = 'options-menu-item translation-input-option';
-    item.setAttribute('role', 'menuitem');
-    item.tabIndex = 0;
-    item.innerHTML = '<i class="fa-solid fa-language"></i><span>Translate Input</span>';
-
-    item.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      translator.translateInput();
-
-      const btn = document.getElementById('chat-options-button');
-      if (btn && getComputedStyle(menu).display !== 'none') {
-        btn.click();
-      }
-    };
-
-    menu.appendChild(item);
+    api.ui.registerChatFormOptionsMenuItem({
+      id: 'chat-translation-translate-input',
+      icon: 'fa-solid fa-language',
+      label: 'Translate Input',
+      onClick: () => {
+        translator.translateInput();
+      },
+      visible: api.chat.getChatInfo() !== null,
+    });
   };
 
   const shouldTranslate = (message: ChatMessage, autoMode: AutoTranslateMode): boolean => {
@@ -131,6 +119,6 @@ export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
     settingsApp?.unmount();
     unbinds.forEach((u) => u());
     document.querySelectorAll('.translation-button-wrapper').forEach((el) => el.remove());
-    document.querySelectorAll('.translation-input-option').forEach((el) => el.remove());
+    api.ui.unregisterChatFormOptionsMenuItem('chat-translation-translate-input');
   };
 }

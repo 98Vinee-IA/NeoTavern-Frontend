@@ -237,38 +237,23 @@ export function activate(api: ExtensionAPI<ExtensionSettings, ChatMemoryMetadata
   };
 
   const injectMenuOption = () => {
-    const menu = document.querySelector('#chat-form .options-menu');
-    if (!menu) return;
-
-    if (menu.querySelector('.chat-memory-option')) return;
-
-    const item = document.createElement('a');
-    item.className = 'options-menu-item chat-memory-option';
-    item.setAttribute('role', 'menuitem');
-    item.tabIndex = 0;
-    item.innerHTML = `<i class="fa-solid fa-brain"></i><span>${t('extensionsBuiltin.chatMemory.menuItem')}</span>`;
-
-    item.onclick = async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const btn = document.getElementById('chat-options-button');
-      if (btn && getComputedStyle(menu).display !== 'none') {
-        btn.click();
-      }
-
-      await api.ui.showPopup({
-        title: t('extensionsBuiltin.chatMemory.popupTitle'),
-        component: markRaw(MemoryPopup),
-        componentProps: { api },
-        wide: true,
-        large: true,
-        okButton: false,
-        cancelButton: 'common.close',
-      });
-    };
-
-    menu.insertBefore(item, menu.firstChild);
+    api.ui.registerChatFormOptionsMenuItem({
+      id: 'chat-memory-option',
+      icon: 'fa-solid fa-brain',
+      label: t('extensionsBuiltin.chatMemory.menuItem'),
+      visible: api.chat.getChatInfo() !== null,
+      onClick() {
+        api.ui.showPopup({
+          title: t('extensionsBuiltin.chatMemory.popupTitle'),
+          component: markRaw(MemoryPopup),
+          componentProps: { api },
+          wide: true,
+          large: true,
+          okButton: false,
+          cancelButton: 'common.close',
+        });
+      },
+    });
   };
 
   // --- Event Listeners ---
@@ -343,17 +328,17 @@ export function activate(api: ExtensionAPI<ExtensionSettings, ChatMemoryMetadata
 
   // Initial Boot
   injectStyles();
+  injectMenuOption();
   if (api.chat.getChatInfo()) {
-    injectMenuOption();
     updateAllMessages();
   }
 
   return () => {
     unbinds.forEach((u) => u());
-    document.querySelectorAll('.chat-memory-option').forEach((el) => el.remove());
     document.querySelectorAll('.summary-button-wrapper').forEach((el) => el.remove());
     document.querySelectorAll('.memory-summary-injection').forEach((el) => el.remove());
     document.querySelectorAll('.content-dimmed').forEach((el) => el.classList.remove('content-dimmed'));
     document.getElementById('chat-memory-styles')?.remove();
+    api.ui.unregisterChatFormOptionsMenuItem('chat-memory-option');
   };
 }

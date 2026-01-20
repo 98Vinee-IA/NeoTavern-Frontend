@@ -63,6 +63,27 @@ export interface TextareaToolDefinition {
   onClick: (payload: { value: string; setValue: (val: string) => void }) => void;
 }
 
+export interface ChatFormOptionsMenuItemDefinition {
+  id: string;
+  icon: string;
+  label: string;
+  onClick: () => void;
+  separator?: 'before' | 'after';
+  disabled?: boolean;
+  title?: string;
+  visible?: boolean;
+}
+
+export interface ChatQuickActionDefinition {
+  id: string;
+  icon: string;
+  label?: string;
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string;
+  visible?: boolean;
+}
+
 export enum MountableComponent {
   ConnectionProfileSelector = 'ConnectionProfileSelector',
   Button = 'Button',
@@ -592,6 +613,8 @@ export interface ExtensionAPI<
       options?: { title?: string; icon?: string; props?: Record<string, any>; layoutId?: string },
     ) => Promise<string>;
 
+    unregisterSidebar: (id: string, side: 'left' | 'right') => void;
+
     /**
      * Registers a custom item in the main navigation bar (and optional drawer).
      * @param id Unique identifier for the item.
@@ -654,6 +677,28 @@ export interface ExtensionAPI<
       definition: TextareaToolDefinition,
     ) => () => void;
 
+    unregisterTextareaTool: (identifier: CodeMirrorTarget | string | RegExp, toolId: string) => void;
+
+    /**
+     * Registers an item in the chat form's options menu (three-bar icon).
+     * @param item The menu item definition. The ID will be namespaced to the extension.
+     * @returns A cleanup function to unregister the item.
+     */
+    registerChatFormOptionsMenuItem: (item: ChatFormOptionsMenuItemDefinition) => () => void;
+
+    unregisterChatFormOptionsMenuItem: (itemId: string) => void;
+
+    /**
+     * Registers a button in the chat's "Quick Actions" bar.
+     * @param groupId A unique ID for the group this action belongs to (e.g., 'memory', 'rewrite'). If the group doesn't exist, it will be created with the provided label.
+     * @param groupLabel The display name for the group (only used when creating it for the first time).
+     * @param action The action button definition. The ID will be namespaced to the extension.
+     * @returns A cleanup function to unregister the action.
+     */
+    registerChatQuickAction: (groupId: string, groupLabel: string, action: ChatQuickActionDefinition) => () => void;
+
+    unregisterChatQuickAction: (groupId: string, actionId: string) => void;
+
     /**
      * Registers a custom tab in the Chat Management sidebar.
      * @param id Unique identifier for the tab.
@@ -662,6 +707,8 @@ export interface ExtensionAPI<
      * @returns A cleanup function to unregister the tab.
      */
     registerChatSettingsTab: (id: string, title: string, component: Component) => () => void;
+
+    unregisterChatSettingsTab: (tabId: string) => void;
 
     /**
      * Mounts a predefined system component to the DOM.

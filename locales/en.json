@@ -696,6 +696,9 @@
         "postProcessing": "Tools are incompatible with the current Prompt Post-Processing setting.",
         "model": "The active model does not support tool calling."
       }
+    },
+    "quickActions": {
+      "title": "Quick Actions"
     }
   },
   "character": {

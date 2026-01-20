@@ -51,7 +51,12 @@ import { useComponentRegistryStore } from '../stores/component-registry.store';
 import { useLayoutStore } from '../stores/layout.store';
 import { useToolStore } from '../stores/tool.store';
 import { useWorldInfoUiStore } from '../stores/world-info-ui.store';
-import type { LlmGenerationOptions, TextareaToolDefinition } from '../types/ExtensionAPI';
+import type {
+  ChatFormOptionsMenuItemDefinition,
+  ChatQuickActionDefinition,
+  LlmGenerationOptions,
+  TextareaToolDefinition,
+} from '../types/ExtensionAPI';
 import type { CodeMirrorTarget } from '../types/settings';
 
 /**
@@ -601,6 +606,9 @@ const baseExtensionAPI: ExtensionAPI = {
       await Vue.nextTick();
       return id;
     },
+    unregisterSidebar(id, side) {
+      useComponentRegistryStore().unregisterSidebar(id, side);
+    },
     registerNavBarItem: async (id, options) => {
       useComponentRegistryStore().registerNavBarItem(id, {
         icon: options.icon,
@@ -615,6 +623,20 @@ const baseExtensionAPI: ExtensionAPI = {
     unregisterNavBarItem: (id) => {
       useComponentRegistryStore().unregisterNavBarItem(id);
     },
+    registerChatFormOptionsMenuItem(item) {
+      useComponentRegistryStore().registerChatFormOptionsMenuItem(item);
+      return () => useComponentRegistryStore().unregisterChatFormOptionsMenuItem(item.id);
+    },
+    unregisterChatFormOptionsMenuItem(itemId) {
+      useComponentRegistryStore().unregisterChatFormOptionsMenuItem(itemId);
+    },
+    registerChatQuickAction(groupId, groupLabel, action) {
+      useComponentRegistryStore().registerChatQuickAction(groupId, groupLabel, action);
+      return () => useComponentRegistryStore().unregisterChatQuickAction(groupId, action.id);
+    },
+    unregisterChatQuickAction(groupId, actionId) {
+      useComponentRegistryStore().unregisterChatQuickAction(groupId, actionId);
+    },
     openSidebar: (id) => useLayoutStore().toggleRightSidebar(id),
     activateNavBarItem: (id) => useLayoutStore().activateNavBarItem(id),
     autoCloseSidebarsOnMobile: () => useLayoutStore().autoCloseSidebarsOnMobile(),
@@ -625,9 +647,16 @@ const baseExtensionAPI: ExtensionAPI = {
       useComponentRegistryStore().registerTextareaTool(identifier, definition);
       return () => useComponentRegistryStore().unregisterTextareaTool(identifier, definition.id);
     },
+    unregisterTextareaTool(identifier, toolId) {
+      useComponentRegistryStore().unregisterTextareaTool(identifier, toolId);
+    },
     registerChatSettingsTab: (id, title, component) => {
-      useComponentRegistryStore().registerChatSettingsTab(id, title, component);
-      return () => useComponentRegistryStore().unregisterChatSettingsTab(id);
+      const store = useComponentRegistryStore();
+      store.registerChatSettingsTab(id, title, component);
+      return () => store.unregisterChatSettingsTab(id);
+    },
+    unregisterChatSettingsTab: (id) => {
+      useComponentRegistryStore().unregisterChatSettingsTab(id);
     },
     mountComponent: async (container, componentName, props) => {
       if (!container) return;
@@ -872,6 +901,10 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
       await Vue.nextTick();
       return namespacedId;
     },
+    unregisterSidebar: (id: string, side: 'left' | 'right') => {
+      const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
+      useComponentRegistryStore().unregisterSidebar(namespacedId, side);
+    },
     registerNavBarItem: async (
       id: string,
       options: {
@@ -911,10 +944,36 @@ export function createScopedApiProxy(extensionId: string): ExtensionAPI {
       useComponentRegistryStore().registerTextareaTool(identifier, { ...definition, id: toolId });
       return () => useComponentRegistryStore().unregisterTextareaTool(identifier, toolId);
     },
+    unregisterTextareaTool: (identifier: CodeMirrorTarget | string | RegExp, toolId: string) => {
+      const namespacedToolId = toolId.startsWith(extensionId) ? toolId : `${extensionId}.${toolId}`;
+      useComponentRegistryStore().unregisterTextareaTool(identifier, namespacedToolId);
+    },
+    registerChatFormOptionsMenuItem: (item: ChatFormOptionsMenuItemDefinition) => {
+      const namespacedId = item.id.startsWith(extensionId) ? item.id : `${extensionId}.${item.id}`;
+      useComponentRegistryStore().registerChatFormOptionsMenuItem({ ...item, id: namespacedId });
+      return () => useComponentRegistryStore().unregisterChatFormOptionsMenuItem(namespacedId);
+    },
+    unregisterChatFormOptionsMenuItem: (itemId: string) => {
+      const namespacedId = itemId.startsWith(extensionId) ? itemId : `${extensionId}.${itemId}`;
+      useComponentRegistryStore().unregisterChatFormOptionsMenuItem(namespacedId);
+    },
+    registerChatQuickAction: (groupId: string, groupLabel: string, action: ChatQuickActionDefinition) => {
+      const namespacedActionId = action.id.startsWith(extensionId) ? action.id : `${extensionId}.${action.id}`;
+      useComponentRegistryStore().registerChatQuickAction(groupId, groupLabel, { ...action, id: namespacedActionId });
+      return () => useComponentRegistryStore().unregisterChatQuickAction(groupId, namespacedActionId);
+    },
+    unregisterChatQuickAction: (groupId: string, actionId: string) => {
+      const namespacedActionId = actionId.startsWith(extensionId) ? actionId : `${extensionId}.${actionId}`;
+      useComponentRegistryStore().unregisterChatQuickAction(groupId, namespacedActionId);
+    },
     registerChatSettingsTab: (id: string, title: string, component: Vue.Component) => {
       const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
       useComponentRegistryStore().registerChatSettingsTab(namespacedId, title, component);
       return () => useComponentRegistryStore().unregisterChatSettingsTab(namespacedId);
+    },
+    unregisterChatSettingsTab: (id: string) => {
+      const namespacedId = id.startsWith(extensionId) ? id : `${extensionId}.${id}`;
+      useComponentRegistryStore().unregisterChatSettingsTab(namespacedId);
     },
   };
 

@@ -35,15 +35,24 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
   const updateButtonState = () => {
     const settings = getSettings(api);
 
-    const rerollBtn = document.getElementById(REROLL_CONTINUE_BUTTON_ID);
-    if (rerollBtn) {
-      rerollBtn.style.display = snapshot && settings.rerollContinueEnabled ? 'flex' : 'none';
-    }
-
-    const impBtn = document.getElementById(IMPERSONATE_BUTTON_ID);
-    if (impBtn) {
-      impBtn.style.display = settings.impersonateEnabled ? 'flex' : 'none';
-    }
+    api.ui.registerChatFormOptionsMenuItem({
+      id: REROLL_CONTINUE_BUTTON_ID,
+      icon: 'fa-solid fa-rotate-right',
+      label: t('extensionsBuiltin.rerollContinue.buttonLabel'),
+      visible: !!snapshot && settings.rerollContinueEnabled && api.chat.getChatInfo() !== null,
+      onClick: () => {
+        rerollContinue();
+      },
+    });
+    api.ui.registerChatFormOptionsMenuItem({
+      id: IMPERSONATE_BUTTON_ID,
+      icon: 'fa-solid fa-user-secret',
+      label: t('extensionsBuiltin.rerollContinue.impersonateButtonLabel'),
+      visible: settings.impersonateEnabled && api.chat.getChatInfo() !== null,
+      onClick: () => {
+        impersonate();
+      },
+    });
   };
 
   // 1. Capture Snapshot Logic
@@ -210,62 +219,23 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
 
   // 3. UI Injection
   const injectButton = () => {
-    const optionsMenu = document.querySelector('.options-menu');
+    api.ui.registerChatFormOptionsMenuItem({
+      id: 'reroll-continue-button',
+      icon: 'fa-solid fa-rotate-right',
+      label: t('extensionsBuiltin.rerollContinue.buttonLabel'),
+      onClick: () => {
+        rerollContinue();
+      },
+    });
 
-    // If menu doesn't exist or buttons exist, skip
-    if (
-      !optionsMenu ||
-      document.getElementById(REROLL_CONTINUE_BUTTON_ID) ||
-      document.getElementById(IMPERSONATE_BUTTON_ID)
-    )
-      return;
-
-    updateButtonState(); // Pre-compute displays
-
-    // Reroll button
-    const rerollBtn = document.createElement('a');
-    rerollBtn.id = REROLL_CONTINUE_BUTTON_ID;
-    rerollBtn.className = 'options-menu-item';
-    rerollBtn.style.cursor = 'pointer';
-
-    const icon = document.createElement('i');
-    icon.className = 'fa-solid fa-rotate-right';
-
-    const span = document.createElement('span');
-    span.textContent = t('extensionsBuiltin.rerollContinue.buttonLabel');
-
-    rerollBtn.appendChild(icon);
-    rerollBtn.appendChild(span);
-
-    rerollBtn.onclick = (e) => {
-      e.stopPropagation();
-      document.body.click();
-      rerollContinue();
-    };
-
-    // Impersonate button
-    const impersonateBtn = document.createElement('a');
-    impersonateBtn.id = IMPERSONATE_BUTTON_ID;
-    impersonateBtn.className = 'options-menu-item';
-    impersonateBtn.style.cursor = 'pointer';
-
-    const icon2 = document.createElement('i');
-    icon2.className = 'fa-solid fa-user-secret';
-
-    const span2 = document.createElement('span');
-    span2.textContent = t('extensionsBuiltin.rerollContinue.impersonateButtonLabel');
-
-    impersonateBtn.appendChild(icon2);
-    impersonateBtn.appendChild(span2);
-
-    impersonateBtn.onclick = (e) => {
-      e.stopPropagation();
-      document.body.click();
-      impersonate();
-    };
-
-    optionsMenu.appendChild(rerollBtn);
-    optionsMenu.appendChild(impersonateBtn);
+    api.ui.registerChatFormOptionsMenuItem({
+      id: 'impersonate-button',
+      icon: 'fa-solid fa-user-secret',
+      label: t('extensionsBuiltin.rerollContinue.impersonateButtonLabel'),
+      onClick: () => {
+        impersonate();
+      },
+    });
 
     updateButtonState();
   };
@@ -283,20 +253,12 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
     }),
   );
 
-  // Try injection on load
-  unbinds.push(api.events.on('app:loaded', injectButton));
-
-  // Backup injection attempt
-  if (document.querySelector('.options-menu')) {
-    injectButton();
-  }
+  injectButton();
 
   return () => {
     settingsApp?.unmount();
     unbinds.forEach((u) => u());
-    const rerollBtn = document.getElementById(REROLL_CONTINUE_BUTTON_ID);
-    if (rerollBtn) rerollBtn.remove();
-    const impBtn = document.getElementById(IMPERSONATE_BUTTON_ID);
-    if (impBtn) impBtn.remove();
+    api.ui.unregisterChatFormOptionsMenuItem(REROLL_CONTINUE_BUTTON_ID);
+    api.ui.unregisterChatFormOptionsMenuItem(IMPERSONATE_BUTTON_ID);
   };
 }

@@ -29,7 +29,6 @@ class TrackerManager {
   private mountedIcons = new Map<number, MountedComponent>();
   private mountedDisplays = new Map<number, MountedComponent>();
   private pendingRequests = new Set<number>();
-  private manageSchemaMenuItem: HTMLElement | null = null;
 
   constructor(private api: TrackerExtensionAPI) {}
 
@@ -366,53 +365,13 @@ class TrackerManager {
   }
 
   public injectChatFormUi(): void {
-    this.unmountChatFormUi(); // Clean up existing first
-    const settings = this.getSettings();
-    if (!settings.enabled) return;
-
-    // Use a small delay to ensure the menu exists in the DOM
-    setTimeout(() => {
-      const optionsMenu = document.querySelector('#chat-form .options-menu');
-      if (optionsMenu) {
-        const separator = document.createElement('hr');
-        separator.setAttribute('role', 'separator');
-
-        const menuItem = document.createElement('a');
-        menuItem.className = 'options-menu-item';
-        menuItem.setAttribute('role', 'menuitem');
-        menuItem.tabIndex = 0;
-        menuItem.innerHTML = `<i class="fa-solid fa-chart-simple"></i> <span>${this.api.i18n.t(
-          'extensionsBuiltin.tracker.chatForm.manageSchemas',
-        )}</span>`;
-        menuItem.onclick = () => {
-          this.manageChatSchemas();
-          // Hide the menu after clicking
-          const menu = menuItem.closest('.options-menu') as HTMLElement | null;
-          if (menu) menu.style.display = 'none';
-        };
-        menuItem.onkeydown = (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            this.manageChatSchemas();
-          }
-        };
-
-        optionsMenu.appendChild(separator);
-        optionsMenu.appendChild(menuItem);
-        this.manageSchemaMenuItem = menuItem; // Store reference for cleanup
-      }
-    }, 200);
-  }
-
-  public unmountChatFormUi(): void {
-    if (this.manageSchemaMenuItem) {
-      const separator = this.manageSchemaMenuItem.previousElementSibling;
-      if (separator instanceof HTMLHRElement) {
-        separator.remove();
-      }
-      this.manageSchemaMenuItem.remove();
-      this.manageSchemaMenuItem = null;
-    }
+    this.api.ui.registerChatFormOptionsMenuItem({
+      id: 'tracker-manage-schemas',
+      icon: 'fa-solid fa-chart-simple',
+      label: this.api.i18n.t('extensionsBuiltin.tracker.chatForm.manageSchemas'),
+      visible: this.api.chat.getChatInfo() !== null,
+      onClick: () => this.manageChatSchemas(),
+    });
   }
 
   public unmountMessageUi(indices: number[]): void {
@@ -430,7 +389,7 @@ class TrackerManager {
     this.mountedDisplays.forEach((c) => c.unmount());
     this.mountedDisplays.clear();
     this.pendingRequests.clear();
-    this.unmountChatFormUi();
+    this.api.ui.unregisterChatFormOptionsMenuItem('tracker-manage-schemas');
   }
 }
 

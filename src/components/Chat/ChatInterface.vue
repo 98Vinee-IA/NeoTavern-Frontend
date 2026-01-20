@@ -13,6 +13,7 @@ import { useWorldInfoStore } from '../../stores/world-info.store';
 import { POPUP_RESULT, POPUP_TYPE } from '../../types';
 import ChatForm from './ChatForm.vue';
 import ChatMessages from './ChatMessages.vue';
+import ChatQuickActions from './ChatQuickActions.vue';
 import ChatSelectionToolbar from './ChatSelectionToolbar.vue';
 
 const chatStore = useChatStore();
@@ -122,6 +123,7 @@ watch(
     <ChatMessages />
 
     <div class="chat-interface-form-container">
+      <ChatQuickActions />
       <ChatSelectionToolbar v-if="chatSelectionStore.isSelectionMode" />
       <ChatForm
         v-else-if="isViewportMobile ? !layoutStore.isLeftSidebarOpen && !layoutStore.isRightSidebarOpen : true"

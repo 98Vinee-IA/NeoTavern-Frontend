@@ -10,9 +10,11 @@ import { useApiStore } from '../../stores/api.store';
 import { useChatSelectionStore } from '../../stores/chat-selection.store';
 import { useChatUiStore } from '../../stores/chat-ui.store';
 import { useChatStore } from '../../stores/chat.store';
+import { useComponentRegistryStore } from '../../stores/component-registry.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useToolStore } from '../../stores/tool.store';
+import type { ChatFormOptionsMenuItemDefinition } from '../../types/ExtensionAPI';
 import { Button, Checkbox, Textarea } from '../UI';
 
 const props = defineProps<{
@@ -30,6 +32,7 @@ const chatSelectionStore = useChatSelectionStore();
 const promptStore = usePromptStore();
 const toolStore = useToolStore();
 const apiStore = useApiStore();
+const componentRegistryStore = useComponentRegistryStore();
 const { isDeviceMobile } = useMobile();
 const { t } = useStrictI18n();
 
@@ -162,6 +165,77 @@ function handleAttachMedia() {
     triggerFileUpload();
     isOptionsMenuVisible.value = false;
   }
+}
+
+const builtInMenuItems = computed<ChatFormOptionsMenuItemDefinition[]>(() => {
+  const hasMessages = (chatStore.activeChat?.messages.length ?? 0) > 0;
+  const items: ChatFormOptionsMenuItemDefinition[] = [
+    {
+      id: 'core.regenerate',
+      icon: 'fa-solid fa-repeat',
+      label: t('chat.optionsMenu.regenerate'),
+      onClick: regenerate,
+      visible: hasMessages,
+    },
+    {
+      id: 'core.continue',
+      icon: 'fa-solid fa-arrow-right',
+      label: t('chat.optionsMenu.continue'),
+      onClick: continueGeneration,
+      separator: 'after',
+      visible: hasMessages,
+    },
+    {
+      id: 'core.select',
+      icon: 'fa-solid fa-check-double',
+      label: t('chat.optionsMenu.selectMessages'),
+      onClick: toggleSelectionMode,
+      separator: 'after',
+      visible: hasMessages,
+    },
+    {
+      id: 'core.attach',
+      icon: 'fa-solid fa-paperclip',
+      label: t('chat.media.attach'),
+      onClick: handleAttachMedia,
+      disabled: isMediaAttachDisabled.value,
+      title: mediaAttachTitle.value,
+      visible: hasMessages,
+    },
+    {
+      id: 'core.tools',
+      icon: 'fa-solid fa-screwdriver-wrench',
+      label: t('chat.tools.title'),
+      onClick: openToolsMenu,
+    },
+  ];
+
+  // If there are extension items, add a separator after the last built-in item
+  if (componentRegistryStore.chatFormOptionsMenuRegistry.size > 0 && items.length > 0) {
+    const lastItem = items[items.length - 1];
+    if (lastItem.separator !== 'after') {
+      lastItem.separator = 'after';
+    }
+  }
+
+  return items;
+});
+
+const allMenuItems = computed(() =>
+  [...builtInMenuItems.value, ...Array.from(componentRegistryStore.chatFormOptionsMenuRegistry.values())].filter(
+    (item) => item.visible ?? true,
+  ),
+);
+
+function shouldShowSeparatorBefore(item: ChatFormOptionsMenuItemDefinition, index: number): boolean {
+  if (index === 0) return false; // Never before the first item
+  const prevItem = allMenuItems.value[index - 1];
+  return item.separator === 'before' || prevItem.separator === 'after';
+}
+
+function handleMenuItemClick(item: ChatFormOptionsMenuItemDefinition) {
+  item.onClick();
+  isOptionsMenuVisible.value = false;
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -327,65 +401,22 @@ defineExpose({
       role="menu"
       aria-labelledby="chat-options-button"
     >
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click="regenerate"
-        @keydown.enter.prevent="regenerate"
-        @keydown.space.prevent="regenerate"
-      >
-        <i class="fa-solid fa-repeat"></i>
-        <span>{{ t('chat.optionsMenu.regenerate') }}</span>
-      </a>
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click="continueGeneration"
-        @keydown.enter.prevent="continueGeneration"
-        @keydown.space.prevent="continueGeneration"
-      >
-        <i class="fa-solid fa-arrow-right"></i>
-        <span>{{ t('chat.optionsMenu.continue') }}</span>
-      </a>
-      <hr role="separator" />
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click="toggleSelectionMode"
-        @keydown.enter.prevent="toggleSelectionMode"
-        @keydown.space.prevent="toggleSelectionMode"
-      >
-        <i class="fa-solid fa-check-double"></i>
-        <span>{{ t('chat.optionsMenu.selectMessages') }}</span>
-      </a>
-      <hr role="separator" />
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        :disabled="isMediaAttachDisabled"
-        :title="mediaAttachTitle"
-        @click="handleAttachMedia"
-        @keydown.enter.prevent="handleAttachMedia"
-        @keydown.space.prevent="handleAttachMedia"
-      >
-        <i class="fa-solid fa-paperclip"></i>
-        <span>{{ t('chat.media.attach') }}</span>
-      </a>
-      <a
-        class="options-menu-item"
-        role="menuitem"
-        tabindex="0"
-        @click.stop="openToolsMenu"
-        @keydown.enter.prevent="openToolsMenu"
-        @keydown.space.prevent="openToolsMenu"
-      >
-        <i class="fa-solid fa-screwdriver-wrench"></i>
-        <span>{{ t('chat.tools.title') }}</span>
-      </a>
+      <template v-for="(item, index) in allMenuItems" :key="item.id">
+        <hr v-if="shouldShowSeparatorBefore(item, index)" role="separator" />
+        <a
+          class="options-menu-item"
+          role="menuitem"
+          tabindex="0"
+          :disabled="item.disabled"
+          :title="item.title"
+          @click="handleMenuItemClick(item)"
+          @keydown.enter.prevent="handleMenuItemClick(item)"
+          @keydown.space.prevent="handleMenuItemClick(item)"
+        >
+          <i :class="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      </template>
     </div>
 
     <!-- Tools Menu Popover -->
