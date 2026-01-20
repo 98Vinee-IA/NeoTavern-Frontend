@@ -498,9 +498,10 @@ async function handleNewSession() {
       argOverrides.value,
     );
     await refreshSessions();
-  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (e: any) {
     console.error(e);
-    props.api.ui.showToast(t('extensionsBuiltin.rewrite.session.createFailed'), 'error');
+    props.api.ui.showToast(t('extensionsBuiltin.rewrite.session.createFailed') + ': ' + e.message, 'error');
   }
 }
 
