@@ -42,6 +42,10 @@ const actionGroups = computed(() => {
 const layoutClass = computed(() => (chatUiStore.quickActionsLayout === 'column' ? 'is-layout-column' : ''));
 
 function toggleExpanded() {
+  if (actionGroups.value.length === 0) {
+    isExpanded.value = false;
+    return;
+  }
   isExpanded.value = !isExpanded.value;
 }
 
@@ -73,7 +77,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="actionGroups.length > 0" class="chat-quick-actions" :class="{ 'is-expanded': isExpanded }">
+  <div class="chat-quick-actions" :class="{ 'is-expanded': isExpanded }">
     <div class="chat-quick-actions-header">
       <div
         class="chat-quick-actions-header-main"
