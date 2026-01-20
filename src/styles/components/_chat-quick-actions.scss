@@ -196,12 +196,3 @@
     padding-left: var(--spacing-lg); // Indent actions under groups
   }
 }
-
-@include mobile-override() {
-  .chat-quick-actions {
-    .quick-action-group .group-label {
-      // Hide label on mobile to save space, icons should be clear enough
-      display: none;
-    }
-  }
-}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue';
+import { autoUpdate, flip, offset, shift, useFloating, type Placement } from '@floating-ui/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
 import { isCapabilitySupported } from '../../api/provider-definitions';
 import { useChatMedia } from '../../composables/useChatMedia';
@@ -38,6 +38,8 @@ const { t } = useStrictI18n();
 
 const chatInput = ref<InstanceType<typeof Textarea> | null>(null);
 const chatFormContainerRef = ref<HTMLElement | null>(null);
+const chatFormInnerRef = ref<HTMLElement | null>(null);
+console.debug(chatFormContainerRef); // Dummy log to avoid unused variable warning
 
 const {
   fileInput,
@@ -71,9 +73,16 @@ const { floatingStyles: optionsMenuStyles } = useFloating(optionsButtonRef, opti
 // --- Tools Menu ---
 const isToolsMenuVisible = ref(false);
 const toolsMenuRef = ref<HTMLElement | null>(null);
+const toolsMenuTriggerEl = ref<HTMLElement | null>(null); // The real element that triggered the menu
+const toolsMenuPlacement = ref<Placement>('top');
 
-const { floatingStyles: toolsMenuStyles } = useFloating(chatFormContainerRef, toolsMenuRef, {
-  placement: 'top',
+// Virtual anchor for positioning, based on a snapshot of the trigger's rect
+const toolsMenuAnchor = ref({
+  getBoundingClientRect: () => new DOMRect(),
+});
+
+const { floatingStyles: toolsMenuStyles } = useFloating(toolsMenuAnchor, toolsMenuRef, {
+  placement: toolsMenuPlacement,
   open: isToolsMenuVisible,
   whileElementsMounted: autoUpdate,
   middleware: [offset(8), flip(), shift({ padding: 10 })],
@@ -156,14 +165,31 @@ function toggleSelectionMode() {
   isOptionsMenuVisible.value = false;
 }
 
-function openToolsMenu() {
-  if (isToolsMenuVisible.value) {
+function openToolsMenu(event: Event) {
+  const target = event.currentTarget as HTMLElement | null;
+  if (!target) return;
+
+  // If clicking the same element that opened the menu, close it.
+  if (isToolsMenuVisible.value && toolsMenuTriggerEl.value === target) {
     isToolsMenuVisible.value = false;
-  } else {
-    isOptionsMenuVisible.value = false;
-    nextTick(() => {
-      isToolsMenuVisible.value = true;
-    });
+    toolsMenuTriggerEl.value = null;
+    return;
+  }
+
+  // Determine the anchor element and placement for positioning.
+  const clickedFromOptionsMenu = optionsMenuRef.value?.contains(target);
+  const anchorElement = clickedFromOptionsMenu ? chatFormInnerRef.value : target;
+
+  if (anchorElement) {
+    // Set placement based on context
+    toolsMenuPlacement.value = clickedFromOptionsMenu ? 'top-start' : 'top';
+
+    // Set up the virtual anchor based on the chosen element's position.
+    toolsMenuAnchor.value = {
+      getBoundingClientRect: () => anchorElement.getBoundingClientRect(),
+    };
+    toolsMenuTriggerEl.value = target; // Still track original trigger for closing logic.
+    isToolsMenuVisible.value = true;
   }
 }
 
@@ -217,6 +243,7 @@ const allPossibleCoreActions = computed<ChatFormOptionsMenuItemDefinition[]>(() 
       label: t('chat.tools.title'),
       onClick: openToolsMenu,
       visible: true,
+      opensPopover: 'tools',
     },
   ];
 });
@@ -252,9 +279,16 @@ function shouldShowSeparatorBefore(item: ChatFormOptionsMenuItemDefinition, inde
   return item.separator === 'before' || prevItem.separator === 'after';
 }
 
-function handleMenuItemClick(item: ChatFormOptionsMenuItemDefinition) {
-  item.onClick();
-  isOptionsMenuVisible.value = false;
+function handleMenuItemClick(item: ChatFormOptionsMenuItemDefinition, event: Event) {
+  item.onClick(event);
+  if (!item.opensPopover) {
+    isOptionsMenuVisible.value = false;
+  } else {
+    // Give the new popover a moment to open before closing the parent
+    nextTick(() => {
+      isOptionsMenuVisible.value = false;
+    });
+  }
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -265,7 +299,7 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function handleClickOutside(event: MouseEvent) {
-  const target = event.target as Node;
+  const target = event.target as HTMLElement;
 
   // Close Options Menu
   const isInsideOptionsMenu = optionsMenuRef.value?.contains(target);
@@ -277,8 +311,11 @@ function handleClickOutside(event: MouseEvent) {
   // Close Tools Menu
   if (isToolsMenuVisible.value) {
     const isInsideToolsMenu = toolsMenuRef.value?.contains(target);
-    if (!isInsideToolsMenu) {
+    const isInsideAnchor = toolsMenuTriggerEl.value?.contains(target);
+
+    if (!isInsideToolsMenu && !isInsideAnchor) {
       isToolsMenuVisible.value = false;
+      toolsMenuTriggerEl.value = null;
     }
   }
 }
@@ -317,6 +354,7 @@ watchEffect(() => {
           onClick: action.onClick,
           disabled: action.disabled,
           visible: action.visible,
+          opensPopover: action.opensPopover,
         });
       }
     }
@@ -402,7 +440,7 @@ defineExpose({
       </div>
     </div>
 
-    <div class="chat-form-inner">
+    <div ref="chatFormInnerRef" class="chat-form-inner">
       <div class="chat-form-actions-left">
         <!-- Options Menu Button -->
         <div ref="optionsButtonRef" class="chat-form-action-wrapper">
@@ -473,9 +511,10 @@ defineExpose({
           tabindex="0"
           :disabled="item.disabled"
           :title="item.title"
-          @click="handleMenuItemClick(item)"
-          @keydown.enter.prevent="handleMenuItemClick(item)"
-          @keydown.space.prevent="handleMenuItemClick(item)"
+          :data-opens-popover="item.opensPopover"
+          @click="handleMenuItemClick(item, $event)"
+          @keydown.enter.prevent="handleMenuItemClick(item, $event)"
+          @keydown.space.prevent="handleMenuItemClick(item, $event)"
         >
           <i :class="item.icon"></i>
           <span>{{ item.label }}</span>

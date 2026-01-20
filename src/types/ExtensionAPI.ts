@@ -67,21 +67,23 @@ export interface ChatFormOptionsMenuItemDefinition {
   id: string;
   icon: string;
   label: string;
-  onClick: () => void;
+  onClick: (event: Event) => void;
   separator?: 'before' | 'after';
   disabled?: boolean;
   title?: string;
   visible?: boolean;
+  opensPopover?: string; // TODO: I'm not sure how to make this for extensions except a generic popover store, which I don't wanna create it.
 }
 
 export interface ChatQuickActionDefinition {
   id: string;
   icon: string;
   label?: string;
-  onClick: () => void;
+  onClick: (event: Event) => void;
   disabled?: boolean;
   title?: string;
   visible?: boolean;
+  opensPopover?: string; // TODO: I'm not sure how to make this for extensions except a generic popover store, which I don't wanna create it.
 }
 
 export enum MountableComponent {

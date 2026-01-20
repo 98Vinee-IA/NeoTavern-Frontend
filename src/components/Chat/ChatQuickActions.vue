@@ -123,6 +123,7 @@ onUnmounted(() => {
                 :disabled="action.disabled"
                 :label="action.label"
                 :title="action.title ?? action.label"
+                :data-opens-popover="action.opensPopover"
                 @click="action.onClick"
               />
             </div>

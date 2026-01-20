@@ -135,6 +135,7 @@
 
 .tools-menu {
   @extend .options-menu;
+  white-space: normal;
   max-width: 700px;
   padding: var(--spacing-sm);
   max-height: 60vh;
