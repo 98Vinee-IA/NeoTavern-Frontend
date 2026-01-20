@@ -16,6 +16,8 @@ const isConfigVisible = ref(false);
 const configButtonRef = ref<HTMLElement | null>(null);
 const configMenuRef = ref<HTMLElement | null>(null);
 
+// TODO: Use common ui components over title/label stuff. This file is getting messy.
+
 const { floatingStyles: configMenuStyles } = useFloating(configButtonRef, configMenuRef, {
   placement: 'top-end',
   open: isConfigVisible,
