@@ -53,6 +53,10 @@ export interface ExtensionEventMap {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   'setting:changed': [path: SettingsPath, value: any, oldValue: any];
 
+  // Chat Input Events
+  'chat:input-changed': [value: string];
+  'chat:input-focused': [];
+
   // Layout Events
   'layout:left-sidebar-changed': [isOpen: boolean, view: string | null];
   'layout:right-sidebar-changed': [isOpen: boolean, view: string | null];

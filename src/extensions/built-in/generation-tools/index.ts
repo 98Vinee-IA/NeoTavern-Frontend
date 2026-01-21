@@ -265,8 +265,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       return;
     }
 
-    const chatInputElement = document.querySelector('#chat-input') as HTMLTextAreaElement | null;
-    const chatInput = chatInputElement?.value.trim() ?? '';
+    const chatInputValue = api.chat.getChatInput()?.value.trim() ?? '';
 
     const genMessages: ApiChatMessage[] = [...contextMessages];
     if (settings.impersonatePrompt) {
@@ -283,8 +282,8 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       content: '',
       name: persone.name,
     };
-    if (chatInput) {
-      newMessage.content += chatInput;
+    if (chatInputValue) {
+      newMessage.content += chatInputValue;
     }
     genMessages.push(newMessage);
 
@@ -300,24 +299,16 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
         connectionProfile: settings.impersonateConnectionProfile,
       });
 
-      let generated = chatInput;
+      let generated = chatInputValue;
 
       if (Symbol.asyncIterator in response) {
         for await (const chunk of response) {
           generated += chunk.delta ?? '';
-          if (chatInputElement) {
-            chatInputElement.value = generated;
-            chatInputElement.dispatchEvent(new Event('input', { bubbles: true }));
-            chatInputElement.dispatchEvent(new Event('change', { bubbles: true }));
-          }
+          api.chat.setChatInput(generated);
         }
       } else {
         generated = response.content;
-        if (chatInputElement) {
-          chatInputElement.value = generated;
-          chatInputElement.dispatchEvent(new Event('input', { bubbles: true }));
-          chatInputElement.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+        api.chat.setChatInput(generated);
       }
     } catch (error) {
       console.error('[Impersonate] Failed:', error);

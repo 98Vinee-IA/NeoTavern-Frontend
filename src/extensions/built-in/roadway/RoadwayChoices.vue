@@ -50,7 +50,7 @@ async function handleSend(choiceText: string) {
 async function handleEdit(choiceText: string) {
   props.api.chat.setChatInput(choiceText);
   // Focus the input field after setting the text
-  document.getElementById('chat-input')?.focus();
+  props.api.chat.focusChatInput();
 }
 
 async function handleImpersonate(choiceText: string) {
@@ -95,7 +95,7 @@ async function handleImpersonate(choiceText: string) {
   } finally {
     isImpersonating.value = false;
     impersonateAbortController.value = null;
-    document.getElementById('chat-input')?.focus();
+    props.api.chat.focusChatInput();
   }
 }
 

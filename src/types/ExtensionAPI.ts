@@ -422,6 +422,10 @@ export interface ExtensionAPI<
     getChatInput: () => ChatInputDetail | null;
     setChatInput: (value: string) => void;
     /**
+     * Focuses the chat input element (works with both textarea and CodeMirror).
+     */
+    focusChatInput: () => void;
+    /**
      * Low-level generation method. Sends request directly to LLM Service.
      */
     generate: (

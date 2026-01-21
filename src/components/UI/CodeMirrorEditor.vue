@@ -36,7 +36,7 @@ const props = withDefaults(
 
 const { t } = useStrictI18n();
 
-const emit = defineEmits(['update:modelValue', 'focus', 'blur']);
+const emit = defineEmits(['update:modelValue', 'focus', 'blur', 'keydown', 'paste']);
 
 const editorContainer = ref<HTMLElement>();
 let editorView: EditorView | null = null;
@@ -125,9 +125,17 @@ const initEditor = () => {
           emit('update:modelValue', v.state.doc.toString());
         }
         if (v.focusChanged) {
-          if (v.view.hasFocus) emit('focus');
-          else emit('blur');
+          if (v.view.hasFocus) emit('focus', new FocusEvent('focus'));
+          else emit('blur', new FocusEvent('blur'));
         }
+      }),
+      EditorView.domEventHandlers({
+        keydown: (event) => {
+          emit('keydown', event);
+        },
+        paste: (event) => {
+          emit('paste', event);
+        },
       }),
       props.placeholder ? placeholderExt(props.placeholder) : [],
     ],

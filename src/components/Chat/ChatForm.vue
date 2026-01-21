@@ -15,6 +15,7 @@ import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useToolStore } from '../../stores/tool.store';
 import type { ChatFormOptionsMenuItemDefinition } from '../../types/ExtensionAPI';
+import { eventEmitter } from '../../utils/extensions';
 import { Button, Checkbox, Textarea } from '../UI';
 
 const props = defineProps<{
@@ -298,6 +299,15 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+function handleInputChange(value: string) {
+  emit('update:userInput', value);
+  eventEmitter.emit('chat:input-changed', value);
+}
+
+function handleInputFocus() {
+  eventEmitter.emit('chat:input-focused');
+}
+
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement;
 
@@ -368,8 +378,8 @@ onMounted(() => {
       chatInput.value?.focus();
     }
 
-    const el = document.getElementById('chat-input');
-    if (el) {
+    if (chatInput.value?.$el) {
+      const el = chatInput.value.$el as HTMLElement;
       const textarea = el.tagName === 'TEXTAREA' ? (el as HTMLTextAreaElement) : el.querySelector('textarea');
       if (textarea instanceof HTMLTextAreaElement) {
         chatUiStore.setChatInputElement(textarea);
@@ -467,9 +477,10 @@ defineExpose({
         :disabled="isUploading"
         :allow-maximize="false"
         identifier="chat.input"
-        @update:model-value="emit('update:userInput', $event)"
+        @update:model-value="handleInputChange"
         @keydown="handleKeydown"
         @paste="handlePaste"
+        @focus="handleInputFocus"
       />
 
       <div class="chat-form-actions-right">
