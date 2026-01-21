@@ -96,6 +96,7 @@ class RoadwayManager {
       contextMessages.push({ role: 'system', name: 'System', content: choicePrompt });
 
       const structuredResponse: StructuredResponseOptions = {
+        format: settings.structuredRequestFormat,
         schema: {
           name: 'roadway_choices',
           strict: true,

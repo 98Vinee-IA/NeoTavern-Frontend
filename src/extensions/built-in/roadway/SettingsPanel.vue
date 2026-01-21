@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
-import { FormItem, Input, Textarea, Toggle } from '../../../components/UI';
+import { FormItem, Input, Select, Textarea, Toggle } from '../../../components/UI';
 import type { ExtensionAPI } from '../../../types';
 import { POPUP_RESULT, POPUP_TYPE } from '../../../types/popup';
 import {
@@ -73,6 +73,12 @@ const impersonatePromptTools = createResetTool(
   DEFAULT_IMPERSONATE_PROMPT,
   'Impersonate prompt has been reset.',
 );
+
+const formatOptions = [
+  { label: 'Native', value: 'native' },
+  { label: 'JSON', value: 'json' },
+  { label: 'XML', value: 'xml' },
+];
 </script>
 
 <template>
@@ -94,6 +100,9 @@ const impersonatePromptTools = createResetTool(
     </FormItem>
     <FormItem label="Number of Choices" description="How many choices to generate for each message.">
       <Input v-model.number="settings.choiceCount" type="number" :min="1" :max="20" />
+    </FormItem>
+    <FormItem label="Request Format" description="Format to enforce for the structured response.">
+      <Select v-model="settings.structuredRequestFormat" :options="formatOptions" />
     </FormItem>
     <FormItem
       label="Prompt Template"

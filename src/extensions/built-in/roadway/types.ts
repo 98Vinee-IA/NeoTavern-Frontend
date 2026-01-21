@@ -5,6 +5,7 @@ export interface RoadwaySettings {
   choiceGenConnectionProfile?: string;
   choiceGenPrompt: string;
   choiceCount: number;
+  structuredRequestFormat: 'native' | 'json' | 'xml';
 
   impersonateConnectionProfile?: string;
   impersonatePrompt: string;
@@ -52,6 +53,7 @@ export const DEFAULT_SETTINGS: RoadwaySettings = {
   choiceGenConnectionProfile: undefined,
   choiceGenPrompt: DEFAULT_CHOICE_GEN_PROMPT,
   choiceCount: 5,
+  structuredRequestFormat: 'native',
   impersonateConnectionProfile: undefined,
   impersonatePrompt: DEFAULT_IMPERSONATE_PROMPT,
 };
