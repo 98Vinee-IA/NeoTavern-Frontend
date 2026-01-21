@@ -564,7 +564,8 @@
     "copy": "Copy",
     "regenerate": "Regenerate",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "model": "Model"
   },
   "popup": {
     "cropAvatar": {
@@ -952,6 +953,8 @@
       "fieldsIncluded": "Fields included in this profile:",
       "renamePopupTitle": "Rename Connection Profile",
       "deletePopupContent": "Are you sure you want to delete the profile \"<b>{name}</b>\"?",
+      "updatedFields": "Updated fields: {fields}",
+      "noChanges": "No changes detected based on current settings.",
       "errors": {
         "noSelection": "No profile selected.",
         "nameExists": "A profile with this name already exists.",

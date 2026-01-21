@@ -279,6 +279,15 @@ const baseExtensionAPI: ExtensionAPI = {
         el.dispatchEvent(new Event('input', { bubbles: true }));
       }
     },
+    focusChatInput: () => {
+      const el = document.getElementById('chat-input');
+      if (el) {
+        const textarea = el.tagName === 'TEXTAREA' ? (el as HTMLTextAreaElement) : el.querySelector('textarea');
+        if (textarea instanceof HTMLTextAreaElement) {
+          textarea.focus();
+        }
+      }
+    },
     generate: async (payload, formatter, signal) => {
       return await ChatCompletionService.generate(payload, formatter, { signal });
     },

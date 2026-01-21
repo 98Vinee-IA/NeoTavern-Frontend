@@ -75,6 +75,11 @@ const internalValue = computed({
   set: (val) => emit('update:modelValue', val!),
 });
 
+const sortedOptions = computed(() => {
+  if (!props.options) return [];
+  return [...props.options].sort((a, b) => a.label.localeCompare(b.label));
+});
+
 const { t } = useStrictI18n();
 
 const defaultActions = computed<InternalAction[]>(() => [
@@ -149,7 +154,7 @@ const finalActions = computed<CustomAction[]>(() => {
         <Select
           v-if="options"
           v-model="internalValue!"
-          :options="options"
+          :options="sortedOptions"
           :searchable="searchable"
           :disabled="disabled"
         />

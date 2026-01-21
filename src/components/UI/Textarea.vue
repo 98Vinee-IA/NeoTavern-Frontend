@@ -40,7 +40,7 @@ const props = withDefaults(defineProps<Props>(), {
   tools: () => [],
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'focus', 'blur', 'input', 'keydown', 'paste']);
 
 const popupStore = usePopupStore();
 const settingsStore = useSettingsStore();
@@ -170,6 +170,10 @@ const cmMinHeight = computed(() => {
       :aria-label="label || placeholder"
       :resizable="resizable"
       @update:model-value="onCodeMirrorUpdate"
+      @focus="$emit('focus', $event)"
+      @blur="$emit('blur', $event)"
+      @keydown="$emit('keydown', $event)"
+      @paste="$emit('paste', $event)"
     />
 
     <textarea
@@ -184,6 +188,10 @@ const cmMinHeight = computed(() => {
       :style="{ resize: resizable ? 'vertical' : 'none' }"
       :aria-label="!label ? placeholder : undefined"
       @input="onInput"
+      @focus="$emit('focus', $event)"
+      @blur="$emit('blur', $event)"
+      @keydown="$emit('keydown', $event)"
+      @paste="$emit('paste', $event)"
     ></textarea>
     <slot name="footer" />
   </div>

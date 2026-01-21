@@ -149,5 +149,6 @@
   display: contents;
   @include mobile-override() {
     display: flex;
+    justify-content: flex-start;
   }
 }

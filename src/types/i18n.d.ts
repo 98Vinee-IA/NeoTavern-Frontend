@@ -568,6 +568,7 @@ export interface MessageSchema {
     regenerate: string;
     expand: string;
     collapse: string;
+    model: string;
   };
   popup: {
     cropAvatar: {
@@ -955,6 +956,8 @@ export interface MessageSchema {
       fieldsIncluded: string;
       renamePopupTitle: string;
       deletePopupContent: string;
+      updatedFields: string;
+      noChanges: string;
       errors: {
         noSelection: string;
         nameExists: string;

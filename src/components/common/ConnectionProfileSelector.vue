@@ -19,9 +19,11 @@ const selectedProfile = computed({
 });
 
 const options = computed(() => {
+  const sortedProfiles = [...apiStore.connectionProfiles].sort((a, b) => a.name.localeCompare(b.name));
+
   return [
     { label: t('apiConnections.profileManagement.none'), value: '' },
-    ...apiStore.connectionProfiles.map((p) => ({ label: p.name, value: p.id })),
+    ...sortedProfiles.map((p) => ({ label: p.name, value: p.id })),
   ];
 });
 </script>

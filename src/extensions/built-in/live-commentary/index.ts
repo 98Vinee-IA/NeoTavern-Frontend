@@ -17,7 +17,6 @@ interface BubbleInstance {
 export function activate(api: ExtensionAPI<LiveCommentarySettings>) {
   const commentator = new Commentator(api);
   let settingsApp: { unmount: () => void } | null = null;
-  let chatInputElement: HTMLTextAreaElement | null = null;
   const activeBubbles = new Map<string, BubbleInstance>(); // characterAvatar -> BubbleInstance
 
   // State tracking for visibility
@@ -60,21 +59,12 @@ export function activate(api: ExtensionAPI<LiveCommentarySettings>) {
     activeBubbles.clear();
   };
 
-  const handleInput = (event: Event) => {
-    const target = event.target as HTMLTextAreaElement;
-    commentator.trigger(target.value);
+  const handleInputChange = (value: string) => {
+    commentator.trigger(value);
   };
 
-  const attachInputListener = () => {
-    const inputEl = document.getElementById('chat-input') as HTMLTextAreaElement | null;
-    if (inputEl) {
-      if (inputEl && inputEl !== chatInputElement) {
-        chatInputElement?.removeEventListener('input', handleInput);
-        chatInputElement = inputEl;
-        chatInputElement.addEventListener('input', handleInput);
-      }
-    }
-  };
+  // Subscribe to chat input change events
+  const unsubscribeInputChange = api.events.on('chat:input-changed', handleInputChange);
 
   const showCommentaryBubble = (characterAvatar: string, thought: string) => {
     const settings = api.settings.get();
@@ -161,10 +151,11 @@ export function activate(api: ExtensionAPI<LiveCommentarySettings>) {
 
   const unbinds: Array<() => void> = [];
 
+  unbinds.push(unsubscribeInputChange);
+
   unbinds.push(
     api.events.on('chat:entered', () => {
       resetStateAndBubbles();
-      attachInputListener();
     }),
   );
 
@@ -246,21 +237,9 @@ export function activate(api: ExtensionAPI<LiveCommentarySettings>) {
     }),
   );
 
-  attachInputListener();
-
-  const observer = new MutationObserver(() => {
-    attachInputListener();
-  });
-  const chatInterface = document.querySelector('.chat-interface');
-  if (chatInterface) {
-    observer.observe(chatInterface, { childList: true, subtree: true });
-  }
-
   return () => {
     settingsApp?.unmount();
     unbinds.forEach((u) => u());
-    chatInputElement?.removeEventListener('input', handleInput);
-    observer.disconnect();
     resetStateAndBubbles();
   };
 }
