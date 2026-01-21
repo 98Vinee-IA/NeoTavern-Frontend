@@ -93,7 +93,7 @@ const impersonatePromptTools = createResetTool(
       <ConnectionProfileSelector v-model="settings.choiceGenConnectionProfile" />
     </FormItem>
     <FormItem label="Number of Choices" description="How many choices to generate for each message.">
-      <Input v-model.number="settings.choiceCount" type="number" :min="1" :max="10" />
+      <Input v-model.number="settings.choiceCount" type="number" :min="1" :max="20" />
     </FormItem>
     <FormItem
       label="Prompt Template"

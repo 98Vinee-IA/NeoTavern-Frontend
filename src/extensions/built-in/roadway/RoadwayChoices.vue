@@ -104,16 +104,30 @@ function stopImpersonation() {
     impersonateAbortController.value.abort();
   }
 }
+
+function stopChoiceGeneration() {
+  // @ts-expect-error custom event
+  props.api.events.emit('roadway:abort-choice-generation', { messageIndex: props.index });
+}
 </script>
 
 <template>
-  <div v-if="!choiceMade && choices.length > 0" class="roadway-choices-container">
-    <div v-if="isImpersonating" class="impersonate-active-overlay">
+  <div
+    v-if="!choiceMade && (choices.length > 0 || roadwayExtra?.isGeneratingChoices)"
+    class="roadway-choices-container"
+  >
+    <div v-if="isImpersonating" class="roadway-overlay">
       <span>Generating impersonated response...</span>
       <Button variant="danger" icon="fa-stop" @click="stopImpersonation">Stop</Button>
     </div>
+    <div v-else-if="roadwayExtra?.isGeneratingChoices" class="roadway-overlay roadway-overlay--generating">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Generating choices...</span>
+      <Button variant="danger" size="sm" @click="stopChoiceGeneration">Stop</Button>
+    </div>
+
     <div class="roadway-choices-header">Choices</div>
-    <ul class="roadway-choices-list">
+    <ul v-if="choices.length > 0" class="roadway-choices-list">
       <li v-for="(choice, i) in choices" :key="i" class="roadway-choice-item">
         <span class="choice-text">{{ choice }}</span>
         <div class="choice-actions">
@@ -152,6 +166,7 @@ function stopImpersonation() {
   border-radius: var(--base-border-radius);
   position: relative;
   overflow: hidden;
+  min-height: 40px;
 }
 
 .roadway-choices-header {
@@ -197,7 +212,7 @@ function stopImpersonation() {
   gap: var(--spacing-xxs);
 }
 
-.impersonate-active-overlay {
+.roadway-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -213,5 +228,10 @@ function stopImpersonation() {
   gap: var(--spacing-md);
   color: var(--theme-text-color);
   font-size: 1.1em;
+}
+
+.roadway-overlay--generating {
+  flex-direction: row;
+  font-size: 1em;
 }
 </style>
