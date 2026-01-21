@@ -224,9 +224,13 @@ async function handleDuplicate() {
   }
 }
 
-function handleSyncName() {
+async function handleSyncName() {
   if (personaStore.activePersona && chatStore.activeChat) {
-    chatStore.syncPersonaName(personaStore.activePersona.avatarId, personaStore.activePersona.name);
+    const updateCount = await chatStore.syncPersonaName(
+      personaStore.activePersona.avatarId,
+      personaStore.activePersona.name,
+    );
+    toast.success(t('personaManagement.actions.syncNameSuccess', { count: updateCount }));
   }
 }
 

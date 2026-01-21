@@ -112,6 +112,7 @@ export interface MessageSchema {
       changeImage: string;
       duplicate: string;
       delete: string;
+      syncNameSuccess: string;
     };
     rename: {
       title: string;

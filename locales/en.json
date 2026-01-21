@@ -108,7 +108,8 @@
       "syncName": "Sync Name to Chat",
       "changeImage": "Change Image",
       "duplicate": "Duplicate",
-      "delete": "Delete"
+      "delete": "Delete",
+      "syncNameSuccess": "Synchronized {count} message(s) in the active chat."
     },
     "rename": {
       "title": "Rename Persona",

@@ -16,7 +16,7 @@ import {
   type ChatMetadata,
   type FullChat,
 } from '../types';
-import { getCharacterDifferences } from '../utils/character';
+import { getCharacterDifferences, getThumbnailUrl } from '../utils/character';
 import { extractMediaFromMarkdown, getFirstMessage } from '../utils/chat';
 import { downloadFile, formatFileSize, getMessageTimeStamp, mergeWithUndefined, uuidv4 } from '../utils/commons';
 import { eventEmitter } from '../utils/extensions';
@@ -400,8 +400,10 @@ export const useChatStore = defineStore('chat', () => {
     const messages = activeChat.value.messages;
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
-      if (msg.original_avatar === personaId && msg.name !== newName) {
+      if (msg.is_user && msg.original_avatar !== personaId) {
         msg.name = newName;
+        msg.original_avatar = personaId;
+        msg.force_avatar = getThumbnailUrl('persona', personaId);
         updatedCount++;
         await eventEmitter.emit('message:updated', i, msg);
       }
