@@ -475,7 +475,6 @@ export const useApiStore = defineStore('api', () => {
       return;
     }
 
-
     const profile = connectionProfiles.value[profileIndex];
     // Create a copy to update
     const updatedProfile: ConnectionProfile = { ...profile };
