@@ -87,14 +87,22 @@ watch(isEditing, async (editing) => {
   }
 });
 
-const avatarUrls = computed(() => {
-  let character = characterStore.characters.find((c) => c.avatar === props.message.original_avatar);
-  if (!character) {
-    character = characterStore.characters.find((c) => c.name === props.message.name);
+const resolvedCharacterAvatar = computed(() => {
+  if (props.message.is_user) return undefined;
+
+  if (props.message.original_avatar) {
+    const character = characterStore.characters.find((c) => c.avatar === props.message.original_avatar);
+    if (character) return character.avatar;
   }
+
+  const character = characterStore.characters.find((c) => c.name === props.message.name);
+  return character?.avatar;
+});
+
+const avatarUrls = computed(() => {
   return resolveAvatarUrls({
     type: 'avatar',
-    file: character?.avatar,
+    file: resolvedCharacterAvatar.value,
     isUser: props.message.is_user || false,
     forceAvatar: props.message.force_avatar,
     activePlayerAvatar: uiStore.activePlayerAvatar,

@@ -26,9 +26,9 @@ export function getCharacterDifferences(oldChar: Character, newChar: Character):
     }
   }
 
-  if (newChar.data) {
+  if (newChar.data || oldChar.data) {
     const backendDataPath = 'data';
-    const newData = newChar.data;
+    const newData = newChar.data || {};
     const oldData = oldChar.data || {};
     const ignoreKeys = ['extensions'];
 
@@ -38,7 +38,9 @@ export function getCharacterDifferences(oldChar: Character, newChar: Character):
       .filter((path) => path.startsWith('data.'))
       .map((path) => path.replace('data.', ''));
 
-    for (const key in newData) {
+    const allKeys = new Set([...Object.keys(newData), ...Object.keys(oldData)]);
+
+    for (const key of allKeys) {
       if (ignoreKeys.includes(key)) continue;
       // If this data field is already handled by a top-level mapping, skip it
       if (mappedDataFields.includes(key)) continue;
@@ -46,7 +48,7 @@ export function getCharacterDifferences(oldChar: Character, newChar: Character):
       const newSubValue = newData[key];
       const oldSubValue = oldData[key];
       if (JSON.stringify(newSubValue) !== JSON.stringify(oldSubValue)) {
-        set(diffs, `${backendDataPath}.${key}`, newSubValue);
+        set(diffs, `${backendDataPath}.${key}`, newSubValue === undefined ? null : newSubValue);
       }
     }
   }

@@ -76,4 +76,42 @@ describe('getCharacterDifferences', () => {
       data: { custom: 'B' },
     });
   });
+
+  it('should detect when a data field is removed (e.g. character_book)', () => {
+    const oldChar = {
+      name: 'Char',
+      avatar: 'char.png',
+      data: { character_book: { name: 'Book' } },
+    } as unknown as Character;
+
+    const newChar = {
+      name: 'Char',
+      avatar: 'char.png',
+      data: {},
+    } as unknown as Character;
+
+    const diff = getCharacterDifferences(oldChar, newChar);
+    expect(diff).toEqual({
+      data: { character_book: null },
+    });
+  });
+
+  it('should detect when a data field is explicitly set to undefined', () => {
+    const oldChar = {
+      name: 'Char',
+      avatar: 'char.png',
+      data: { character_book: { name: 'Book' } },
+    } as unknown as Character;
+
+    const newChar = {
+      name: 'Char',
+      avatar: 'char.png',
+      data: { character_book: undefined },
+    } as unknown as Character;
+
+    const diff = getCharacterDifferences(oldChar, newChar);
+    expect(diff).toEqual({
+      data: { character_book: null },
+    });
+  });
 });

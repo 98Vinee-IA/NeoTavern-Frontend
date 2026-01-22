@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import { merge } from 'lodash-es';
+import { cloneDeep } from 'lodash-es';
 import { defineStore } from 'pinia';
 import { computed, nextTick, ref } from 'vue';
 import { useAutoSave } from '../composables/useAutoSave';
@@ -8,7 +8,7 @@ import { characterService } from '../services/character.service';
 import { chatService } from '../services/chat.service';
 import { type Character, type CropData } from '../types';
 import { getCharacterDifferences } from '../utils/character';
-import { onlyUnique } from '../utils/commons';
+import { mergeWithUndefinedMulti, onlyUnique } from '../utils/commons';
 import { eventEmitter } from '../utils/extensions';
 import { useSettingsStore } from './settings.store';
 
@@ -19,6 +19,7 @@ export const useCharacterStore = defineStore('character', () => {
   const characters = ref<Array<Character>>([]);
   const activeCharacterAvatars = ref<Set<string>>(new Set());
   const characterImageTimestamps = ref<Record<string, number>>({});
+  const pendingChanges = ref<Record<string, Partial<Character>>>({});
 
   const activeCharacters = computed<Character[]>(() => {
     return characters.value.filter((char) => activeCharacterAvatars.value.has(char.avatar));
@@ -46,17 +47,28 @@ export const useCharacterStore = defineStore('character', () => {
 
   // Debounced save for a specific character update
   const { trigger: triggerSave } = useAutoSave(
-    async (payload: { avatar: string; changes: Partial<Character> }) => {
-      await characterService.saveChanges(payload.avatar, payload.changes);
+    async () => {
+      const avatars = Object.keys(pendingChanges.value);
+      if (avatars.length === 0) return;
+
+      const changesToSave = cloneDeep(pendingChanges.value);
+      pendingChanges.value = {};
+
+      for (const avatar of avatars) {
+        const changes = changesToSave[avatar];
+        if (changes && Object.keys(changes).length > 0) {
+          await characterService.saveChanges(avatar, changes);
+        }
+      }
     },
-    { timeout: 500 },
+    { timeout: 1500 },
   );
 
   useAutoSave(
     async () => {
       await refreshCharacters();
     },
-    { timeout: 1000 },
+    { timeout: 2000 },
   );
 
   async function updateAndSaveCharacter(avatar: string, changes: Partial<Character>) {
@@ -65,12 +77,18 @@ export const useCharacterStore = defineStore('character', () => {
     // Optimistic Update
     const index = characters.value.findIndex((c) => c.avatar === avatar);
     if (index !== -1) {
-      const updatedCharacter = merge({}, characters.value[index], changes);
+      const updatedCharacter = mergeWithUndefinedMulti({}, characters.value[index], changes);
       updatedCharacter.name = DOMPurify.sanitize(updatedCharacter.name);
       characters.value[index] = updatedCharacter;
 
+      // Queue changes
+      if (!pendingChanges.value[avatar]) {
+        pendingChanges.value[avatar] = {};
+      }
+      mergeWithUndefinedMulti(pendingChanges.value[avatar], changes);
+
       // Trigger debounced API call
-      triggerSave({ avatar, changes });
+      triggerSave();
 
       await nextTick();
       await eventEmitter.emit('character:updated', updatedCharacter, changes);

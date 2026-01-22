@@ -479,7 +479,7 @@ const embeddedLorebookName = computed({
   set: async (newValue) => {
     if (!localCharacter.value || !localCharacter.value.data) return;
     if (!newValue) {
-      delete localCharacter.value.data.character_book;
+      localCharacter.value.data.character_book = undefined;
     } else {
       const book = await worldInfoStore.getBookFromCache(newValue, true);
       if (book) {
