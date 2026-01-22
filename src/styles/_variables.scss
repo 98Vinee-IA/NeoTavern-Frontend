@@ -184,10 +184,12 @@ $base-border-radius-rounded: 8px;
   --textarea-padding-x: var(--spacing-md);
 
   // --- Effects ---
-  --blur-strength: 10; // Unitless value for slider controls
+  --blur-strength: 0; // Unitless value for slider controls
   --blur-radius: calc(var(--blur-strength) * 1px);
   --shadow-width: 2; // Unitless value for slider controls
   --shadow-blur-radius: calc(var(--shadow-width) * 1px);
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: calc(var(--shadow-width) * 0.5px);
 
   // --- Animations ---
   --animation-duration-xs: 60ms; // For fast interactions
