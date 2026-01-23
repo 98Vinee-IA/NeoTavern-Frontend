@@ -255,6 +255,19 @@
       q {
         color: var(--theme-quote-color-user);
       }
+
+      // Nested overrides
+      q i,
+      q em {
+        color: inherit;
+      }
+
+      font[color] em,
+      font[color] i,
+      font[color] u,
+      font[color] q {
+        color: inherit;
+      }
     }
   }
 
