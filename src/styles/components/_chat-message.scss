@@ -206,11 +206,6 @@
     }
 
     // Text formatting styles
-    q:before,
-    q:after {
-      content: '';
-    }
-
     i,
     em {
       color: var(--theme-emphasis-color);
@@ -225,43 +220,8 @@
       color: var(--theme-quote-color);
     }
 
-    // Nested overrides
-    q i,
-    q em {
-      color: inherit;
-    }
-
-    font[color] em,
-    font[color] i,
-    font[color] u,
-    font[color] q {
-      color: inherit;
-    }
-
-    [style*='color'] em,
-    [style*='color'] i,
-    [style*='color'] u,
-    [style*='color'] q {
-      color: inherit;
-    }
-
-    [style*='background'] em,
-    [style*='background'] i,
-    [style*='background'] u,
-    [style*='background'] q {
-      background: inherit;
-      background-color: inherit;
-    }
-
-    [style*='font-weight'] em,
-    [style*='font-weight'] i {
-      font-weight: inherit;
-    }
-
-    [style*='font-style'] em,
-    [style*='font-style'] i {
-      font-style: inherit;
-    }
+    // Apply inheritance overrides
+    @include text-format-inheritance();
   }
 
   // User-specific text formatting
@@ -281,43 +241,8 @@
         color: var(--theme-quote-color-user);
       }
 
-      // Nested overrides
-      q i,
-      q em {
-        color: inherit;
-      }
-
-      font[color] em,
-      font[color] i,
-      font[color] u,
-      font[color] q {
-        color: inherit;
-      }
-
-      [style*='color'] em,
-      [style*='color'] i,
-      [style*='color'] u,
-      [style*='color'] q {
-        color: inherit;
-      }
-
-      [style*='background'] em,
-      [style*='background'] i,
-      [style*='background'] u,
-      [style*='background'] q {
-        background: inherit;
-        background-color: inherit;
-      }
-
-      [style*='font-weight'] em,
-      [style*='font-weight'] i {
-        font-weight: inherit;
-      }
-
-      [style*='font-style'] em,
-      [style*='font-style'] i {
-        font-style: inherit;
-      }
+      // Apply inheritance overrides
+      @include text-format-inheritance();
     }
   }
 
@@ -492,48 +417,8 @@
       color: hsl(from var(--theme-quote-color) h calc(s * var(--theme-reasoning-saturation-factor)) l);
     }
 
-    // Nested overrides for reasoning
-    q i,
-    q em {
-      color: inherit;
-    }
-
-    q:before,
-    q:after {
-      content: '';
-    }
-
-    font[color] em,
-    font[color] i,
-    font[color] u,
-    font[color] q {
-      color: inherit;
-    }
-
-    [style*='color'] em,
-    [style*='color'] i,
-    [style*='color'] u,
-    [style*='color'] q {
-      color: inherit;
-    }
-
-    [style*='background'] em,
-    [style*='background'] i,
-    [style*='background'] u,
-    [style*='background'] q {
-      background: inherit;
-      background-color: inherit;
-    }
-
-    [style*='font-weight'] em,
-    [style*='font-weight'] i {
-      font-weight: inherit;
-    }
-
-    [style*='font-style'] em,
-    [style*='font-style'] i {
-      font-style: inherit;
-    }
+    // Apply inheritance overrides
+    @include text-format-inheritance();
   }
 
   &-reasoning-edit-area {

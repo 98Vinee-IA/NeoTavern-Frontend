@@ -276,3 +276,57 @@
     outline-offset: 2px;
   }
 }
+
+/// Style inheritance overrides for nested text formatting elements
+/// Ensures that color/background styles from parent elements take precedence
+/// over default text formatting colors (em, i, u, q)
+@mixin text-format-inheritance() {
+  // Nested elements inherit parent color
+  q i,
+  q em {
+    color: inherit;
+  }
+
+  // Remove default quote styling
+  q:before,
+  q:after {
+    content: '';
+  }
+
+  // Font color attribute overrides
+  font[color] em,
+  font[color] i,
+  font[color] u,
+  font[color] q {
+    color: inherit;
+  }
+
+  // Inline color style overrides
+  [style*='color'] em,
+  [style*='color'] i,
+  [style*='color'] u,
+  [style*='color'] q {
+    color: inherit;
+  }
+
+  // Background style inheritance
+  [style*='background'] em,
+  [style*='background'] i,
+  [style*='background'] u,
+  [style*='background'] q {
+    background: inherit;
+    background-color: inherit;
+  }
+
+  // Font weight inheritance
+  [style*='font-weight'] em,
+  [style*='font-weight'] i {
+    font-weight: inherit;
+  }
+
+  // Font style inheritance
+  [style*='font-style'] em,
+  [style*='font-style'] i {
+    font-style: inherit;
+  }
+}
