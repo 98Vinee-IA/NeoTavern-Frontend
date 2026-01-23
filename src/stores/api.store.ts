@@ -432,6 +432,27 @@ export const useApiStore = defineStore('api', () => {
           }
         }
 
+        // Validate preset structure
+        const requiredFields = ['temperature', 'max_context', 'max_tokens'];
+        const missingFields = requiredFields.filter((field) => !(field in presetData));
+
+        if (missingFields.length > 0) {
+          toast.error(t('aiConfig.presets.errors.missingFields', { fields: missingFields.join(', ') }));
+          console.error('Invalid preset: missing fields', missingFields);
+          return;
+        }
+
+        // Validate field types
+        if (
+          typeof presetData.temperature !== 'number' ||
+          typeof presetData.max_context !== 'number' ||
+          typeof presetData.max_tokens !== 'number'
+        ) {
+          toast.error(t('aiConfig.presets.errors.invalidFieldTypes'));
+          console.error('Invalid preset: incorrect field types');
+          return;
+        }
+
         // Update UI optimistically
         const existingIndex = presets.value.findIndex((p) => p.name === name);
         const previousPresets = [...presets.value];

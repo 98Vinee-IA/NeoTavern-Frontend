@@ -328,6 +328,8 @@ export interface MessageSchema {
         importInvalid: string;
         noPresetName: string;
         migrateFailed: string;
+        missingFields: string;
+        invalidFieldTypes: string;
       };
       messages: {
         migrateSuccess: string;

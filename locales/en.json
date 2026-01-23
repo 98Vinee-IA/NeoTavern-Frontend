@@ -324,7 +324,9 @@
         "exportNotFound": "Preset \"{name}\" not found.",
         "importInvalid": "Failed to import preset. The file might be invalid.",
         "noPresetName": "Preset name cannot be empty.",
-        "migrateFailed": "Failed to migrate legacy preset."
+        "migrateFailed": "Failed to migrate legacy preset.",
+        "missingFields": "Invalid preset: missing required fields ({fields}).",
+        "invalidFieldTypes": "Invalid preset: field types are incorrect."
       },
       "messages": {
         "migrateSuccess": "Legacy preset migrated successfully."
