@@ -633,7 +633,9 @@
     "delete": {
       "confirmTitle": "Confirm Deletion",
       "confirmMessage": "Are you sure you want to delete this message?",
+      "confirmMessageWithToolChain": "Are you sure you want to delete this message? This will also delete {count} related tool step(s).",
       "confirmSwipeMessage": "Are you sure you want to delete this swipe?",
+      "confirmSwipeMessageWithToolChain": "Are you sure you want to delete this swipe? Note: Deleting the message will also delete {count} related tool step(s).",
       "deleteSwipe": "Delete Swipe",
       "deleteMessage": "Delete Message",
       "lastSwipeError": "Cannot delete the last swipe",
@@ -703,6 +705,9 @@
         "postProcessing": "Tools are incompatible with the current Prompt Post-Processing setting.",
         "model": "The active model does not support tool calling."
       }
+    },
+    "toolSteps": {
+      "title": "Tool Execution Steps"
     },
     "quickActions": {
       "title": "Quick Actions",
@@ -1284,6 +1289,10 @@
       "regenerateOnEdit": {
         "label": "Auto-regenerate on Edit",
         "description": "Automatically regenerate the AI's response when a user message is edited. This does not apply to the first message of the chat."
+      },
+      "mergeToolMessages": {
+        "label": "Merge Tool Messages",
+        "description": "[EXPERIMENTAL] Combine consecutive tool messages in the chat view. This is a display-only feature and does not affect prompt construction or generation."
       }
     }
   },

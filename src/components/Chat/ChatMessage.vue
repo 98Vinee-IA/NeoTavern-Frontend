@@ -32,9 +32,11 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  toolSteps: {
+    type: Array as PropType<{ message: ChatMessage; index: number }[]>,
+    default: undefined,
+  },
 });
-
-// TODO: i18n
 
 const { t } = useStrictI18n();
 const characterStore = useCharacterStore();
@@ -53,6 +55,8 @@ const isReasoningCollapsed = ref(false);
 const editTextarea = ref<InstanceType<typeof Textarea>>();
 
 const isContentCollapsed = ref(false);
+const isToolStepsCollapsed = ref(true);
+const collapsedToolSteps = ref<Set<number>>(new Set());
 
 const isEditing = computed(() => chatStore.activeMessageEditState?.index === props.index);
 const hasReasoning = computed(() => props.message.extra.reasoning && props.message.extra.reasoning.trim().length > 0);
@@ -136,6 +140,32 @@ const formattedContent = computed(() => {
 
 const formattedReasoning = computed(() => {
   return formatReasoning(props.message, forbidExternalMedia.value);
+});
+
+// Helper for formatted tool steps
+const formattedToolSteps = computed(() => {
+  if (!props.toolSteps) return [];
+  return props.toolSteps.map((step) => {
+    const msg = step.message;
+    const isAssistant = !msg.is_user && !msg.is_system;
+    const tools = msg.extra?.tool_invocations || [];
+    const formattedBody = formatMessage(msg, forbidExternalMedia.value);
+    const formattedReasoningContent = formatReasoning(msg, forbidExternalMedia.value);
+    const hasReasoningContent = msg.extra.reasoning && msg.extra.reasoning.trim().length > 0;
+
+    // For assistant messages in tool chain, content is usually reasoning.
+    // For system messages, content is result.
+    return {
+      index: step.index,
+      isAssistant,
+      isSystem: msg.is_system,
+      toolNames: tools.map((t) => t.displayName).join(', '),
+      content: formattedBody,
+      reasoning: formattedReasoningContent,
+      hasReasoning: hasReasoningContent,
+      rawMessage: msg,
+    };
+  });
 });
 
 const attachmentMediaItems = computed(() => {
@@ -322,11 +352,15 @@ async function handleDeleteClick() {
   const swipesArray = Array.isArray(message.swipes) ? message.swipes : [];
   const canDeleteSwipe = !message.is_user && swipesArray.length > 1 && isLastMessage.value;
 
+  // Check if this is part of a tool chain that will be deleted
+  const hasToolChain = props.toolSteps && props.toolSteps.length > 0;
+
   const performDelete = async (isSwipeDelete: boolean) => {
     try {
       if (isSwipeDelete) {
         await chatStore.deleteSwipe(props.index, message.swipe_id ?? 0);
       } else {
+        // deleteMessage now handles tool chain deletion automatically
         await chatStore.deleteMessage(props.index);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -346,9 +380,13 @@ async function handleDeleteClick() {
   let popupConfig: PopupShowOptions = {};
 
   if (canDeleteSwipe) {
+    const content = hasToolChain
+      ? t('chat.delete.confirmSwipeMessageWithToolChain', { count: props.toolSteps!.length })
+      : t('chat.delete.confirmSwipeMessage');
+
     popupConfig = {
       title: t('chat.delete.confirmTitle'),
-      content: t('chat.delete.confirmSwipeMessage'),
+      content,
       type: POPUP_TYPE.CONFIRM,
       customButtons: [
         { text: t('chat.delete.deleteSwipe'), result: POPUP_RESULT.AFFIRMATIVE, isDefault: true },
@@ -357,9 +395,13 @@ async function handleDeleteClick() {
       ],
     };
   } else {
+    const content = hasToolChain
+      ? t('chat.delete.confirmMessageWithToolChain', { count: props.toolSteps!.length })
+      : t('chat.delete.confirmMessage');
+
     popupConfig = {
       title: t('chat.delete.confirmTitle'),
-      content: t('chat.delete.confirmMessage'),
+      content,
       type: POPUP_TYPE.CONFIRM,
       okButton: 'common.delete',
       cancelButton: 'common.cancel',
@@ -400,6 +442,14 @@ async function showPromptItemization() {
 
 function toggleHidden() {
   chatStore.updateMessageObject(props.index, { is_system: !props.message.is_system });
+}
+
+function toggleToolStep(stepIndex: number) {
+  if (collapsedToolSteps.value.has(stepIndex)) {
+    collapsedToolSteps.value.delete(stepIndex);
+  } else {
+    collapsedToolSteps.value.add(stepIndex);
+  }
 }
 
 const editTools = computed<TextareaToolDefinition[]>(() => {
@@ -515,6 +565,72 @@ const editTools = computed<TextareaToolDefinition[]>(() => {
             @click="handleDeleteClick"
           />
         </div>
+      </div>
+
+      <!-- Merged Tool Steps Visualization -->
+      <div v-if="!isEditing && props.toolSteps && props.toolSteps.length > 0" class="message-tool-steps">
+        <div
+          class="message-tool-steps-header"
+          role="button"
+          tabindex="0"
+          :aria-expanded="!isToolStepsCollapsed"
+          @click.stop="isToolStepsCollapsed = !isToolStepsCollapsed"
+          @keydown.enter.stop.prevent="isToolStepsCollapsed = !isToolStepsCollapsed"
+          @keydown.space.stop.prevent="isToolStepsCollapsed = !isToolStepsCollapsed"
+        >
+          <span>
+            <i class="fa-solid fa-screwdriver-wrench"></i>
+            {{ t('chat.toolSteps.title', { count: props.toolSteps.length }) }}
+          </span>
+          <i
+            class="fa-solid"
+            :class="isToolStepsCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <transition name="expand">
+          <div v-show="!isToolStepsCollapsed" class="message-tool-steps-content">
+            <div
+              v-for="step in formattedToolSteps"
+              :key="step.index"
+              class="tool-step-item"
+              :class="{ 'is-system': step.isSystem }"
+            >
+              <div
+                class="tool-step-meta"
+                role="button"
+                tabindex="0"
+                @click="toggleToolStep(step.index)"
+                @keydown.enter.prevent="toggleToolStep(step.index)"
+                @keydown.space.prevent="toggleToolStep(step.index)"
+              >
+                <div class="tool-step-info">
+                  <i v-if="step.isAssistant" class="fa-solid fa-code-branch" title="Tool Call"></i>
+                  <i v-else class="fa-solid fa-terminal" title="Tool Output"></i>
+                  <span v-if="step.isAssistant && step.toolNames" class="tool-names">{{ step.toolNames }}</span>
+                  <span v-else-if="!step.isAssistant" class="tool-names">Output</span>
+                </div>
+                <i
+                  class="fa-solid"
+                  :class="collapsedToolSteps.has(step.index) ? 'fa-chevron-down' : 'fa-chevron-up'"
+                ></i>
+              </div>
+              <transition name="expand">
+                <div v-show="!collapsedToolSteps.has(step.index)" class="tool-step-body">
+                  <div v-if="step.hasReasoning" class="message-reasoning">
+                    <div class="message-reasoning-header">
+                      <span>{{ t('chat.reasoning.title') }}</span>
+                    </div>
+                    <!-- eslint-disable-next-line vue/no-v-html -->
+                    <div class="message-reasoning-content" v-html="step.reasoning"></div>
+                  </div>
+                  <!-- eslint-disable-next-line vue/no-v-html -->
+                  <div class="message-content" v-html="step.content"></div>
+                </div>
+              </transition>
+            </div>
+          </div>
+        </transition>
       </div>
 
       <div v-if="!isEditing && hasReasoning" class="message-reasoning">

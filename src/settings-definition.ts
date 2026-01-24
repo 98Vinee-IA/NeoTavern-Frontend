@@ -104,6 +104,15 @@ export const settingsDefinition: SettingDefinition[] = [
     ],
   },
   {
+    id: 'chat.mergeToolMessages',
+    label: 'settings.chat.mergeToolMessages.label',
+    description: 'settings.chat.mergeToolMessages.description',
+    category: 'Chat/Message Handling',
+    type: 'boolean',
+    widget: 'checkbox',
+    defaultValue: false,
+  },
+  {
     id: 'ui.chat.reasoningCollapsed',
     label: 'settings.ui.chat.reasoningCollapsed.label',
     description: 'settings.ui.chat.reasoningCollapsed.description',

@@ -373,6 +373,7 @@ export interface Settings {
     regenerateOnEdit: boolean;
     confirmMessageDelete: boolean;
     stopOnNameHijack: StopOnNameHijack;
+    mergeToolMessages: boolean;
     quickActions: {
       layout: 'row' | 'column';
       showLabels: boolean;

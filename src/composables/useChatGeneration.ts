@@ -50,6 +50,7 @@ export interface ChatGenerationDependencies {
   activeChat: Ref<ChatStateRef | null>;
   syncSwipeToMes: (msgIndex: number, swipeIndex: number) => Promise<void>;
   stopAutoModeTimer: () => void;
+  findToolChainStart: (endIndex: number) => number;
 }
 
 interface GenerationStepResult {
@@ -192,9 +193,15 @@ export function useChatGeneration(deps: ChatGenerationDependencies) {
           mode = GenerationMode.NEW;
         } else {
           forceSpeakerAvatar = forceSpeakerAvatar ?? lastMsg.original_avatar;
-          // Pop the message to be regenerated
-          historyForGen.pop();
-          currentChatContext.messages.pop();
+
+          // Find the start of the tool chain (if merged tool messages is enabled)
+          const lastIndex = historyForGen.length - 1;
+          const chainStartIndex = deps.findToolChainStart(lastIndex);
+          const deleteCount = lastIndex - chainStartIndex + 1;
+
+          // Remove the entire tool chain from history
+          historyForGen.splice(chainStartIndex, deleteCount);
+          currentChatContext.messages.splice(chainStartIndex, deleteCount);
         }
       }
     } else if (mode === GenerationMode.ADD_SWIPE || mode === GenerationMode.CONTINUE) {

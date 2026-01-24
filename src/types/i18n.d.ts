@@ -636,7 +636,9 @@ export interface MessageSchema {
     delete: {
       confirmTitle: string;
       confirmMessage: string;
+      confirmMessageWithToolChain: string;
       confirmSwipeMessage: string;
+      confirmSwipeMessageWithToolChain: string;
       deleteSwipe: string;
       deleteMessage: string;
       lastSwipeError: string;
@@ -706,6 +708,9 @@ export interface MessageSchema {
         postProcessing: string;
         model: string;
       };
+    };
+    toolSteps: {
+      title: string;
     };
     quickActions: {
       title: string;
@@ -1285,6 +1290,10 @@ export interface MessageSchema {
         };
       };
       regenerateOnEdit: {
+        label: string;
+        description: string;
+      };
+      mergeToolMessages: {
         label: string;
         description: string;
       };

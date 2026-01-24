@@ -285,6 +285,7 @@ export function createDefaultSettings(): Settings {
       stopOnNameHijack: 'all',
       confirmMessageDelete: true,
       regenerateOnEdit: true,
+      mergeToolMessages: false,
       quickActions: {
         disabledActions: [],
         layout: 'row',

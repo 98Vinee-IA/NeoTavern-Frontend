@@ -16,9 +16,10 @@ export const useChatUiStore = defineStore('chat-ui', () => {
   const renderedMessagesCount = ref(100);
   const chatInputElement = ref<HTMLTextAreaElement | null>(null);
 
-  // --- Quick Actions Proxies to Settings ---
+  // --- Settings Proxies ---
   const settingsStore = useSettingsStore();
 
+  const mergeToolMessages = computed(() => settingsStore.settings.chat.mergeToolMessages);
   const quickActionsLayout = computed(() => settingsStore.settings.chat.quickActions.layout);
   const quickActionsShowLabels = computed(() => settingsStore.settings.chat.quickActions.showLabels);
 
@@ -93,11 +94,16 @@ export const useChatUiStore = defineStore('chat-ui', () => {
     chatInputElement.value = el;
   }
 
+  function toggleMergeToolMessages() {
+    settingsStore.setSetting('chat.mergeToolMessages', !mergeToolMessages.value);
+  }
+
   return {
     isChatLoading,
     activeMessageEditState,
     renderedMessagesCount,
     chatInputElement,
+    mergeToolMessages,
 
     // Quick Actions
     quickActionsLayout,
@@ -113,5 +119,6 @@ export const useChatUiStore = defineStore('chat-ui', () => {
     resetRenderedMessagesCount,
     loadMoreMessages,
     setChatInputElement,
+    toggleMergeToolMessages,
   };
 });

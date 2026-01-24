@@ -112,6 +112,7 @@ export const useChatStore = defineStore('chat', () => {
     activeChat,
     syncSwipeToMes,
     stopAutoModeTimer,
+    findToolChainStart,
   });
 
   eventEmitter.on(
@@ -512,15 +513,65 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  /**
+   * Find the start index of a tool message chain that ends at the given index.
+   * Returns the index where the tool chain starts, or the given index if not part of a chain.
+   */
+  function findToolChainStart(endIndex: number): number {
+    if (!activeChat.value || !settingsStore.settings.chat.mergeToolMessages) return endIndex;
+
+    const messages = activeChat.value.messages;
+    if (endIndex < 0 || endIndex >= messages.length) return endIndex;
+
+    const finalMessage = messages[endIndex];
+    const isFinalAssistant = !finalMessage.is_user && !finalMessage.is_system;
+
+    // If the final message is not an assistant message, it's not part of a tool chain
+    if (!isFinalAssistant) return endIndex;
+
+    // Walk backwards to find the start of the tool chain
+    let startIndex = endIndex;
+    for (let i = endIndex - 1; i >= 0; i--) {
+      const msg = messages[i];
+      const isAssistant = !msg.is_user && !msg.is_system;
+      const isSystem = msg.is_system;
+      const hasToolCalls = msg.extra?.tool_invocations && msg.extra.tool_invocations.length > 0;
+
+      // If we find an assistant message with tool calls or a system message (tool result), continue
+      if ((isAssistant && hasToolCalls) || isSystem) {
+        startIndex = i;
+      } else {
+        // Chain is broken
+        break;
+      }
+    }
+
+    return startIndex;
+  }
+
   async function deleteMessage(index: number) {
     if (!activeChat.value || index < 0 || index >= activeChat.value.messages.length) return;
-    activeChat.value.messages.splice(index, 1);
-    promptStore.clearItemizedPrompt(index);
+
+    // Find the start of tool chain if merge is enabled
+    const startIndex = findToolChainStart(index);
+    const endIndex = index;
+    const deleteCount = endIndex - startIndex + 1;
+
+    // Delete the entire chain
+    activeChat.value.messages.splice(startIndex, deleteCount);
+
+    // Clear itemized prompts for all deleted messages
+    for (let i = startIndex; i <= endIndex; i++) {
+      promptStore.clearItemizedPrompt(i);
+    }
+
     if (chatUiStore.activeMessageEditState?.index === index) {
       cancelEditing();
     }
+
     await nextTick();
-    await eventEmitter.emit('message:deleted', [index]);
+    const deletedIndices = Array.from({ length: deleteCount }, (_, i) => startIndex + i);
+    await eventEmitter.emit('message:deleted', deletedIndices);
     triggerSave();
   }
 
@@ -703,5 +754,6 @@ export const useChatStore = defineStore('chat', () => {
     deleteSelectedMessages,
     refreshChats,
     importChats,
+    findToolChainStart,
   };
 });
