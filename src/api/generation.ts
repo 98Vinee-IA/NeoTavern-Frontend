@@ -28,6 +28,7 @@ import {
   getProviderHandler,
   MODEL_INJECTIONS,
   PARAMETER_DEFINITIONS,
+  PROVIDER_CAPABILITIES,
   PROVIDER_CONFIG,
   PROVIDER_INJECTIONS,
   type ParamHandling,
@@ -86,7 +87,18 @@ export async function resolveConnectionProfileSettings(options: {
   }
 
   // Determine formatter and instruct template
-  const effectiveFormatter = profileSettings?.formatter || settingsStore.settings.api.formatter;
+  let effectiveFormatter = profileSettings?.formatter || settingsStore.settings.api.formatter;
+
+  // Validate formatter support
+  const providerCaps = PROVIDER_CAPABILITIES[effectiveProvider];
+  if (providerCaps) {
+    if (!providerCaps.supportsText && effectiveFormatter === 'text') {
+      effectiveFormatter = 'chat';
+    } else if (!providerCaps.supportsChat && effectiveFormatter === 'chat') {
+      effectiveFormatter = 'text';
+    }
+  }
+
   const effectiveTemplateName = profileSettings?.instructTemplate || settingsStore.settings.api.instructTemplateName;
   const effectiveTemplate = apiStore.instructTemplates.find((t) => t.name === effectiveTemplateName);
 

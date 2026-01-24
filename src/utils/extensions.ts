@@ -685,6 +685,7 @@ const baseExtensionAPI: ExtensionAPI = {
   llm: {
     generate: async (messages, options = {}) => {
       const settingsStore = useSettingsStore();
+      const characterStore = useCharacterStore();
 
       // Resolve connection profile settings
       const {
@@ -717,7 +718,6 @@ const baseExtensionAPI: ExtensionAPI = {
 
         // Add stop sequences for character and persona names
         if (!samplerSettings?.stop) samplerSettings.stop = [];
-        const characterStore = useCharacterStore();
         const personaStore = usePersonaStore();
         const activeCharacters = characterStore.activeCharacters;
         const persona = personaStore.activePersona;
@@ -740,6 +740,7 @@ const baseExtensionAPI: ExtensionAPI = {
         customPromptPostProcessing: customPromptPostProcessing ?? CustomPromptPostProcessing.NONE,
         instructTemplate: effectiveInstructTemplate,
         structuredResponse: options.structuredResponse,
+        activeCharacter: characterStore.activeCharacters[0],
       });
 
       // Prepare usage tracking

@@ -202,6 +202,10 @@ async function testMessage() {
       ),
       playerName: 'User',
       modelList: apiStore.modelList,
+      activeCharacter: {
+        avatar: 'testavatar',
+        name: 'Joe',
+      },
     });
 
     const response = await ChatCompletionService.generate(payload, settingsStore.settings.api.formatter);
