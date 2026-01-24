@@ -373,8 +373,7 @@ watchEffect(() => {
           title: action.title ?? action.label,
           label: action.label,
           onClick: action.onClick,
-          disabled: action.disabled,
-          visible: action.visible,
+          disabled: action.disabled ?? !action.visible,
           opensPopover: action.opensPopover,
         });
       }

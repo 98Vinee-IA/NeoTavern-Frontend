@@ -132,7 +132,9 @@ onUnmounted(() => {
         <div class="chat-quick-actions-content" :class="layoutClass">
           <div v-for="group in actionGroups" :key="group.id" class="quick-action-group">
             <div class="quick-action-group-content">
-              <span v-if="group.label" class="group-label">{{ group.label }}</span>
+              <span v-if="group.label && chatUiStore.quickActionsShowGroupNames" class="group-label">{{
+                group.label
+              }}</span>
               <div class="group-actions">
                 <Button
                   v-for="action in group.actions"
@@ -180,6 +182,11 @@ onUnmounted(() => {
           :model-value="chatUiStore.quickActionsShowLabels"
           :label="t('chat.quickActions.showLabels')"
           @update:model-value="chatUiStore.setQuickActionsShowLabels($event)"
+        />
+        <Checkbox
+          :model-value="chatUiStore.quickActionsShowGroupNames"
+          :label="t('chat.quickActions.showGroupNames')"
+          @update:model-value="chatUiStore.setQuickActionsShowGroupNames($event)"
         />
       </div>
 

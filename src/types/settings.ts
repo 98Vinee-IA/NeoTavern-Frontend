@@ -377,6 +377,7 @@ export interface Settings {
     quickActions: {
       layout: 'row' | 'column';
       showLabels: boolean;
+      showGroupNames: boolean;
       disabledActions: string[];
     };
   };

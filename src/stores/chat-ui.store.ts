@@ -22,6 +22,7 @@ export const useChatUiStore = defineStore('chat-ui', () => {
   const mergeToolMessages = computed(() => settingsStore.settings.chat.mergeToolMessages);
   const quickActionsLayout = computed(() => settingsStore.settings.chat.quickActions.layout);
   const quickActionsShowLabels = computed(() => settingsStore.settings.chat.quickActions.showLabels);
+  const quickActionsShowGroupNames = computed(() => settingsStore.settings.chat.quickActions.showGroupNames);
 
   function setQuickActionsLayout(layout: QuickActionsLayout) {
     settingsStore.setSetting('chat.quickActions.layout', layout);
@@ -29,6 +30,10 @@ export const useChatUiStore = defineStore('chat-ui', () => {
 
   function setQuickActionsShowLabels(show: boolean) {
     settingsStore.setSetting('chat.quickActions.showLabels', show);
+  }
+
+  function setQuickActionsShowGroupNames(show: boolean) {
+    settingsStore.setSetting('chat.quickActions.showGroupNames', show);
   }
 
   function isQuickActionDisabled(id: string): boolean {
@@ -108,8 +113,10 @@ export const useChatUiStore = defineStore('chat-ui', () => {
     // Quick Actions
     quickActionsLayout,
     quickActionsShowLabels,
+    quickActionsShowGroupNames,
     setQuickActionsLayout,
     setQuickActionsShowLabels,
+    setQuickActionsShowGroupNames,
     isQuickActionDisabled,
     toggleQuickAction,
     toggleQuickActionGroup,

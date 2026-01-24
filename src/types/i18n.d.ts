@@ -721,6 +721,7 @@ export interface MessageSchema {
       enabledActions: string;
       displayOptions: string;
       showLabels: string;
+      showGroupNames: string;
       group: {
         generation: string;
         inputMessage: string;

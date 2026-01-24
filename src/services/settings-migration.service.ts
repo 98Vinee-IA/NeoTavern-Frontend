@@ -290,6 +290,7 @@ export function createDefaultSettings(): Settings {
         disabledActions: [],
         layout: 'row',
         showLabels: true,
+        showGroupNames: true,
       },
     },
     disabledExtensions: [],

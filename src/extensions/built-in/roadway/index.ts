@@ -281,7 +281,7 @@ class RoadwayManager {
       label: 'Generate Choices',
       title: 'Generate reply choices for the last AI message',
       onClick: () => this.manualGenerateChoicesForLastMessage(),
-      visible: isRoadwayEnabled,
+      disabled: !isRoadwayEnabled,
     };
 
     this.unregisterChatFormUiFns.push(

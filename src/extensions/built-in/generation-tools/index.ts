@@ -68,7 +68,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       id: REROLL_BUTTON_ID,
       icon: 'fa-solid fa-rotate-right',
       label: t('extensionsBuiltin.generationTools.rerollButtonLabel'),
-      visible: !!snapshot && settings.rerollContinueEnabled && isChatActive,
+      disabled: !(!!snapshot && settings.rerollContinueEnabled && isChatActive),
       onClick: rerollClick,
     });
 
@@ -84,7 +84,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       id: SWIPE_BUTTON_ID,
       icon: 'fa-solid fa-angles-right',
       label: t('extensionsBuiltin.generationTools.swipeButtonLabel'),
-      visible: settings.swipeEnabled && isChatActive && !isLastMessageFromUser,
+      disabled: !(settings.swipeEnabled && isChatActive && !isLastMessageFromUser),
       onClick: swipeClick,
     });
 
@@ -100,7 +100,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       id: IMPERSONATE_BUTTON_ID,
       icon: 'fa-solid fa-user-secret',
       label: t('extensionsBuiltin.generationTools.impersonateButtonLabel'),
-      visible: settings.impersonateEnabled && isChatActive,
+      disabled: !(settings.impersonateEnabled && isChatActive),
       onClick: impersonateClick,
     });
 
@@ -116,7 +116,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       id: GENERATE_BUTTON_ID,
       icon: 'fa-solid fa-wand-magic-sparkles',
       label: t('extensionsBuiltin.generationTools.generateButtonLabel'),
-      visible: settings.generateEnabled && isChatActive,
+      disabled: !(settings.generateEnabled && isChatActive),
       onClick: generateClick,
     });
   };

@@ -71,7 +71,7 @@ export function activate(api: ExtensionAPI<ChatTranslationSettings>) {
       icon: 'fa-solid fa-language',
       label: 'Translate Input',
       onClick,
-      visible: api.chat.getChatInfo() !== null,
+      disabled: api.chat.getChatInfo() === null,
     });
   };
 

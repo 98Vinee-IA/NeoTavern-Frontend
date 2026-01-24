@@ -259,7 +259,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings, ChatMemoryMetadata
       id: 'chat-memory-quick-action',
       icon: 'fa-solid fa-brain',
       label: t('extensionsBuiltin.chatMemory.menuItem'),
-      visible: api.chat.getChatInfo() !== null,
+      disabled: api.chat.getChatInfo() === null,
       onClick,
     });
   };

@@ -718,6 +718,7 @@
       "enabledActions": "Enabled Actions",
       "displayOptions": "Display Options",
       "showLabels": "Show Labels",
+      "showGroupNames": "Show Group Names",
       "group": {
         "generation": "Generation",
         "inputMessage": "Input & Message",
