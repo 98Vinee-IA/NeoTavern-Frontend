@@ -134,7 +134,7 @@ describe('convertMessagesToInstructString', () => {
       );
     });
 
-    it('should only skip suffix for assistant messages in continuation mode', () => {
+    it('should skip suffix for last message in continuation mode regardless of role', () => {
       const messages: ApiChatMessage[] = [
         {
           role: 'assistant',
@@ -150,9 +150,8 @@ describe('convertMessagesToInstructString', () => {
 
       const result = convertMessagesToInstructString(messages, basicTemplate, 'User', 'Assistant', true);
 
-      // User is last, not assistant, so continuation mode should add output sequence
-      expect(result).toContain('<|im_start|>assistant\n');
-      expect(result).toContain('<|im_end|>\n<|im_start|>user\nHi<|im_end|>\n');
+      // Last message is user and continuation is true, so skip suffix for user message
+      expect(result).toBe('<|im_start|>assistant\nHello<|im_end|>\n<|im_start|>user\nHi');
     });
   });
 

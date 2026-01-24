@@ -318,10 +318,10 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
     // Check if this is continuation or prefill (both should not add suffix to last assistant message)
     let isContinuation = options.mode === 'continue';
 
-    // Also check for prefill (last assistant message ending with ':')
+    // Also check for prefill (last message ending with ':')
     if (!isContinuation) {
       const lastMsg = finalMessages.length > 0 ? finalMessages[finalMessages.length - 1] : null;
-      if (lastMsg && lastMsg.role === 'assistant') {
+      if (lastMsg) {
         const contentStr =
           typeof lastMsg.content === 'string'
             ? lastMsg.content

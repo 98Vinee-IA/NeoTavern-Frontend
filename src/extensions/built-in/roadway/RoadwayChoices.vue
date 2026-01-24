@@ -73,9 +73,27 @@ async function handleImpersonate(choiceText: string) {
     const generationId = `roadway-impersonate-${props.index}-${Date.now()}`;
     const baseApiMessages = await props.api.chat.buildPrompt({ chatHistory, generationId });
 
+    // Determine formatter for proper message formatting
+    let formatter = props.api.settings.getGlobal('api.formatter');
+    if (connectionProfile) {
+      const profiles = props.api.settings.getGlobal('api.connectionProfiles');
+      const profile = profiles?.find((p) => p.id === connectionProfile);
+      if (profile?.formatter) {
+        formatter = profile.formatter;
+      }
+    }
+
+    const persona = props.api.persona.getActive();
+    const personaName = persona?.name || 'User';
+
     const messages: ApiChatMessage[] = [
       ...baseApiMessages,
       { role: 'system', name: 'System', content: processedImpersonatePrompt },
+      {
+        role: formatter === 'text' ? 'user' : 'assistant',
+        name: personaName,
+        content: `${personaName}: `,
+      },
     ];
 
     const responseStream = await props.api.llm.generate(messages, {

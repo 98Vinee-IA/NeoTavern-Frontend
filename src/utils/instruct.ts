@@ -76,8 +76,8 @@ export function convertMessagesToInstructString(
       suffix = suffix.replaceAll(key, value);
     }
 
-    // Don't add suffix to last assistant message if it's a continuation
-    const skipSuffix = isContinuation && isLastMessage && message.role === 'assistant';
+    // Don't add suffix to last message if it's a continuation
+    const skipSuffix = isContinuation && isLastMessage;
     formattedParts.push(`${sequence}${content}${skipSuffix ? '' : suffix}`);
   }
 
@@ -85,7 +85,7 @@ export function convertMessagesToInstructString(
   let finalPrompt = formattedParts.join('');
 
   // Handle the "start generation" sequence for the assistant
-  if (messages.length > 0 && messages[messages.length - 1].role !== 'assistant') {
+  if (!isContinuation && messages.length > 0 && messages[messages.length - 1].role !== 'assistant') {
     let outputSeq = instruct.output_sequence;
     outputSeq = outputSeq.replaceAll('{{name}}', char).replaceAll('{{char}}', char).replaceAll('{{user}}', user);
     finalPrompt += outputSeq;

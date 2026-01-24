@@ -352,9 +352,25 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
       });
     }
 
+    // Determine formatter to decide the role of the impersonation message
+    const connectionProfileId =
+      settings.impersonateConnectionProfile || api.settings.getGlobal('api.selectedConnectionProfile');
+    let formatter = api.settings.getGlobal('api.formatter') as string;
+
+    // Check if connection profile overrides formatter
+    if (connectionProfileId) {
+      const profiles = api.settings.getGlobal('api.connectionProfiles');
+      const profile = profiles?.find((p) => p.id === connectionProfileId);
+      if (profile?.formatter) {
+        formatter = profile.formatter;
+      }
+    }
+
+    // For text formatter, use 'user' role so instruct template adds output sequence
+    // For chat formatter, use 'assistant' role for direct completion
     const newMessage: ApiChatMessage = {
-      role: 'assistant',
-      content: '',
+      role: formatter === 'text' ? 'user' : 'assistant',
+      content: `${persone.name}: `,
       name: persone.name,
     };
     if (chatInputValue) {
@@ -362,9 +378,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
     }
     genMessages.push(newMessage);
 
-    const connectionProfile =
-      settings.impersonateConnectionProfile || api.settings.getGlobal('api.selectedConnectionProfile');
-    if (!connectionProfile) {
+    if (!connectionProfileId) {
       api.ui.showToast(t('extensionsBuiltin.generationTools.noConnectionProfile'), 'error');
       return;
     }
@@ -373,7 +387,7 @@ export function activate(api: ExtensionAPI<ExtensionSettings>) {
 
     try {
       const response = await api.llm.generate(genMessages, {
-        connectionProfile,
+        connectionProfile: connectionProfileId,
       });
 
       let generated = chatInputValue;
