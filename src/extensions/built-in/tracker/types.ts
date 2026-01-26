@@ -195,7 +195,7 @@ export const DEFAULT_SETTINGS: TrackerSettings = {
   promptEngineering: 'native',
   schemaPresets: DEFAULT_PRESETS,
   activeSchemaPresetName: 'Scene Tracker',
-  maxResponseTokens: 16000,
+  maxResponseTokens: 8192,
   includeLastXMessages: 5,
   includeLastXTrackers: 3,
   parallelRequestLimit: 2,
