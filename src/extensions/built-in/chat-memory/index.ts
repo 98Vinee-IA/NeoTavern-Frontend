@@ -177,10 +177,10 @@ export function activate(api: ExtensionAPI<ExtensionSettings, ChatMemoryMetadata
     const message = history[index];
     if (!message) return;
 
+    const settings = api.settings.get();
     const extra = message.extra['core.chat-memory'];
 
-    // Summary Display
-    if (extra?.summary) {
+    if (settings?.enableMessageSummarization && extra?.summary) {
       injectSummaryDisplay(element, extra.summary);
     } else {
       removeSummaryDisplay(element);
@@ -218,13 +218,6 @@ export function activate(api: ExtensionAPI<ExtensionSettings, ChatMemoryMetadata
 
   const updateAllMessages = () => {
     const settings = api.settings.get();
-    if (!settings?.enableMessageSummarization) {
-      document.querySelectorAll('.message').forEach((el) => {
-        removeSummaryDisplay(el as HTMLElement);
-        el.querySelector('.summary-button-wrapper')?.remove();
-      });
-      return;
-    }
 
     const messageElements = document.querySelectorAll('.message');
     messageElements.forEach((el) => {
@@ -234,6 +227,14 @@ export function activate(api: ExtensionAPI<ExtensionSettings, ChatMemoryMetadata
       if (isNaN(messageIndex)) return;
       processMessageElement(el as HTMLElement, messageIndex);
     });
+
+    // Clean up if message summarization is disabled
+    if (!settings?.enableMessageSummarization) {
+      document.querySelectorAll('.message').forEach((el) => {
+        removeSummaryDisplay(el as HTMLElement);
+        el.querySelector('.summary-button-wrapper')?.remove();
+      });
+    }
   };
 
   const injectMenuOption = () => {

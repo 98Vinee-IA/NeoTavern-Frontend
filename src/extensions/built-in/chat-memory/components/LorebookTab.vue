@@ -313,6 +313,7 @@ async function createEntry() {
     for (let i = startIndex.value; i <= endIndex.value; i++) {
       const msg = chatHistory.value[i];
       await props.api.chat.updateMessageObject(i, {
+        is_system: autoHideMessages.value ? true : msg.is_system,
         extra: {
           'core.chat-memory': {
             summarized: true,
@@ -352,7 +353,7 @@ async function handleLorebookReset() {
 
   try {
     const memoryExtra = currentMetadata.extra?.['core.chat-memory'];
-    if (memoryExtra && Array.isArray(memoryExtra.memories)) {
+    if (memoryExtra && Array.isArray(memoryExtra.memories) && memoryExtra.memories.length > 0) {
       for (const record of memoryExtra.memories) {
         try {
           await props.api.worldInfo.deleteEntry(record.bookName, record.entryUid);
@@ -380,12 +381,16 @@ async function handleLorebookReset() {
           extra: {
             'core.chat-memory': {
               summarized: false,
+              original_is_system: undefined,
             },
           },
         });
         restoredCount++;
       }
     }
+
+    loadState();
+
     props.api.ui.showToast(
       t('extensionsBuiltin.chatMemory.success.restored', { restored: restoredCount, deleted: entriesRemoved }),
       'success',

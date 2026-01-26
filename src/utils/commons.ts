@@ -139,27 +139,49 @@ export function downloadFile(content: string, fileName: string, contentType: str
 }
 
 /**
- * A customizer for lodash's mergeWith that allows for `undefined` values to be merged.
- * This function mutates the destination object directly because lodash's default behavior
- * is to ignore `undefined` values from the source, even if the customizer explicitly returns `undefined`.
+ * A customizer for lodash's mergeWith that allows source values to override destination values.
+ * - Arrays are replaced, not merged element-by-element
+ * - undefined values from source override destination values
+ * - Only plain objects are deeply merged; other types are replaced
  *
  * @param objValue - The value from the object being merged into.
  * @param srcValue - The value from the source object.
  * @param key - The key of the property being merged.
  * @param object - The destination object.
- * @returns `undefined`, signaling lodash to use its default merge behavior (which we've preempted by mutation).
+ * @returns The value to use, or undefined to continue with lodash's default behavior.
  */
 function customizer(objValue: unknown, srcValue: unknown, key: string | number | symbol, object: object): unknown {
+  // Handle undefined: explicitly set it
   if (srcValue === undefined) {
     if (object && typeof object === 'object') {
       (object as Record<string | number | symbol, unknown>)[key] = undefined;
     }
     return undefined;
   }
+
+  // Handle arrays: replace instead of merging element-by-element
+  if (Array.isArray(srcValue)) {
+    return srcValue;
+  }
+
+  // Handle null: replace
+  if (srcValue === null) {
+    return srcValue;
+  }
+
+  // For plain objects, let lodash continue deep merging
+  // For everything else (primitives, dates, etc.), replace
+  if (typeof srcValue === 'object' && srcValue.constructor === Object) {
+    return undefined; // Let lodash handle plain object merging
+  }
+
+  // Replace with srcValue for all other types
+  return srcValue;
 }
 
 /**
- * Deeply merges objects, allowing `undefined` values from sources to overwrite existing values.
+ * Deeply merges objects, allowing source values to override destination values.
+ * Arrays and primitives are replaced. Only plain objects are deeply merged.
  * @param object - The destination object.
  * @param sources - The source objects.
  * @returns The merged object.
@@ -169,8 +191,8 @@ export function mergeWithUndefined<TObject, TSource>(object: TObject, source: TS
 }
 
 /**
- * Deeply merges multiple objects, allowing `undefined` values from sources to overwrite existing values.
- * This is a typed version of lodash's mergeWith.
+ * Deeply merges multiple objects, allowing source values to override destination values.
+ * Arrays and primitives are replaced. Only plain objects are deeply merged.
  * @param object - The destination object.
  * @param sources - The source objects.
  * @returns The merged object.
