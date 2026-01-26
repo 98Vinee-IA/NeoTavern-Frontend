@@ -257,6 +257,61 @@ async function handleLorebookSummarize() {
   }
 }
 
+async function handleContinue() {
+  if (!props.connectionProfile) {
+    props.api.ui.showToast(t('extensionsBuiltin.chatMemory.noProfile'), 'error');
+    return;
+  }
+  if (!summaryResult.value.trim()) {
+    props.api.ui.showToast(t('extensionsBuiltin.chatMemory.errors.emptySummary'), 'error');
+    return;
+  }
+
+  isGenerating.value = true;
+  abortController.value = new AbortController();
+
+  try {
+    const messagesSlice = chatHistory.value.slice(startIndex.value, endIndex.value + 1);
+    const textToSummarize = messagesSlice.map((m) => `${m.name}: ${m.mes}`).join('\n\n');
+
+    const compiledPrompt = props.api.macro.process(lorebookPrompt.value, undefined, {
+      text: textToSummarize,
+    });
+
+    const messages: Array<ApiChatMessage> = [
+      { role: 'system', content: compiledPrompt, name: 'System' },
+      { role: 'assistant', content: summaryResult.value, name: 'Assistant' },
+    ];
+
+    const response = await props.api.llm.generate(messages, {
+      connectionProfile: props.connectionProfile,
+      signal: abortController.value.signal,
+      isContinuation: true,
+    });
+
+    let fullContent = summaryResult.value;
+    if (Symbol.asyncIterator in response) {
+      for await (const chunk of response) {
+        if (!isGenerating.value) break;
+        fullContent += chunk.delta;
+        summaryResult.value = fullContent;
+      }
+    } else {
+      fullContent += response.content;
+      summaryResult.value = fullContent;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    if (error.name !== 'AbortError') {
+      console.error('Continue generation failed', error);
+      props.api.ui.showToast(t('extensionsBuiltin.chatMemory.failed'), 'error');
+    }
+  } finally {
+    isGenerating.value = false;
+    abortController.value = null;
+  }
+}
+
 async function createEntry() {
   if (isSaving.value) return;
   if (!selectedLorebook.value) {
@@ -474,6 +529,16 @@ watch(
           allow-maximize
         />
       </FormItem>
+      <div class="actions">
+        <Button
+          :loading="isGenerating"
+          :disabled="!summaryResult || !connectionProfile || isGenerating"
+          icon="fa-forward"
+          @click="handleContinue"
+        >
+          {{ t('common.continue') }}
+        </Button>
+      </div>
     </div>
 
     <div class="section highlight">

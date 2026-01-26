@@ -773,6 +773,7 @@ const baseExtensionAPI: ExtensionAPI = {
         reasoningTemplate: reasoningTemplate,
         structuredResponse: options.structuredResponse,
         onCompletion: options.onCompletion,
+        isContinuation: options.isContinuation,
       });
     },
   },

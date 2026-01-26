@@ -529,6 +529,7 @@ export interface MessageSchema {
     confirm: string;
     delete: string;
     of: string;
+    continue: string;
     search: string;
     clear: string;
     resetToDefaults: string;

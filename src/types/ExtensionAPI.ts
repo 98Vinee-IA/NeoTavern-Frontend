@@ -46,6 +46,7 @@ export interface LlmGenerationOptions {
    * Configuration for structured response generation.
    */
   structuredResponse?: StructuredResponseOptions;
+  isContinuation?: boolean;
   onCompletion?: (data: {
     outputTokens: number;
     duration: number;
