@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { Expression } from 'jsep';
 import jsep from 'jsep';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { ConnectionProfileSelector } from '../../../components/common';
+import type { CustomAction } from '../../../components/common/PresetControl.vue';
+import PresetControl from '../../../components/common/PresetControl.vue';
 import { FormItem, Input, Toggle } from '../../../components/UI';
 import CollapsibleSection from '../../../components/UI/CollapsibleSection.vue';
 import Tabs from '../../../components/UI/Tabs.vue';
@@ -10,36 +12,38 @@ import Textarea from '../../../components/UI/Textarea.vue';
 import { usePopupStore } from '../../../stores/popup.store';
 import type { ExtensionAPI } from '../../../types';
 import { POPUP_TYPE } from '../../../types';
-import { DEFAULT_EVENT_GENERATION_DATA, DEFAULT_FATE_CHART_DATA, DEFAULT_UNE_SETTINGS } from './defaults';
+import {
+  DEFAULT_BASE_SETTINGS,
+  DEFAULT_EVENT_GENERATION_DATA,
+  DEFAULT_FATE_CHART_DATA,
+  DEFAULT_UNE_SETTINGS,
+} from './defaults';
 import { ANALYSIS_PROMPT, INITIAL_SCENE_PROMPT, NARRATION_PROMPT, SCENE_UPDATE_PROMPT } from './prompts';
-import type { EventFocus, FateChartData, MythicChatExtra, MythicMessageExtra, MythicSettings } from './types';
+import type {
+  EventFocus,
+  FateChartData,
+  MythicChatExtra,
+  MythicMessageExtra,
+  MythicPreset,
+  MythicSettings,
+} from './types';
 
 const props = defineProps<{
   api: ExtensionAPI<MythicSettings, MythicChatExtra, MythicMessageExtra>;
 }>();
 
-const initial: MythicSettings = {
-  enabled: true,
-  autoAnalyze: true,
-  chaos: 5,
-  connectionProfileId: '',
-  language: 'English',
-  prompts: {
-    initialScene: INITIAL_SCENE_PROMPT,
-    sceneUpdate: SCENE_UPDATE_PROMPT,
-    analysis: ANALYSIS_PROMPT,
-    narration: NARRATION_PROMPT,
-  },
-  fateChart: DEFAULT_FATE_CHART_DATA,
-  eventGeneration: DEFAULT_EVENT_GENERATION_DATA,
-  une: DEFAULT_UNE_SETTINGS,
-  characterTypes: ['NPC', 'PC'],
-};
+const initial: MythicSettings = { ...DEFAULT_BASE_SETTINGS };
 
 const settings = ref<MythicSettings>(JSON.parse(JSON.stringify(initial)));
 const popupStore = usePopupStore();
 const activeTab = ref('general');
 const activePromptTab = ref('initialScene');
+const selectedPreset = ref('');
+const fileInputRef = ref<HTMLInputElement>();
+
+const currentPreset = computed(() => {
+  return settings.value.presets.find((p) => p.name === selectedPreset.value) || settings.value.presets[0];
+});
 
 const mainTabs = [
   { label: 'General', value: 'general' },
@@ -61,16 +65,22 @@ const fateChartJson = ref('');
 const eventFocusesJson = ref('');
 const eventActionsJson = ref('');
 const eventSubjectsJson = ref('');
-const uneJson = ref('');
+const modifiersJson = ref('');
+const nounsJson = ref('');
+const motivationVerbsJson = ref('');
+const motivationNounsJson = ref('');
 const characterTypesJson = ref('');
 
 function loadJsonFromSettings() {
-  fateChartJson.value = JSON.stringify(settings.value.fateChart, null, 2);
-  eventFocusesJson.value = JSON.stringify(settings.value.eventGeneration.focuses, null, 2);
-  eventActionsJson.value = settings.value.eventGeneration.actions.join('\n');
-  eventSubjectsJson.value = settings.value.eventGeneration.subjects.join('\n');
-  uneJson.value = JSON.stringify(settings.value.une, null, 2);
-  characterTypesJson.value = settings.value.characterTypes.join('\n');
+  fateChartJson.value = JSON.stringify(currentPreset.value.data.fateChart, null, 2);
+  eventFocusesJson.value = JSON.stringify(currentPreset.value.data.eventGeneration.focuses, null, 2);
+  eventActionsJson.value = currentPreset.value.data.eventGeneration.actions.join('\n');
+  eventSubjectsJson.value = currentPreset.value.data.eventGeneration.subjects.join('\n');
+  modifiersJson.value = currentPreset.value.data.une.modifiers.join('\n');
+  nounsJson.value = currentPreset.value.data.une.nouns.join('\n');
+  motivationVerbsJson.value = currentPreset.value.data.une.motivation_verbs.join('\n');
+  motivationNounsJson.value = currentPreset.value.data.une.motivation_nouns.join('\n');
+  characterTypesJson.value = currentPreset.value.data.characterTypes.join('\n');
 }
 
 // Validation Logic
@@ -137,7 +147,7 @@ function validateFocuses(focuses: EventFocus[]): string[] {
     return ['Focuses must be an array.'];
   }
 
-  const characterTypes = settings.value.characterTypes || ['NPC'];
+  const characterTypes = currentPreset.value.data.characterTypes || ['NPC'];
   const validActions = [
     'random_thread',
     ...characterTypes.map(normalizeTypeToAction),
@@ -210,6 +220,8 @@ function validateFocuses(focuses: EventFocus[]): string[] {
   return errors;
 }
 
+// Preset Management
+
 // Handlers for Save/Reset
 
 async function saveFateChart() {
@@ -225,7 +237,7 @@ async function saveFateChart() {
       });
       return;
     }
-    settings.value.fateChart = data;
+    currentPreset.value.data.fateChart = data;
     props.api.ui.showToast('Fate Chart updated', 'success');
   } catch {
     props.api.ui.showToast('Invalid JSON', 'error');
@@ -250,7 +262,7 @@ async function saveEventFocuses() {
       });
       return;
     }
-    settings.value.eventGeneration.focuses = data;
+    currentPreset.value.data.eventGeneration.focuses = data;
     props.api.ui.showToast('Event Focuses updated', 'success');
   } catch {
     props.api.ui.showToast('Invalid JSON', 'error');
@@ -267,7 +279,7 @@ function saveStringArray(target: 'actions' | 'subjects', jsonValue: string) {
     .split('\n')
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  settings.value.eventGeneration[target] = data;
+  currentPreset.value.data.eventGeneration[target] = data;
   props.api.ui.showToast(`${target} updated`, 'success');
 }
 
@@ -275,25 +287,34 @@ function resetStringArray(target: 'actions' | 'subjects') {
   const def = DEFAULT_EVENT_GENERATION_DATA[target];
   if (target === 'actions') eventActionsJson.value = def.join('\n');
   if (target === 'subjects') eventSubjectsJson.value = def.join('\n');
-  settings.value.eventGeneration[target] = def;
 }
 
 async function saveUNE() {
-  try {
-    const data = JSON.parse(uneJson.value);
-    if (!data.modifiers || !data.nouns || !data.motivation_verbs || !data.motivation_nouns) {
-      props.api.ui.showToast('Invalid UNE structure. Missing keys.', 'error');
-      return;
-    }
-    settings.value.une = data;
-    props.api.ui.showToast('UNE settings updated', 'success');
-  } catch {
-    props.api.ui.showToast('Invalid JSON', 'error');
-  }
+  const modifiers = modifiersJson.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  const nouns = nounsJson.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  const motivation_verbs = motivationVerbsJson.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  const motivation_nouns = motivationNounsJson.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  currentPreset.value.data.une = { modifiers, nouns, motivation_verbs, motivation_nouns };
+  props.api.ui.showToast('UNE settings updated', 'success');
 }
 
 function resetUNE() {
-  uneJson.value = JSON.stringify(DEFAULT_UNE_SETTINGS, null, 2);
+  modifiersJson.value = DEFAULT_UNE_SETTINGS.modifiers.join('\n');
+  nounsJson.value = DEFAULT_UNE_SETTINGS.nouns.join('\n');
+  motivationVerbsJson.value = DEFAULT_UNE_SETTINGS.motivation_verbs.join('\n');
+  motivationNounsJson.value = DEFAULT_UNE_SETTINGS.motivation_nouns.join('\n');
   saveUNE();
 }
 
@@ -302,7 +323,7 @@ async function saveCharacterTypes() {
     .split('\n')
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  settings.value.characterTypes = data;
+  currentPreset.value.data.characterTypes = data;
   props.api.ui.showToast('Character Types updated', 'success');
 }
 
@@ -311,15 +332,165 @@ function resetCharacterTypes() {
   saveCharacterTypes();
 }
 
+// Preset Handlers
+
+async function handleCreatePreset() {
+  const result = await popupStore.show({
+    type: POPUP_TYPE.INPUT,
+    content: 'Enter preset name:',
+    okButton: true,
+    cancelButton: true,
+  });
+  if (result.result === 1 && result.value && typeof result.value === 'string' && result.value.trim()) {
+    const presetName = result.value.trim();
+    if (settings.value.presets.some((p) => p.name === presetName)) {
+      props.api.ui.showToast('Preset name already exists', 'error');
+      return;
+    }
+    const newPreset: MythicPreset = {
+      name: presetName,
+      data: {
+        fateChart: JSON.parse(JSON.stringify(currentPreset.value.data.fateChart)),
+        eventGeneration: JSON.parse(JSON.stringify(currentPreset.value.data.eventGeneration)),
+        une: JSON.parse(JSON.stringify(currentPreset.value.data.une)),
+        characterTypes: [...currentPreset.value.data.characterTypes],
+      },
+    };
+    settings.value.presets.push(newPreset);
+    selectedPreset.value = presetName;
+    settings.value.selectedPreset = presetName;
+  }
+}
+
+async function handleEditPreset() {
+  if (!selectedPreset.value) return;
+  const result = await popupStore.show({
+    type: POPUP_TYPE.INPUT,
+    content: 'Enter new preset name:',
+    inputValue: selectedPreset.value,
+    okButton: true,
+    cancelButton: true,
+  });
+  if (result.result === 1 && result.value && typeof result.value === 'string' && result.value.trim()) {
+    const presetName = result.value.trim();
+    if (settings.value.presets.some((p) => p.name === presetName && p.name !== selectedPreset.value)) {
+      props.api.ui.showToast('Preset name already exists', 'error');
+      return;
+    }
+    const preset = settings.value.presets.find((p) => p.name === selectedPreset.value);
+    if (preset) {
+      preset.name = presetName;
+      selectedPreset.value = presetName;
+    }
+  }
+}
+
+async function handleDeletePreset() {
+  if (!selectedPreset.value) return;
+  if (settings.value.presets.length <= 1) {
+    props.api.ui.showToast('Cannot delete the last preset', 'error');
+    return;
+  }
+  const confirm = await popupStore.show({
+    type: POPUP_TYPE.CONFIRM,
+    content: `Are you sure you want to delete preset "${selectedPreset.value}"?`,
+    okButton: true,
+    cancelButton: true,
+  });
+  if (confirm) {
+    settings.value.presets = settings.value.presets.filter((p) => p.name !== selectedPreset.value);
+    if (selectedPreset.value !== 'Default') {
+      selectedPreset.value = 'Default';
+      settings.value.selectedPreset = 'Default';
+    }
+  }
+}
+
+function handleImportPreset() {
+  fileInputRef.value?.click();
+}
+
+function handleExportPreset() {
+  const dataStr = JSON.stringify(settings.value.presets, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(dataBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'mythic-presets.json';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function handleFileImport(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const importedPresets: MythicPreset[] = JSON.parse(e.target?.result as string);
+      if (Array.isArray(importedPresets)) {
+        for (const preset of importedPresets) {
+          if (!settings.value.presets.some((p) => p.name === preset.name)) {
+            settings.value.presets.push(preset);
+          }
+        }
+        props.api.ui.showToast('Presets imported', 'success');
+      } else {
+        props.api.ui.showToast('Invalid file format', 'error');
+      }
+    } catch {
+      props.api.ui.showToast('Invalid JSON', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function handleResetAllPresets() {
+  const confirm = await popupStore.show({
+    type: POPUP_TYPE.CONFIRM,
+    content: 'Are you sure you want to reset all presets?',
+    okButton: true,
+    cancelButton: true,
+  });
+  if (confirm) {
+    settings.value.presets = JSON.parse(JSON.stringify(initial.presets));
+    selectedPreset.value = 'Default';
+    settings.value.selectedPreset = 'Default';
+    loadJsonFromSettings();
+    props.api.ui.showToast('All presets reset', 'success');
+  }
+}
+
 // Lifecycle
 
-onMounted(() => {
+onMounted(async () => {
   const saved = props.api.settings.get();
   if (saved) {
-    // Migration checks could go here if moving from old version
     settings.value = { ...initial, ...saved };
   }
-  loadJsonFromSettings();
+  selectedPreset.value = settings.value.selectedPreset;
+  try {
+    loadJsonFromSettings();
+  } catch (error) {
+    console.error('Failed to load preset data:', error);
+    props.api.ui.showToast('Failed to load preset data. See console for details.', 'error');
+    await handleResetAllPresets();
+  }
+});
+
+watch(selectedPreset, async (newPreset) => {
+  if (newPreset) {
+    try {
+      settings.value.selectedPreset = newPreset;
+      loadJsonFromSettings();
+    } catch (error) {
+      console.error('Failed to load preset data:', error);
+      props.api.ui.showToast('Failed to load preset data. See console for details.', 'error');
+      await handleResetAllPresets();
+    }
+  }
 });
 
 watch(
@@ -445,10 +616,42 @@ const characterTypesTools = [
     onClick: resetCharacterTypes,
   },
 ];
+
+const customActions: CustomAction[] = [
+  {
+    key: 'resetAll',
+    icon: 'fa-undo',
+    title: 'common.reset',
+    event: 'resetAll',
+    variant: 'danger',
+  },
+];
 </script>
 
 <template>
   <div class="mythic-settings">
+    <div class="preset-section">
+      <PresetControl
+        v-model="selectedPreset"
+        :options="settings.presets.map((p) => ({ label: p.name, value: p.name }))"
+        :allow-create="true"
+        :allow-edit="true"
+        :allow-delete="settings.presets.length > 1"
+        :allow-import="true"
+        :allow-export="true"
+        :allow-save="false"
+        :custom-actions="customActions"
+        :action-order="['save', 'create', 'edit', 'delete', 'import', 'export', 'resetAll']"
+        @create="handleCreatePreset"
+        @edit="handleEditPreset"
+        @delete="handleDeletePreset"
+        @import="handleImportPreset"
+        @export="handleExportPreset"
+        @reset-all="handleResetAllPresets"
+      />
+    </div>
+    <input ref="fileInputRef" type="file" accept=".json" style="display: none" @change="handleFileImport" />
+
     <Tabs v-model="activeTab" :options="mainTabs" class="main-tabs" />
 
     <div v-if="activeTab === 'general'" class="tab-content">
@@ -543,7 +746,36 @@ const characterTypesTools = [
     </div>
 
     <div v-if="activeTab === 'une'" class="tab-content">
-      <Textarea v-model="uneJson" :rows="20" :identifier="'extension.mythic-agents.une'" :tools="uneTools" />
+      <CollapsibleSection title="Modifiers">
+        <Textarea
+          v-model="modifiersJson"
+          :rows="5"
+          :identifier="'extension.mythic-agents.modifiers'"
+          :tools="uneTools"
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Nouns">
+        <Textarea v-model="nounsJson" :rows="5" :identifier="'extension.mythic-agents.nouns'" :tools="uneTools" />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Motivation Verbs">
+        <Textarea
+          v-model="motivationVerbsJson"
+          :rows="5"
+          :identifier="'extension.mythic-agents.motivationVerbs'"
+          :tools="uneTools"
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Motivation Nouns">
+        <Textarea
+          v-model="motivationNounsJson"
+          :rows="5"
+          :identifier="'extension.mythic-agents.motivationNouns'"
+          :tools="uneTools"
+        />
+      </CollapsibleSection>
     </div>
   </div>
 </template>
@@ -554,6 +786,10 @@ const characterTypesTools = [
   flex-direction: column;
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
+}
+
+.preset-section {
+  margin-bottom: var(--spacing-md);
 }
 
 .group-header {

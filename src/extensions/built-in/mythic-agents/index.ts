@@ -1,11 +1,10 @@
 import { GenerationMode } from '../../../constants';
 import type { ExtensionAPI } from '../../../types';
-import { DEFAULT_EVENT_GENERATION_DATA, DEFAULT_FATE_CHART_DATA, DEFAULT_UNE_SETTINGS } from './defaults';
+import { DEFAULT_BASE_SETTINGS } from './defaults';
 import { analyzeUserAction, generateNarration } from './llm';
 import { manifest } from './manifest';
 import MythicPanel from './MythicPanel.vue';
 import { askOracle } from './oracle';
-import { ANALYSIS_PROMPT, INITIAL_SCENE_PROMPT, NARRATION_PROMPT, SCENE_UPDATE_PROMPT } from './prompts';
 import { generateInitialScene } from './scene-manager';
 import SettingsPanel from './SettingsPanel.vue';
 import type {
@@ -18,23 +17,7 @@ import type {
 
 type MythicExtensionAPI = ExtensionAPI<MythicSettings, MythicChatExtra, MythicMessageExtra>;
 
-const DEFAULT_SETTINGS: MythicSettings = {
-  enabled: true,
-  autoAnalyze: true,
-  chaos: 5,
-  connectionProfileId: '',
-  language: 'English',
-  prompts: {
-    analysis: ANALYSIS_PROMPT,
-    initialScene: INITIAL_SCENE_PROMPT,
-    sceneUpdate: SCENE_UPDATE_PROMPT,
-    narration: NARRATION_PROMPT,
-  },
-  fateChart: DEFAULT_FATE_CHART_DATA,
-  eventGeneration: DEFAULT_EVENT_GENERATION_DATA,
-  une: DEFAULT_UNE_SETTINGS,
-  characterTypes: ['NPC', 'PC'],
-};
+const DEFAULT_SETTINGS: MythicSettings = { ...DEFAULT_BASE_SETTINGS };
 
 export function activate(api: MythicExtensionAPI) {
   const settingsContainer = document.getElementById(api.meta.containerId);
@@ -95,6 +78,8 @@ export function activate(api: MythicExtensionAPI) {
     const lastMessage = api.chat.getLastMessage();
     if (!lastMessage || !lastMessage.is_user) return;
 
+    const currentPreset = settings.presets.find((p) => p.name === settings.selectedPreset) || settings.presets[0];
+
     // Analyze
     let analysis;
     try {
@@ -132,10 +117,10 @@ export function activate(api: MythicExtensionAPI) {
           const result = await askOracle(
             analysis,
             extra.chaos,
-            settings.fateChart,
+            currentPreset.data.fateChart,
             extra.scene!,
-            settings.eventGeneration,
-            settings.une,
+            currentPreset.data.eventGeneration,
+            currentPreset.data.une,
           );
           if (context?.controller.signal.aborted) return;
           anal = result.analysis;

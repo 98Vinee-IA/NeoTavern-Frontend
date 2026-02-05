@@ -145,6 +145,22 @@ export const UNESettingsSchema = z.object({
 
 export type UNESettings = z.infer<typeof UNESettingsSchema>;
 
+export const MythicPresetDataSchema = z.object({
+  fateChart: FateChartDataSchema,
+  eventGeneration: EventGenerationDataSchema,
+  une: UNESettingsSchema,
+  characterTypes: z.array(z.string()),
+});
+
+export type MythicPresetData = z.infer<typeof MythicPresetDataSchema>;
+
+export const MythicPresetSchema = z.object({
+  name: z.string(),
+  data: MythicPresetDataSchema,
+});
+
+export type MythicPreset = z.infer<typeof MythicPresetSchema>;
+
 export const MythicSettingsSchema = z.object({
   enabled: z.boolean(),
   autoAnalyze: z.boolean(),
@@ -164,10 +180,8 @@ export const MythicSettingsSchema = z.object({
       analysis: '',
       narration: '',
     }),
-  fateChart: FateChartDataSchema,
-  eventGeneration: EventGenerationDataSchema,
-  une: UNESettingsSchema,
-  characterTypes: z.array(z.string()).default(['NPC', 'PC']),
+  selectedPreset: z.string().default('Default'),
+  presets: z.array(MythicPresetSchema).default([]),
 });
 
 export type MythicSettings = z.infer<typeof MythicSettingsSchema>;

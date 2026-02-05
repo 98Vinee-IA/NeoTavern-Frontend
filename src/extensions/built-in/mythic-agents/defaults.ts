@@ -1,4 +1,5 @@
-import type { EventGenerationData, FateChartData, UNESettings } from './types';
+import { ANALYSIS_PROMPT, INITIAL_SCENE_PROMPT, NARRATION_PROMPT, SCENE_UPDATE_PROMPT } from './prompts';
+import type { EventGenerationData, FateChartData, MythicSettings, UNESettings } from './types';
 
 export const DEFAULT_FATE_CHART_DATA: FateChartData = {
   '9': {
@@ -1980,5 +1981,31 @@ export const DEFAULT_UNE_SETTINGS: UNESettings = {
     'Wound',
     'Year',
     'Zone',
+  ],
+};
+
+export const DEFAULT_BASE_SETTINGS: MythicSettings = {
+  enabled: false,
+  autoAnalyze: true,
+  chaos: 5,
+  connectionProfileId: '',
+  language: 'English',
+  prompts: {
+    analysis: ANALYSIS_PROMPT,
+    initialScene: INITIAL_SCENE_PROMPT,
+    sceneUpdate: SCENE_UPDATE_PROMPT,
+    narration: NARRATION_PROMPT,
+  },
+  selectedPreset: 'Default',
+  presets: [
+    {
+      name: 'Default',
+      data: {
+        fateChart: DEFAULT_FATE_CHART_DATA,
+        eventGeneration: DEFAULT_EVENT_GENERATION_DATA,
+        une: DEFAULT_UNE_SETTINGS,
+        characterTypes: ['NPC', 'PC'],
+      },
+    },
   ],
 };

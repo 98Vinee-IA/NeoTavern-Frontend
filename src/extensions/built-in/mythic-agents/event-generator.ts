@@ -104,7 +104,6 @@ export function generateFullRandomEvent(
       actionsToExecute = parseActionString(focusEntry.action);
     } catch (e) {
       console.error('Failed to parse event action:', e);
-      // Fallback
       actionsToExecute = [];
     }
 

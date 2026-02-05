@@ -30,7 +30,7 @@ export function rollFate(
     throw new Error(`Invalid chaos rank in Fate Chart: ${chaos}`);
   }
 
-  const chartEntry = rankData[odds];
+  let chartEntry = rankData[odds];
   if (!chartEntry) {
     // Fallback if odds string doesn't match exactly (e.g. case sensitivity)
     // Try to find case-insensitive match
@@ -38,8 +38,7 @@ export function rollFate(
     if (!key || !rankData[key]) {
       throw new Error(`Invalid odds in Fate Chart: ${odds}`);
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (chartEntry as any) = rankData[key];
+    chartEntry = rankData[key];
   }
 
   let outcome: 'Yes' | 'No' | 'Exceptional Yes' | 'Exceptional No';
