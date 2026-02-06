@@ -43,7 +43,9 @@ async function generateInitialScene() {
 <template>
   <div class="scene">
     <div class="controls">
-      <Button block class="action-btn" @click="generateInitialScene"> <i class="fas fa-film"></i> New Scene </Button>
+      <Button block class="action-btn" @click="generateInitialScene">
+        <i class="fas fa-film"></i>Reinitialize Scene</Button
+      >
     </div>
 
     <div class="section-header">Current Scene Details</div>

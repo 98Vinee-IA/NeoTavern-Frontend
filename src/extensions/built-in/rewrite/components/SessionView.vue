@@ -62,6 +62,26 @@ function toggleToolCollapse(msgId: string) {
   collapsedToolMessages.value = new Set(collapsedToolMessages.value); // Trigger reactivity
 }
 
+function isToolCollapsed(msgId: string) {
+  return collapsedToolMessages.value.has(msgId);
+}
+
+// Tool Calls Collapsing Logic
+const collapsedAssistantToolCalls = ref<Set<string>>(new Set());
+
+function toggleAssistantToolCollapse(msgId: string) {
+  if (collapsedAssistantToolCalls.value.has(msgId)) {
+    collapsedAssistantToolCalls.value.delete(msgId);
+  } else {
+    collapsedAssistantToolCalls.value.add(msgId);
+  }
+  collapsedAssistantToolCalls.value = new Set(collapsedAssistantToolCalls.value); // Trigger reactivity
+}
+
+function isAssistantToolCollapsed(msgId: string) {
+  return collapsedAssistantToolCalls.value.has(msgId);
+}
+
 function openToolsMenu(event: Event) {
   const target = event.currentTarget as HTMLElement | null;
   if (!target) return;
@@ -87,10 +107,6 @@ function openToolsMenu(event: Event) {
     toolsMenuTriggerEl.value = target; // Still track original trigger for closing logic.
     isToolsMenuVisible.value = true;
   }
-}
-
-function isToolCollapsed(msgId: string) {
-  return collapsedToolMessages.value.has(msgId);
 }
 
 function toggleTool(toolName: string) {
@@ -126,21 +142,30 @@ const systemMessagePreview = computed(() => {
   return lines.slice(0, 2).join('\n') + (lines.length > 2 || content.length > 100 ? '...' : '');
 });
 
-// Scroll Logic
+// Scroll and Collapse Logic
 watch(
   () => props.messages,
-  () => {
+  (newMessages) => {
     nextTick(() => {
       if (chatContainer.value) {
         chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
       }
     });
-    props.messages.forEach((msg) => {
+
+    const newCollapsedToolMessages = new Set<string>();
+    const newCollapsedAssistantToolCalls = new Set<string>();
+
+    newMessages.forEach((msg) => {
       if (msg.role === 'tool') {
-        collapsedToolMessages.value.add(msg.id);
+        newCollapsedToolMessages.add(msg.id);
+      }
+      if (msg.role === 'assistant' && hasToolCalls(msg)) {
+        newCollapsedAssistantToolCalls.add(msg.id);
       }
     });
-    collapsedToolMessages.value = new Set(collapsedToolMessages.value);
+
+    collapsedToolMessages.value = newCollapsedToolMessages;
+    collapsedAssistantToolCalls.value = newCollapsedAssistantToolCalls;
   },
   { deep: true, immediate: true },
 );
@@ -299,7 +324,7 @@ onUnmounted(() => {
     <div ref="chatContainer" class="chat-container">
       <div v-for="(msg, index) in messages" :key="msg.id" class="message" :class="`role-${msg.role}`">
         <!-- System Message -->
-        <div v-if="msg.role === 'system'" class="system-message">
+        <div v-if="msg.role === 'system'" class="system-message-inner">
           <div class="system-header" @click="toggleSystemCollapse">
             <span class="system-label">{{ t('extensionsBuiltin.rewrite.session.systemInstruction') }}</span>
             <div class="header-right">
@@ -353,9 +378,12 @@ onUnmounted(() => {
         </div>
 
         <!-- Tool Message -->
-        <div v-if="msg.role === 'tool'" class="tool-message">
+        <div v-if="msg.role === 'tool'" class="tool-message-inner">
           <div class="tool-header" @click="toggleToolCollapse(msg.id)">
-            <span class="tool-label">{{ t('extensionsBuiltin.rewrite.session.toolResult') }}</span>
+            <div class="tool-header-left">
+              <i class="fa-solid fa-arrow-turn-down fa-rotate-90"></i>
+              <span class="tool-label">{{ t('extensionsBuiltin.rewrite.session.toolResult') }}</span>
+            </div>
             <div class="header-right">
               <Button
                 icon="fa-trash"
@@ -364,7 +392,10 @@ onUnmounted(() => {
                 :title="t('extensionsBuiltin.rewrite.session.deleteFromHere')"
                 @click.stop="handleDelete(msg.id)"
               />
-              <i class="fa-solid" :class="isToolCollapsed(msg.id) ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+              <i
+                class="fa-solid collapse-icon"
+                :class="isToolCollapsed(msg.id) ? 'fa-chevron-down' : 'fa-chevron-up'"
+              ></i>
             </div>
           </div>
           <div v-if="!isToolCollapsed(msg.id)" class="tool-content">
@@ -373,7 +404,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Assistant Message -->
-        <div v-if="msg.role === 'assistant'" class="assistant-message">
+        <div v-if="msg.role === 'assistant'" class="assistant-message-inner">
           <div v-if="hasMessageJustification(msg)" class="assistant-content-wrapper">
             <div class="justification-content">
               {{ (getMessageContent(msg) as RewriteLLMResponse).justification }}
@@ -397,8 +428,29 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div v-if="hasToolCalls(msg)" class="tool-calls-indicator">
-            <i class="fa-solid fa-wrench"></i> Tool calls executed
+          <div v-if="hasToolCalls(msg)" class="tool-calls-section">
+            <div class="tool-calls-header" @click="toggleAssistantToolCollapse(msg.id)">
+              <i class="fa-solid fa-wrench"></i>
+              <span>{{
+                t('extensionsBuiltin.rewrite.session.toolCalls', {
+                  count: (getMessageContent(msg) as RewriteLLMResponse).toolCalls!.length,
+                })
+              }}</span>
+              <i
+                class="fa-solid collapse-icon"
+                :class="isAssistantToolCollapsed(msg.id) ? 'fa-chevron-down' : 'fa-chevron-up'"
+              ></i>
+            </div>
+            <div v-if="!isAssistantToolCollapsed(msg.id)" class="tool-calls-content">
+              <div
+                v-for="toolCall in (getMessageContent(msg) as RewriteLLMResponse).toolCalls"
+                :key="toolCall.name"
+                class="tool-call-item"
+              >
+                <div class="tool-call-name">{{ toolCall.name }}</div>
+                <pre class="tool-call-args">{{ toolCall.arguments }}</pre>
+              </div>
+            </div>
           </div>
 
           <!-- Message Controls -->
@@ -528,12 +580,12 @@ onUnmounted(() => {
   position: relative;
   max-width: 90%;
   border-radius: var(--base-border-radius);
-  padding: 10px;
 
   &.role-user {
     align-self: flex-end;
     background-color: var(--theme-user-message-tint);
     flex-direction: column;
+    padding: 10px;
   }
 
   &.role-assistant {
@@ -542,7 +594,6 @@ onUnmounted(() => {
     flex-direction: column;
     width: 100%;
     max-width: 100%;
-    padding: 0;
   }
 
   &.role-system {
@@ -552,9 +603,24 @@ onUnmounted(() => {
     width: 100%;
     max-width: 100%;
     flex-direction: column;
-    padding: 0;
     overflow: hidden;
   }
+
+  &.role-tool {
+    align-self: flex-start;
+    width: calc(100% - 20px);
+    margin-left: 20px;
+    background-color: var(--black-30a);
+    font-size: 0.85em;
+    flex-direction: column;
+    border: 1px solid var(--theme-border-color);
+    border-left: 3px solid var(--theme-emphasis-color);
+    overflow: hidden;
+  }
+}
+
+.collapse-icon {
+  opacity: 0.7;
 }
 
 /* System Message Styles */
@@ -580,7 +646,8 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.edit-btn-header {
+.edit-btn-header,
+.delete-btn-header {
   padding: 2px 6px;
   height: auto;
   font-size: 0.9em;
@@ -674,6 +741,7 @@ pre {
 .assistant-content-wrapper {
   padding: 10px;
 }
+
 .justification-content {
   white-space: pre-wrap;
   word-break: break-word;
@@ -743,16 +811,89 @@ pre {
   flex: 1;
 }
 
-.tool-calls-indicator {
+/* Tool Message Styles */
+.tool-header {
+  padding: 8px 10px;
+  background-color: var(--white-10a);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.tool-header-left {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+  gap: 8px;
+
+  i {
+    opacity: 0.7;
+  }
+}
+
+.tool-content {
+  padding: 10px;
+  background-color: var(--black-10a);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Tool Calls in Assistant Message */
+.tool-calls-section {
+  border-top: 1px solid var(--theme-border-color);
+  margin-top: 10px;
+  padding-top: 10px;
   background-color: var(--black-20a);
-  border-radius: var(--base-border-radius);
+}
+
+.tool-calls-header {
+  padding: 0 10px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9em;
+
+  .collapse-icon {
+    margin-left: auto;
+  }
+}
+
+.tool-calls-content {
+  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool-call-item {
+  background-color: var(--black-20a);
+  border-radius: var(--base-border-radius-xs);
+  border: 1px solid var(--theme-border-color);
+  overflow: hidden;
+}
+
+.tool-call-name {
+  padding: 4px 8px;
+  font-family: var(--font-family-mono);
   font-size: 0.85em;
-  color: var(--theme-emphasis-color);
-  margin-top: 5px;
+  background-color: var(--white-10a);
+  font-weight: 600;
+}
+
+.tool-call-args {
+  padding: 8px;
+  font-size: 0.8em;
+  max-height: 150px;
+  overflow-y: auto;
 }
 
 .generating-status {

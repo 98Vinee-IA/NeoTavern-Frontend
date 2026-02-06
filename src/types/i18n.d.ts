@@ -1439,6 +1439,7 @@ export interface MessageSchema {
         newSession: string;
         systemInstruction: string;
         toolResult: string;
+        toolCalls: string;
         deleteConfirm: string;
       };
       buttons: {
