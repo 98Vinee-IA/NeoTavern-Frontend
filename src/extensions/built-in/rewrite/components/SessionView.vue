@@ -81,9 +81,32 @@ function getMessageContent(msg: RewriteSessionMessage): RewriteLLMResponse | str
   }
 }
 
-function getChangesFromMessage(msg: RewriteSessionMessage): FieldChange[] {
+function getChangesFromMessage(msg: RewriteSessionMessage, msgIndex: number): FieldChange[] {
   const content = getMessageContent(msg);
   if (typeof content === 'string' || !content) return [];
+
+  // Get the state before this assistant message
+  const previousState = new Map<string, string>();
+  props.initialFields.forEach((field) => {
+    previousState.set(field.id, field.value);
+  });
+
+  // Apply changes from all previous assistant messages
+  for (let i = 0; i < msgIndex; i++) {
+    const prevMsg = props.messages[i];
+    if (prevMsg.role !== 'assistant') continue;
+    const prevContent = getMessageContent(prevMsg);
+    if (typeof prevContent === 'string' || !prevContent) continue;
+
+    if (prevContent.changes) {
+      prevContent.changes.forEach((change) => {
+        previousState.set(change.fieldId, change.newValue);
+      });
+    } else if (prevContent.response && props.initialFields.length > 0) {
+      const field = props.initialFields[0];
+      previousState.set(field.id, prevContent.response);
+    }
+  }
 
   const initialFieldsMap = new Map(props.initialFields.map((f) => [f.id, f]));
 
@@ -93,7 +116,7 @@ function getChangesFromMessage(msg: RewriteSessionMessage): FieldChange[] {
       return {
         ...c,
         label: field?.label || c.fieldId,
-        oldValue: field?.value || '',
+        oldValue: previousState.get(c.fieldId) || '',
       };
     });
   }
@@ -103,7 +126,7 @@ function getChangesFromMessage(msg: RewriteSessionMessage): FieldChange[] {
       {
         fieldId: field.id,
         label: field.label,
-        oldValue: field.value,
+        oldValue: previousState.get(field.id) || '',
         newValue: content.response,
       },
     ];
@@ -146,7 +169,7 @@ async function handleDelete(msgId: string) {
 <template>
   <div class="session-view">
     <div ref="chatContainer" class="chat-container">
-      <div v-for="msg in messages" :key="msg.id" class="message" :class="`role-${msg.role}`">
+      <div v-for="(msg, index) in messages" :key="msg.id" class="message" :class="`role-${msg.role}`">
         <!-- System Message -->
         <div v-if="msg.role === 'system'" class="system-message">
           <div class="system-header" @click="toggleSystemCollapse">
@@ -208,7 +231,7 @@ async function handleDelete(msgId: string) {
               {{ (getMessageContent(msg) as RewriteLLMResponse).justification }}
             </div>
             <div class="changes-proposal">
-              <div v-for="change in getChangesFromMessage(msg)" :key="change.fieldId" class="change-card">
+              <div v-for="change in getChangesFromMessage(msg, index)" :key="change.fieldId" class="change-card">
                 <div class="change-header">
                   <strong class="change-label">{{ change.label }}</strong>
                   <div class="spacer"></div>
@@ -216,7 +239,7 @@ async function handleDelete(msgId: string) {
                     icon="fa-code-compare"
                     variant="ghost"
                     :title="t('extensionsBuiltin.rewrite.popup.showDiff')"
-                    @click="emit('show-diff', getChangesFromMessage(msg))"
+                    @click="emit('show-diff', getChangesFromMessage(msg, index))"
                   />
                 </div>
                 <div class="change-preview">

@@ -42,40 +42,70 @@ export function useRewriteSessions(api: ExtensionAPI<RewriteSettings>) {
     if (!activeSession.value || activeSession.value.messages.length === 0) return [];
 
     const messages = activeSession.value.messages;
+    let latestAssistantIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
-      if (msg.role !== 'assistant') continue;
-
-      const content = msg.content as RewriteLLMResponse;
-      if (!content) continue;
-
-      const initialFieldsMap = new Map(activeSession.value.initialFields.map((f) => [f.id, f]));
-
-      // Handle multi-field changes
-      if (content.changes && content.changes.length > 0) {
-        return content.changes.map((change) => {
-          const initialField = initialFieldsMap.get(change.fieldId);
-          return {
-            ...change,
-            label: initialField?.label || change.fieldId,
-            oldValue: initialField?.value || '',
-          };
-        });
+      if (msg.role === 'assistant') {
+        latestAssistantIndex = i;
+        break;
       }
+    }
+    if (latestAssistantIndex === -1) return [];
 
-      // Handle single-field response (backward compatibility)
-      if (content.response) {
+    const latestMsg = messages[latestAssistantIndex];
+    const content = latestMsg.content as RewriteLLMResponse;
+    if (!content) return [];
+
+    // Get the state before this assistant message
+    const previousState = new Map<string, string>();
+    activeSession.value.initialFields.forEach((field) => {
+      previousState.set(field.id, field.value);
+    });
+
+    // Apply changes from all previous assistant messages
+    for (let i = 0; i < latestAssistantIndex; i++) {
+      const msg = messages[i];
+      if (msg.role !== 'assistant') continue;
+      const msgContent = msg.content as RewriteLLMResponse;
+      if (msgContent?.changes) {
+        msgContent.changes.forEach((change) => {
+          previousState.set(change.fieldId, change.newValue);
+        });
+      } else if (msgContent?.response) {
+        // Backward compatibility for single-field
         const primaryField = activeSession.value.initialFields[0];
         if (primaryField) {
-          return [
-            {
-              fieldId: primaryField.id,
-              label: primaryField.label,
-              oldValue: primaryField.value,
-              newValue: content.response,
-            },
-          ];
+          previousState.set(primaryField.id, msgContent.response);
         }
+      }
+    }
+
+    const initialFieldsMap = new Map(activeSession.value.initialFields.map((f) => [f.id, f]));
+
+    // Handle multi-field changes
+    if (content.changes && content.changes.length > 0) {
+      return content.changes.map((change) => {
+        const initialField = initialFieldsMap.get(change.fieldId);
+        return {
+          ...change,
+          label: initialField?.label || change.fieldId,
+          oldValue: previousState.get(change.fieldId) || '',
+        };
+      });
+    }
+
+    // Handle single-field response (backward compatibility)
+    if (content.response) {
+      const primaryField = activeSession.value.initialFields[0];
+      if (primaryField) {
+        return [
+          {
+            fieldId: primaryField.id,
+            label: primaryField.label,
+            oldValue: previousState.get(primaryField.id) || '',
+            newValue: content.response,
+          },
+        ];
       }
     }
     return [];
