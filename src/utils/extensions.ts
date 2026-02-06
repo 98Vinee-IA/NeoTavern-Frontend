@@ -396,23 +396,23 @@ const baseExtensionAPI: ExtensionAPI = {
       const chatMetadata = options?.chatMetadata ?? chatStore.activeChat?.metadata;
       const persona = options?.persona ?? personaStore.activePersona;
       if (chatHistory.length === 0) throw new Error('Chat history is empty.');
-      if (!chatMetadata) throw new Error('No chat metadata available.');
       if (!persona) throw new Error('No active persona.');
 
       // Determine the character context
       let contextCharacters: Character[] = options?.characters || [];
 
       if (!options?.characters) {
-        const activeCharacter = characterStore.activeCharacters[0];
-        if (!activeCharacter) throw new Error('No active character.');
+        const activeCharacter =
+          characterStore.activeCharacters.length > 0 ? characterStore.activeCharacters[0] : undefined;
+        if (activeCharacter) {
+          contextCharacters = [activeCharacter];
 
-        contextCharacters = [activeCharacter];
-
-        await eventEmitter.emit(
-          'generation:resolve-context',
-          { characters: contextCharacters },
-          { generationId: options?.generationId },
-        );
+          await eventEmitter.emit(
+            'generation:resolve-context',
+            { characters: contextCharacters },
+            { generationId: options?.generationId },
+          );
+        }
       }
 
       const tokenizer =
@@ -488,10 +488,14 @@ const baseExtensionAPI: ExtensionAPI = {
         if (fullWiText) wiTokens = await countTokens(fullWiText, tokenizer);
       }
 
-      const charDesc = await countTokens(contextCharacters[0].description || '', tokenizer);
-      const charPers = await countTokens(contextCharacters[0].personality || '', tokenizer);
-      const charScen = await countTokens(contextCharacters[0].scenario || '', tokenizer);
-      const charEx = await countTokens(contextCharacters[0].mes_example || '', tokenizer);
+      const charDesc =
+        contextCharacters.length > 0 ? await countTokens(contextCharacters[0].description || '', tokenizer) : 0;
+      const charPers =
+        contextCharacters.length > 0 ? await countTokens(contextCharacters[0].personality || '', tokenizer) : 0;
+      const charScen =
+        contextCharacters.length > 0 ? await countTokens(contextCharacters[0].scenario || '', tokenizer) : 0;
+      const charEx =
+        contextCharacters.length > 0 ? await countTokens(contextCharacters[0].mes_example || '', tokenizer) : 0;
       const personaDesc = await countTokens(persona.description || '', tokenizer);
 
       const breakdown: PromptTokenBreakdown = {
@@ -524,7 +528,7 @@ const baseExtensionAPI: ExtensionAPI = {
         model: apiStore.activeModel,
         api: settingsStore.settings.api.provider,
         tokenizer: settingsStore.settings.api.tokenizer,
-        presetName: chatMetadata.connection_profile || settingsStore.settings.api.selectedSampler || 'Default',
+        presetName: chatMetadata?.connection_profile || settingsStore.settings.api.selectedSampler || 'Default',
         messages,
         breakdown,
         timestamp: Date.now(),

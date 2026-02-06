@@ -26,8 +26,8 @@ import { WorldInfoProcessor } from './world-info';
 
 export class PromptBuilder {
   public characters: Character[];
-  public character: Character;
-  public chatMetadata: ChatMetadata;
+  public character?: Character;
+  public chatMetadata?: ChatMetadata;
   public chatHistory: ChatMessage[];
   public samplerSettings: SamplerSettings;
   public persona: Persona;
@@ -70,7 +70,7 @@ export class PromptBuilder {
     structuredResponse,
   }: PromptBuilderOptions) {
     this.characters = characters;
-    this.character = characters[0];
+    this.character = characters.length > 0 ? characters[0] : undefined;
     this.chatMetadata = chatMetadata;
     this.chatHistory =
       Array.isArray(chatHistory) && chatHistory.length > 0 && 'role' in chatHistory[0]
@@ -92,7 +92,7 @@ export class PromptBuilder {
    * Helper to process a specific field for all characters in the context.
    * Replaces macros using each character as the specific 'activeCharacter' context.
    */
-  private getProcessedContent(fieldGetter: (char: Character) => string | undefined): string {
+  private getProcessedContent(fieldGetter: (char?: Character) => string | undefined): string {
     // If multiple characters are in context, process all of them
     if (this.characters.length > 1) {
       return this.characters
@@ -235,7 +235,7 @@ export class PromptBuilder {
       name: 'system',
     };
 
-    const isGroupContext = (this.chatMetadata.members?.length ?? 0) > 1;
+    const isGroupContext = (this.chatMetadata?.members?.length ?? 0) > 1;
 
     for (const promptDefinition of enabledPrompts) {
       const role = promptDefinition.role ?? 'system';
@@ -243,7 +243,7 @@ export class PromptBuilder {
         role === 'user'
           ? this.persona.name || 'User'
           : role === 'assistant'
-            ? this.character.name || 'Character'
+            ? this.character?.name || 'Character'
             : 'System';
       if (promptDefinition.marker) {
         switch (promptDefinition.identifier) {
@@ -252,24 +252,24 @@ export class PromptBuilder {
             break;
           }
           case 'charDescription': {
-            const content = this.getProcessedContent((c) => c.description);
+            const content = this.getProcessedContent((c) => c?.description);
             if (content) fixedPrompts.push({ role, content, name });
             break;
           }
           case 'charPersonality': {
-            const content = this.getProcessedContent((c) => c.personality);
+            const content = this.getProcessedContent((c) => c?.personality);
             if (content) fixedPrompts.push({ role, content, name });
             break;
           }
           case 'scenario': {
             let content = '';
-            if (this.chatMetadata.promptOverrides?.scenario) {
+            if (this.chatMetadata?.promptOverrides?.scenario) {
               content = macroService.process(this.chatMetadata.promptOverrides.scenario, {
                 characters: this.characters,
                 persona: this.persona,
               });
             } else {
-              content = this.getProcessedContent((c) => c.scenario);
+              content = this.getProcessedContent((c) => c?.scenario);
             }
             if (content) fixedPrompts.push({ role, content, name });
             break;
@@ -281,7 +281,7 @@ export class PromptBuilder {
               }
             }
 
-            const content = this.getProcessedContent((c) => c.mes_example);
+            const content = this.getProcessedContent((c) => c?.mes_example);
             const formattedContent = content.split('\n').join('\n\n');
             if (content) fixedPrompts.push({ role, content: formattedContent, name });
 
@@ -310,7 +310,7 @@ export class PromptBuilder {
             break;
           }
           case 'jailbreak': {
-            const content = this.getProcessedContent((c) => c.data?.post_history_instructions);
+            const content = this.getProcessedContent((c) => c?.data?.post_history_instructions);
             if (content) fixedPrompts.push({ role, content, name });
             break;
           }

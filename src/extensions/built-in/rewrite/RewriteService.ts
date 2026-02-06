@@ -34,6 +34,7 @@ export class RewriteService {
       lastUsedTemplates: {},
       templateOverrides: {},
       defaultConnectionProfile: '',
+      disabledTools: [],
     };
     const current = this.api.settings.get() || defaults;
     return current;
@@ -198,7 +199,7 @@ export class RewriteService {
         content = JSON.stringify(content);
       }
       return {
-        role: m.role,
+        role: m.role === 'tool' ? 'user' : m.role,
         content: content as string,
         name: m.role === 'user' ? 'User' : 'Assistant',
       };
@@ -277,7 +278,8 @@ export class RewriteService {
     }
 
     // Inject active tools into the prompt
-    const tools = ToolService.getTools();
+    const disabledTools = this.getSettings().disabledTools || [];
+    const tools = ToolService.getTools().filter((tool) => !disabledTools.includes(tool.function.name));
     if (tools.length > 0) {
       apiMessages.unshift({
         role: 'system',

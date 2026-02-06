@@ -1435,6 +1435,7 @@
         "selectSession": "Select or create a session to start.",
         "newSession": "New Session",
         "systemInstruction": "System Instruction",
+        "toolResult": "Tool Result",
         "deleteConfirm": "Are you sure you want to delete this message? This will also delete all subsequent messages in this session."
       },
       "buttons": {

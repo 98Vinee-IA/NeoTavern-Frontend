@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
-import { Button, Textarea } from '../../../../components/UI';
+import { autoUpdate, flip, offset, shift, useFloating, type Placement } from '@floating-ui/vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { Button, Checkbox, Textarea } from '../../../../components/UI';
 import { useStrictI18n } from '../../../../composables/useStrictI18n';
+import { useToolStore } from '../../../../stores/tool.store';
 import { POPUP_RESULT, POPUP_TYPE, type ExtensionAPI } from '../../../../types';
 import type { FieldChange, RewriteField, RewriteLLMResponse, RewriteSessionMessage, RewriteSettings } from '../types';
 
@@ -23,8 +25,19 @@ const emit = defineEmits<{
 
 const { t } = useStrictI18n();
 
+const toolStore = useToolStore();
+
 const userInput = ref('');
 const chatContainer = ref<HTMLElement | null>(null);
+
+// Tools Menu
+const isToolsMenuVisible = ref(false);
+const toolsMenuRef = ref<HTMLElement | null>(null);
+const toolsMenuTriggerEl = ref<HTMLElement | null>(null);
+const toolsMenuPlacement = ref<Placement>('top');
+const toolsMenuAnchor = ref({
+  getBoundingClientRect: () => new DOMRect(),
+});
 
 // Editing State
 const editingMessageId = ref<string | null>(null);
@@ -36,6 +49,70 @@ const isSystemCollapsed = ref(true);
 function toggleSystemCollapse() {
   isSystemCollapsed.value = !isSystemCollapsed.value;
 }
+
+// Tool Message Collapsing Logic
+const collapsedToolMessages = ref<Set<string>>(new Set());
+
+function toggleToolCollapse(msgId: string) {
+  if (collapsedToolMessages.value.has(msgId)) {
+    collapsedToolMessages.value.delete(msgId);
+  } else {
+    collapsedToolMessages.value.add(msgId);
+  }
+  collapsedToolMessages.value = new Set(collapsedToolMessages.value); // Trigger reactivity
+}
+
+function openToolsMenu(event: Event) {
+  const target = event.currentTarget as HTMLElement | null;
+  if (!target) return;
+
+  // If clicking the same element that opened the menu, close it.
+  if (isToolsMenuVisible.value && toolsMenuTriggerEl.value === target) {
+    isToolsMenuVisible.value = false;
+    toolsMenuTriggerEl.value = null;
+    return;
+  }
+
+  // Determine the anchor element and placement for positioning.
+  const anchorElement = target;
+
+  if (anchorElement) {
+    // Set placement based on context
+    toolsMenuPlacement.value = 'top';
+
+    // Set up the virtual anchor based on the chosen element's position.
+    toolsMenuAnchor.value = {
+      getBoundingClientRect: () => anchorElement.getBoundingClientRect(),
+    };
+    toolsMenuTriggerEl.value = target; // Still track original trigger for closing logic.
+    isToolsMenuVisible.value = true;
+  }
+}
+
+function isToolCollapsed(msgId: string) {
+  return collapsedToolMessages.value.has(msgId);
+}
+
+function toggleTool(toolName: string) {
+  const settings = props.api.settings.get();
+  const disabledTools = settings.disabledTools || [];
+  const index = disabledTools.indexOf(toolName);
+  if (index > -1) {
+    disabledTools.splice(index, 1);
+  } else {
+    disabledTools.push(toolName);
+  }
+  settings.disabledTools = disabledTools;
+  props.api.settings.set(undefined, settings);
+  props.api.settings.save();
+}
+
+const { floatingStyles: toolsMenuStyles } = useFloating(toolsMenuAnchor, toolsMenuRef, {
+  placement: toolsMenuPlacement,
+  open: isToolsMenuVisible,
+  whileElementsMounted: autoUpdate,
+  middleware: [offset(8), flip(), shift({ padding: 10 })],
+});
 
 const systemMessageContent = computed(() => {
   const sysMsg = props.messages.find((m) => m.role === 'system');
@@ -58,6 +135,12 @@ watch(
         chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
       }
     });
+    props.messages.forEach((msg) => {
+      if (msg.role === 'tool') {
+        collapsedToolMessages.value.add(msg.id);
+      }
+    });
+    collapsedToolMessages.value = new Set(collapsedToolMessages.value);
   },
   { deep: true, immediate: true },
 );
@@ -67,6 +150,17 @@ function handleSend() {
     emit('send', userInput.value.trim());
     userInput.value = '';
   }
+}
+
+function hasMessageJustification(msg: RewriteSessionMessage): boolean {
+  const content = getMessageContent(msg);
+  return (
+    typeof content === 'object' &&
+    content &&
+    'justification' in content &&
+    typeof (content as RewriteLLMResponse).justification === 'string' &&
+    ((content as RewriteLLMResponse).justification || '').trim() !== ''
+  );
 }
 
 function getMessageContent(msg: RewriteSessionMessage): RewriteLLMResponse | string {
@@ -79,6 +173,17 @@ function getMessageContent(msg: RewriteSessionMessage): RewriteLLMResponse | str
   } catch {
     return msg.content as string;
   }
+}
+
+function hasToolCalls(msg: RewriteSessionMessage): boolean {
+  const content = getMessageContent(msg);
+  return (
+    typeof content === 'object' &&
+    content &&
+    'toolCalls' in content &&
+    Array.isArray((content as RewriteLLMResponse).toolCalls) &&
+    (content as RewriteLLMResponse).toolCalls!.length > 0
+  );
 }
 
 function getChangesFromMessage(msg: RewriteSessionMessage, msgIndex: number): FieldChange[] {
@@ -164,6 +269,29 @@ async function handleDelete(msgId: string) {
     emit('delete-from', msgId);
   }
 }
+
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as HTMLElement;
+
+  // Close Tools Menu
+  if (isToolsMenuVisible.value) {
+    const isInsideToolsMenu = toolsMenuRef.value?.contains(target);
+    const isInsideAnchor = toolsMenuTriggerEl.value?.contains(target);
+
+    if (!isInsideToolsMenu && !isInsideAnchor) {
+      isToolsMenuVisible.value = false;
+      toolsMenuTriggerEl.value = null;
+    }
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <template>
@@ -224,9 +352,29 @@ async function handleDelete(msgId: string) {
           </div>
         </div>
 
+        <!-- Tool Message -->
+        <div v-if="msg.role === 'tool'" class="tool-message">
+          <div class="tool-header" @click="toggleToolCollapse(msg.id)">
+            <span class="tool-label">{{ t('extensionsBuiltin.rewrite.session.toolResult') }}</span>
+            <div class="header-right">
+              <Button
+                icon="fa-trash"
+                variant="ghost"
+                class="delete-btn-header"
+                :title="t('extensionsBuiltin.rewrite.session.deleteFromHere')"
+                @click.stop="handleDelete(msg.id)"
+              />
+              <i class="fa-solid" :class="isToolCollapsed(msg.id) ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+            </div>
+          </div>
+          <div v-if="!isToolCollapsed(msg.id)" class="tool-content">
+            <pre>{{ msg.content as string }}</pre>
+          </div>
+        </div>
+
         <!-- Assistant Message -->
         <div v-if="msg.role === 'assistant'" class="assistant-message">
-          <div class="assistant-content-wrapper">
+          <div v-if="hasMessageJustification(msg)" class="assistant-content-wrapper">
             <div class="justification-content">
               {{ (getMessageContent(msg) as RewriteLLMResponse).justification }}
             </div>
@@ -247,6 +395,10 @@ async function handleDelete(msgId: string) {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div v-if="hasToolCalls(msg)" class="tool-calls-indicator">
+            <i class="fa-solid fa-wrench"></i> Tool calls executed
           </div>
 
           <!-- Message Controls -->
@@ -275,6 +427,46 @@ async function handleDelete(msgId: string) {
       </Button>
     </div>
 
+    <!-- Tools Menu Popover -->
+    <div
+      v-show="isToolsMenuVisible"
+      ref="toolsMenuRef"
+      class="tools-menu"
+      :style="toolsMenuStyles"
+      role="dialog"
+      :aria-label="t('chat.tools.title')"
+    >
+      <div v-if="toolStore.toolList.length === 0" class="empty-state">
+        {{ t('chat.tools.noTools') }}
+      </div>
+      <div v-else class="tools-list">
+        <div
+          v-for="tool in toolStore.toolList"
+          :key="tool.name"
+          class="tool-item"
+          role="button"
+          tabindex="0"
+          :aria-pressed="!api.settings.get().disabledTools.includes(tool.name)"
+          @click="toggleTool(tool.name)"
+          @keydown.enter.prevent="toggleTool(tool.name)"
+          @keydown.space.prevent="toggleTool(tool.name)"
+        >
+          <div class="tool-item-checkbox">
+            <Checkbox :model-value="!api.settings.get().disabledTools.includes(tool.name)" label="" />
+          </div>
+          <div class="tool-item-content">
+            <div class="tool-item-header">
+              <i v-if="tool.icon" :class="['tool-item-icon', tool.icon]"></i>
+              <span class="tool-item-title">{{ tool.displayName || tool.name }}</span>
+            </div>
+            <div class="tool-item-description">
+              {{ tool.description }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="chat-input-area">
       <div class="chat-input-toolbar">
         <Button
@@ -294,6 +486,13 @@ async function handleDelete(msgId: string) {
           :rows="2"
           :disabled="isGenerating"
           @keydown.enter.exact.prevent="handleSend"
+        />
+        <Button
+          v-if="toolStore.toolList.length > 0"
+          icon="fa-screwdriver-wrench"
+          variant="ghost"
+          :title="t('chat.tools.title')"
+          @click="openToolsMenu"
         />
         <Button icon="fa-paper-plane" :disabled="isGenerating || !userInput.trim()" @click="handleSend" />
       </div>
@@ -542,6 +741,18 @@ pre {
 
 .spacer {
   flex: 1;
+}
+
+.tool-calls-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background-color: var(--black-20a);
+  border-radius: var(--base-border-radius);
+  font-size: 0.85em;
+  color: var(--theme-emphasis-color);
+  margin-top: 5px;
 }
 
 .generating-status {

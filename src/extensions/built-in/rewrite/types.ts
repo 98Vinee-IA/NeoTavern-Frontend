@@ -1,4 +1,4 @@
-import type { MessageRole, StrictOmitString } from '../../../types';
+import type { MessageRole } from '../../../types';
 
 export interface RewriteField {
   id: string; // e.g., 'character.description' or 'world_info.entry.content'
@@ -26,9 +26,10 @@ export interface RewriteLLMResponse {
 
 export interface RewriteSessionMessage {
   id: string;
-  role: StrictOmitString<MessageRole, 'tool'>;
+  role: MessageRole;
   content: string | RewriteLLMResponse;
   timestamp: number;
+  isToolResult?: boolean;
 }
 
 export interface RewriteSession {
@@ -84,6 +85,9 @@ export interface RewriteSettings {
 
   // Map of Template ID -> Override settings
   templateOverrides: Record<string, RewriteTemplateOverride>;
+
+  // Disabled tools for rewrite sessions
+  disabledTools: string[];
 }
 
 // --- Default Templates Definition ---

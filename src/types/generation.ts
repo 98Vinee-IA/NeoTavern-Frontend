@@ -316,7 +316,7 @@ export type GenerationContext = {
 export type PromptBuilderOptions = {
   generationId: string;
   characters: Character[];
-  chatMetadata: ChatMetadata;
+  chatMetadata?: ChatMetadata;
   chatHistory: ChatMessage[] | ApiChatMessage[];
   worldInfo: WorldInfoSettings;
   books: WorldInfoBook[];

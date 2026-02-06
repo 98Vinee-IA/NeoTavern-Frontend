@@ -18,6 +18,7 @@ const settings = ref<RewriteSettings>({
   defaultConnectionProfile: '',
   lastUsedTemplates: {},
   templateOverrides: {},
+  disabledTools: [],
 });
 const isSidebarCollapsed = ref(false);
 
@@ -33,6 +34,7 @@ onMounted(() => {
     // Ensure maps exist
     if (!saved.lastUsedTemplates) saved.lastUsedTemplates = {};
     if (!saved.templateOverrides) saved.templateOverrides = {};
+    if (!saved.disabledTools) saved.disabledTools = [];
 
     settings.value = saved;
   }

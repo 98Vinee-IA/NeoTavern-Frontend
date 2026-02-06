@@ -1438,6 +1438,7 @@ export interface MessageSchema {
         selectSession: string;
         newSession: string;
         systemInstruction: string;
+        toolResult: string;
         deleteConfirm: string;
       };
       buttons: {

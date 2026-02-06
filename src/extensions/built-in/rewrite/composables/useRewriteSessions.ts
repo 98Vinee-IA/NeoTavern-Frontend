@@ -214,28 +214,36 @@ export function useRewriteSessions(api: ExtensionAPI<RewriteSettings>) {
         await service.saveSession(deepToRaw(activeSession.value));
 
         if (response.toolCalls && response.toolCalls.length > 0) {
-          // Create fake tool_calls
-          const fakeToolCalls = response.toolCalls.map((tc) => ({
-            id: api.uuid(),
-            type: 'function' as const,
-            function: {
-              name: tc.name,
-              arguments: JSON.stringify(tc.arguments),
-            },
-          }));
-          // Process them
+          const disabledTools = api.settings.get().disabledTools || [];
+          const fakeToolCalls = response.toolCalls
+            .filter((tc) => !disabledTools.includes(tc.name))
+            .map((tc) => ({
+              id: api.uuid(),
+              type: 'function' as const,
+              function: {
+                name: tc.name,
+                arguments: JSON.stringify(tc.arguments),
+              },
+            }));
           const { invocations, errors } = await ToolService.processToolCalls(fakeToolCalls);
 
           if (errors.length > 0) {
             console.warn('Tool call errors:', errors);
           }
 
-          // Add tool result messages
           for (const inv of invocations) {
             activeSession.value.messages.push({
               id: api.uuid(),
-              role: 'user',
-              content: inv.result, // TODO: We should able to collapse this in the UI
+              role: 'tool',
+              content: inv.result,
+              timestamp: Date.now(),
+            });
+          }
+          for (const error of errors) {
+            activeSession.value.messages.push({
+              id: api.uuid(),
+              role: 'tool',
+              content: error.message,
               timestamp: Date.now(),
             });
           }
@@ -243,7 +251,7 @@ export function useRewriteSessions(api: ExtensionAPI<RewriteSettings>) {
           await service.saveSession(deepToRaw(activeSession.value));
           iterations++;
         } else {
-          break; // No more tool calls
+          break;
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
