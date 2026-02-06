@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, isProxy, isReactive, isRef, markRaw, onMounted, ref, toRaw, watch } from 'vue';
-import { ConnectionProfileSelector, SplitPane } from '../../../components/common';
-import { Button, Checkbox, CollapsibleSection, FormItem, Input, Select, Tabs, Textarea } from '../../../components/UI';
+import { ConnectionProfileSelector } from '../../../components/common';
+import { FormItem, Select, Tabs } from '../../../components/UI';
 import type { Character, ExtensionAPI, Persona, WorldInfoBook, WorldInfoHeader } from '../../../types';
+import ContextPromptSection from './components/ContextPromptSection.vue';
+import OneShotTab from './components/OneShotTab.vue';
 import RewriteView from './components/RewriteView.vue';
-import SessionManager from './components/SessionManager.vue';
-import SessionView from './components/SessionView.vue';
+import SessionTab from './components/SessionTab.vue';
 import { RewriteService } from './RewriteService';
 import {
   DEFAULT_TEMPLATES,
@@ -54,7 +55,6 @@ const selectedContextLorebooks = ref<string[]>([]);
 const selectedContextEntries = ref<Record<string, number[]>>({});
 const selectedContextCharacters = ref<string[]>([]);
 
-const isSidebarCollapsed = ref(false);
 const isCharacterContextOpen = ref(false);
 const isWorldInfoContextOpen = ref(false);
 
@@ -183,18 +183,6 @@ const templateOptions = computed(() => {
 
 const currentTemplate = computed(() => settings.value.templates.find((t) => t.id === selectedTemplateId.value));
 
-const showWorldInfoContextSection = computed(() => {
-  const arg = currentTemplate.value?.args?.find((a) => a.key === 'includeSelectedBookContext');
-  if (!arg) return false;
-  return !!argOverrides.value['includeSelectedBookContext'];
-});
-
-const showCharacterContextSection = computed(() => {
-  const arg = currentTemplate.value?.args?.find((a) => a.key === 'includeSelectedCharacters');
-  if (!arg) return false;
-  return !!argOverrides.value['includeSelectedCharacters'];
-});
-
 const canResetPrompt = computed(() => {
   if (!currentTemplate.value) return false;
   return promptOverride.value !== currentTemplate.value.prompt;
@@ -212,15 +200,6 @@ const availableCharacters = computed(() => {
   }
   return allCharacters.value.filter((c) => c.avatar !== excludeAvatar).map((c) => ({ label: c.name, value: c.avatar }));
 });
-
-function getEntriesForBook(bookName: string) {
-  const book = bookCache.value[bookName];
-  if (!book) return [];
-  return book.entries.map((e) => ({
-    label: `${e.uid}: ${e.comment || '(No Title)'}`,
-    value: e.uid,
-  }));
-}
 
 function loadTemplateOverrides() {
   const tplId = selectedTemplateId.value;
@@ -709,126 +688,38 @@ function handleGeneralDiff() {
       </div>
     </div>
 
-    <CollapsibleSection :title="t('extensionsBuiltin.rewrite.popup.contextPrompt')" :is-open="true">
-      <!-- Dynamic Arguments -->
-      <div v-if="currentTemplate?.args && currentTemplate.args.length > 0" class="dynamic-args-grid">
-        <div v-for="arg in currentTemplate.args" :key="arg.key" class="dynamic-arg-item">
-          <Checkbox v-if="arg.type === 'boolean'" v-model="argOverrides[arg.key] as boolean" :label="arg.label" />
-          <FormItem v-else :label="arg.label">
-            <Input
-              v-model="argOverrides[arg.key] as string | number"
-              :type="arg.type === 'number' ? 'number' : 'text'"
-            />
-          </FormItem>
-        </div>
-      </div>
-
-      <div class="context-controls">
-        <div v-if="!currentTemplate?.ignoreInput && activeTab === 'one-shot'" class="escape-control">
-          <Checkbox
-            v-model="escapeMacros"
-            :label="t('extensionsBuiltin.rewrite.popup.escapeMacros')"
-            :title="t('extensionsBuiltin.rewrite.popup.escapeMacrosHint')"
-          />
-        </div>
-        <div class="flex-spacer"></div>
-        <div class="msg-count-control">
-          <span class="label">{{ t('extensionsBuiltin.rewrite.popup.contextMessages') }}</span>
-          <Input v-model="contextMessageCount" type="number" :min="0" />
-        </div>
-      </div>
-
-      <!-- Character Context -->
-      <CollapsibleSection
-        v-if="showCharacterContextSection"
-        v-model:is-open="isCharacterContextOpen"
-        class="inner-collapsible"
-        :title="t('extensionsBuiltin.rewrite.popup.relatedCharacters')"
-      >
-        <FormItem
-          :label="t('extensionsBuiltin.rewrite.popup.contextCharacters')"
-          :description="t('extensionsBuiltin.rewrite.popup.contextCharactersDesc')"
-          class="character-select"
-        >
-          <Select
-            v-model="selectedContextCharacters"
-            :options="availableCharacters"
-            multiple
-            :placeholder="t('common.select')"
-          />
-        </FormItem>
-      </CollapsibleSection>
-
-      <!-- World Info Context -->
-      <CollapsibleSection
-        v-if="showWorldInfoContextSection"
-        v-model:is-open="isWorldInfoContextOpen"
-        class="inner-collapsible"
-        :title="t('extensionsBuiltin.rewrite.popup.worldInfoContext')"
-      >
-        <div v-if="selectedEntryContext && IS_WORLD_INFO_FIELD" class="current-context-info">
-          {{ t('extensionsBuiltin.rewrite.popup.currentEntry') }}:
-          <strong>{{ selectedEntryContext.entry.comment }}</strong> (ID: {{ selectedEntryContext.entry.uid }})
-        </div>
-
-        <FormItem
-          :label="t('extensionsBuiltin.rewrite.popup.contextLorebooks')"
-          :description="t('extensionsBuiltin.rewrite.popup.contextLorebooksDesc')"
-          class="lorebook-select"
-        >
-          <Select
-            v-model="selectedContextLorebooks"
-            :options="availableLorebooks"
-            multiple
-            :placeholder="t('common.select')"
-          />
-        </FormItem>
-
-        <div v-if="selectedContextLorebooks.length > 0" class="book-entries-selection">
-          <div v-for="bookName in selectedContextLorebooks" :key="bookName" class="book-entry-row">
-            <div class="book-label">{{ bookName }}</div>
-            <div class="entries-select">
-              <Select
-                v-model="selectedContextEntries[bookName]"
-                :options="getEntriesForBook(bookName)"
-                multiple
-                :placeholder="t('extensionsBuiltin.rewrite.popup.allEntries')"
-              />
-            </div>
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      <!-- One-Shot Prompt Override -->
-      <FormItem v-if="activeTab === 'one-shot'" :label="t('extensionsBuiltin.rewrite.popup.instruction')">
-        <div class="input-with-reset">
-          <Textarea v-model="promptOverride" :rows="2" allow-maximize />
-          <Button
-            v-if="canResetPrompt"
-            class="reset-btn"
-            icon="fa-rotate-left"
-            variant="ghost"
-            :title="t('extensionsBuiltin.rewrite.settings.resetToDefault')"
-            @click="resetPrompt"
-          />
-        </div>
-      </FormItem>
-
-      <!-- Session Mode Settings -->
-      <div v-if="activeTab === 'session'" class="session-settings">
-        <FormItem :label="t('extensionsBuiltin.rewrite.popup.structuredResponseFormat')">
-          <Select
-            v-model="structuredResponseFormat"
-            :options="[
-              { label: 'Native (Structured)', value: 'native' },
-              { label: 'JSON (Structured)', value: 'json' },
-              { label: 'XML (Structured)', value: 'xml' },
-              { label: 'Raw Text (Readonly/Chat)', value: 'text' },
-            ]"
-          />
-        </FormItem>
-      </div>
-    </CollapsibleSection>
+    <ContextPromptSection
+      :api="api"
+      :active-tab="activeTab"
+      :current-template="currentTemplate"
+      :arg-overrides="argOverrides"
+      :escape-macros="escapeMacros"
+      :context-message-count="contextMessageCount"
+      :is-character-context-open="isCharacterContextOpen"
+      :is-world-info-context-open="isWorldInfoContextOpen"
+      :selected-context-characters="selectedContextCharacters"
+      :selected-context-lorebooks="selectedContextLorebooks"
+      :selected-context-entries="selectedContextEntries"
+      :available-lorebooks="availableLorebooks"
+      :available-characters="availableCharacters"
+      :selected-entry-context="selectedEntryContext"
+      :is-world-info-field="IS_WORLD_INFO_FIELD"
+      :prompt-override="promptOverride"
+      :structured-response-format="structuredResponseFormat"
+      :can-reset-prompt="canResetPrompt"
+      :book-cache="bookCache"
+      @update:arg-overrides="argOverrides = $event"
+      @update:escape-macros="escapeMacros = $event"
+      @update:context-message-count="contextMessageCount = $event"
+      @update:is-character-context-open="isCharacterContextOpen = $event"
+      @update:is-world-info-context-open="isWorldInfoContextOpen = $event"
+      @update:selected-context-characters="selectedContextCharacters = $event"
+      @update:selected-context-lorebooks="selectedContextLorebooks = $event"
+      @update:selected-context-entries="selectedContextEntries = $event"
+      @update:prompt-override="promptOverride = $event"
+      @update:structured-response-format="structuredResponseFormat = $event as StructuredResponseFormat"
+      @reset-prompt="resetPrompt"
+    />
 
     <!-- Tabs -->
     <Tabs
@@ -841,98 +732,43 @@ function handleGeneralDiff() {
 
     <div class="tab-content">
       <!-- One-Shot View -->
-      <div v-show="activeTab === 'one-shot'" class="view-container">
-        <RewriteView
-          :original-text="originalText"
-          :generated-text="oneShotGeneratedText"
-          :is-generating="isGenerating"
-          :ignore-input="!!IGNORE_INPUT"
-          @copy-output="handleCopyOutput"
-        />
-
-        <div class="actions-row">
-          <Button v-if="!isGenerating" @click="handleGenerateOneShot">
-            {{ t('extensionsBuiltin.rewrite.popup.generate') }}
-          </Button>
-          <Button v-else variant="danger" @click="handleAbort">
-            {{ t('extensionsBuiltin.rewrite.popup.abort') }}
-          </Button>
-          <div class="spacer"></div>
-          <Button variant="ghost" @click="handleCancel">{{ t('common.cancel') }}</Button>
-          <Button
-            variant="confirm"
-            :disabled="!oneShotGeneratedText || isGenerating"
-            @click="handleApply(oneShotGeneratedText)"
-            >{{ t('extensionsBuiltin.rewrite.popup.apply') }}</Button
-          >
-        </div>
-      </div>
+      <OneShotTab
+        v-show="activeTab === 'one-shot'"
+        :original-text="originalText"
+        :one-shot-generated-text="oneShotGeneratedText"
+        :is-generating="isGenerating"
+        :ignore-input="!!IGNORE_INPUT"
+        :api="api"
+        @generate="handleGenerateOneShot"
+        @abort="handleAbort"
+        @cancel="handleCancel"
+        @apply="handleApply"
+        @copy-output="handleCopyOutput"
+      />
 
       <!-- Session View -->
-      <div v-show="activeTab === 'session'" class="view-container session-mode">
-        <SplitPane v-model:collapsed="isSidebarCollapsed" :initial-width="250" :min-width="200" :max-width="400">
-          <template #side>
-            <div class="session-sidebar">
-              <SessionManager
-                :sessions="sessions"
-                :current-session-id="activeSession?.id"
-                @new-session="handleNewSession"
-                @load-session="handleLoadSession"
-                @delete-session="handleDeleteSession"
-              />
-            </div>
-          </template>
-          <template #main>
-            <div class="session-main">
-              <div v-if="activeSession" class="session-header-controls">
-                <Button
-                  icon="fa-code-compare"
-                  :title="t('extensionsBuiltin.rewrite.popup.generalDiff')"
-                  :disabled="!latestSessionText"
-                  @click="handleGeneralDiff"
-                >
-                  {{ t('extensionsBuiltin.rewrite.popup.diff') }}
-                </Button>
-              </div>
-
-              <SessionView
-                v-if="activeSession"
-                :messages="activeSession.messages"
-                :is-generating="isGenerating"
-                :current-text="originalText"
-                :api="api"
-                @send="handleSessionSend"
-                @delete-from="handleSessionDeleteFrom"
-                @edit-message="handleEditMessage"
-                @apply-text="handleApply"
-                @show-diff="handleShowDiff"
-                @abort="handleAbort"
-                @regenerate="handleRegenerate"
-              />
-              <div v-else class="empty-session-view">
-                <p>{{ t('extensionsBuiltin.rewrite.session.selectSession') }}</p>
-                <Button icon="fa-plus" @click="handleNewSession">{{
-                  t('extensionsBuiltin.rewrite.session.newSession')
-                }}</Button>
-              </div>
-
-              <!-- Footer for Session Tab -->
-              <div class="session-footer">
-                <div class="spacer"></div>
-                <Button variant="ghost" @click="handleCancel">{{ t('common.close') }}</Button>
-                <Button
-                  v-if="activeSession"
-                  variant="confirm"
-                  :disabled="!latestSessionText || isGenerating"
-                  @click="handleApplyLatestSession"
-                >
-                  {{ t('extensionsBuiltin.rewrite.popup.apply') }}
-                </Button>
-              </div>
-            </div>
-          </template>
-        </SplitPane>
-      </div>
+      <SessionTab
+        v-show="activeTab === 'session'"
+        :api="api"
+        :sessions="sessions"
+        :active-session="activeSession"
+        :is-generating="isGenerating"
+        :original-text="originalText"
+        :latest-session-text="latestSessionText"
+        @new-session="handleNewSession"
+        @load-session="handleLoadSession"
+        @delete-session="handleDeleteSession"
+        @send="handleSessionSend"
+        @delete-from="handleSessionDeleteFrom"
+        @edit-message="handleEditMessage"
+        @apply="handleApply"
+        @show-diff="handleShowDiff"
+        @abort="handleAbort"
+        @regenerate="handleRegenerate"
+        @cancel="handleCancel"
+        @apply-latest="handleApplyLatestSession"
+        @general-diff="handleGeneralDiff"
+      />
     </div>
   </div>
 </template>
@@ -950,175 +786,10 @@ function handleGeneralDiff() {
   gap: 10px;
 }
 
-.context-controls {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.dynamic-args-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 15px;
-  padding-bottom: 15px;
-  border-bottom: 1px dashed var(--theme-border-color);
-}
-
-.flex-spacer {
-  flex: 1;
-}
-
-.msg-count-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9em;
-}
-
-.escape-control {
-  display: flex;
-  align-items: center;
-}
-
-.input-with-reset {
-  position: relative;
-  display: flex;
-}
-.reset-btn {
-  margin-left: 5px;
-  height: auto;
-  align-self: flex-start;
-}
-
-.inner-collapsible {
-  margin-bottom: 15px;
-  border: 1px solid var(--theme-border-color);
-  border-radius: var(--base-border-radius);
-  padding: 5px;
-  background-color: var(--black-20a);
-}
-
-.current-context-info {
-  font-size: 0.85em;
-  opacity: 0.8;
-  margin-top: 5px;
-  margin-bottom: 10px;
-  padding: 5px;
-  border-bottom: 1px solid var(--theme-border-color);
-}
-
-.lorebook-select,
-.character-select {
-  margin-bottom: 10px;
-}
-
-.book-entries-selection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 5px;
-  border-top: 1px dashed var(--theme-border-color);
-}
-
-.book-entry-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.book-label {
-  width: 120px;
-  font-size: 0.9em;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.entries-select {
-  flex: 1;
-}
-
-.session-settings {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--theme-border-color);
-}
-
 .tab-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.view-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-  overflow: hidden;
-
-  &.session-mode {
-    flex-direction: row;
-    border: 1px solid var(--theme-border-color);
-    border-radius: var(--base-border-radius);
-    background-color: var(--black-10a);
-  }
-}
-
-.session-sidebar {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 5px;
-}
-
-.session-main {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: 10px;
-  padding: 10px;
-}
-
-.session-header-controls {
-  display: flex;
-  justify-content: flex-end;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--theme-border-color);
-}
-
-.session-footer {
-  display: flex;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-.empty-session-view {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  opacity: 0.6;
-  border: 1px dashed var(--theme-border-color);
-  border-radius: var(--base-border-radius);
-}
-
-.actions-row {
-  display: flex;
-  gap: 10px;
-  margin-top: auto;
-}
-
-.spacer {
-  flex: 1;
 }
 </style>
