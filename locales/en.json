@@ -566,6 +566,7 @@
     "default": "Default",
     "welcome": "Welcome",
     "back": "Back",
+    "preview": "Preview",
     "login": "Login",
     "copy": "Copy",
     "regenerate": "Regenerate",
@@ -789,6 +790,7 @@
       "placeholderButton": "Create New Character"
     },
     "tags": {
+      "tagName": "Name",
       "manage": "Manage Tags",
       "managerTitle": "Custom Tag Manager",
       "existing": "Existing Tags",

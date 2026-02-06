@@ -569,6 +569,7 @@ export interface MessageSchema {
     default: string;
     welcome: string;
     back: string;
+    preview: string;
     login: string;
     copy: string;
     regenerate: string;
@@ -792,6 +793,7 @@ export interface MessageSchema {
       placeholderButton: string;
     };
     tags: {
+      tagName: string;
       manage: string;
       managerTitle: string;
       existing: string;
