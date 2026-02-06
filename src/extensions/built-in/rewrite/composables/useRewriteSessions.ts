@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue';
+import { ToolService } from '../../../../services/tool.service';
 import type { Character, ExtensionAPI, Persona } from '../../../../types';
 import { RewriteService } from '../RewriteService';
 import type {
@@ -160,35 +161,74 @@ export function useRewriteSessions(api: ExtensionAPI<RewriteSettings>) {
   ) {
     if (!activeSession.value || !selectedProfile) return;
 
-    try {
-      const response = await service.generateSessionResponse(
-        activeSession.value.messages,
-        structuredResponseFormat,
-        deepToRaw(availableFields),
-        selectedProfile || api.settings.getGlobal('api.selectedConnectionProfile'),
-        abortController.value?.signal,
-      );
+    let iterations = 0;
+    const maxIterations = 3;
 
-      activeSession.value.messages.push({
-        id: api.uuid(),
-        role: 'assistant',
-        content: response,
-        timestamp: Date.now(),
-      });
+    while (iterations < maxIterations) {
+      try {
+        const response = await service.generateSessionResponse(
+          activeSession.value.messages,
+          structuredResponseFormat,
+          deepToRaw(availableFields),
+          selectedProfile || api.settings.getGlobal('api.selectedConnectionProfile'),
+          abortController.value?.signal,
+        );
 
-      await service.saveSession(deepToRaw(activeSession.value));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error(error);
-      if (error?.name === 'AbortError') {
-        api.ui.showToast(t('extensionsBuiltin.rewrite.messages.generationAborted'), 'info');
-      } else {
-        api.ui.showToast(t('extensionsBuiltin.rewrite.messages.generationFailed') + ': ' + error.message, 'error');
+        activeSession.value.messages.push({
+          id: api.uuid(),
+          role: 'assistant',
+          content: response,
+          timestamp: Date.now(),
+        });
+
+        await service.saveSession(deepToRaw(activeSession.value));
+
+        if (response.toolCalls && response.toolCalls.length > 0) {
+          // Create fake tool_calls
+          const fakeToolCalls = response.toolCalls.map((tc) => ({
+            id: api.uuid(),
+            type: 'function' as const,
+            function: {
+              name: tc.name,
+              arguments: JSON.stringify(tc.arguments),
+            },
+          }));
+          // Process them
+          const { invocations, errors } = await ToolService.processToolCalls(fakeToolCalls);
+
+          if (errors.length > 0) {
+            console.warn('Tool call errors:', errors);
+          }
+
+          // Add tool result messages
+          for (const inv of invocations) {
+            activeSession.value.messages.push({
+              id: api.uuid(),
+              role: 'user',
+              content: inv.result,
+              timestamp: Date.now(),
+            });
+          }
+
+          await service.saveSession(deepToRaw(activeSession.value));
+          iterations++;
+        } else {
+          break; // No more tool calls
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        console.error(error);
+        if (error?.name === 'AbortError') {
+          api.ui.showToast(t('extensionsBuiltin.rewrite.messages.generationAborted'), 'info');
+        } else {
+          api.ui.showToast(t('extensionsBuiltin.rewrite.messages.generationFailed') + ': ' + error.message, 'error');
+        }
+        break;
       }
-    } finally {
-      isGenerating.value = false;
-      abortController.value = null;
     }
+
+    isGenerating.value = false;
+    abortController.value = null;
   }
 
   async function handleSessionDeleteFrom(msgId: string) {

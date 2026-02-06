@@ -1,9 +1,7 @@
 import localforage from 'localforage';
 import { ToolService } from '../../../services/tool.service';
 import type {
-  ApiAssistantMessage,
   ApiChatMessage,
-  ApiToolMessage,
   Character,
   ExtensionAPI,
   GenerationResponse,
@@ -246,8 +244,26 @@ export class RewriteService {
                   description: 'The full, rewritten text for the single field.',
                 },
               }),
+          toolCalls: {
+            type: 'array',
+            description: 'Optional tool calls to execute before providing the final response.',
+            items: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: 'The name of the tool function to call.',
+                },
+                arguments: {
+                  type: 'object',
+                  description: 'The arguments to pass to the tool function.',
+                },
+              },
+              required: ['name', 'arguments'],
+            },
+          },
         },
-        required: ['justification'],
+        required: [],
         additionalProperties: false,
       },
     };
@@ -258,6 +274,16 @@ export class RewriteService {
         format === 'native'
           ? { schema, format: 'native' }
           : { schema, format, exampleResponse: true, jsonPrompt: undefined, xmlPrompt: undefined };
+    }
+
+    // Inject active tools into the prompt
+    const tools = ToolService.getTools();
+    if (tools.length > 0) {
+      apiMessages.unshift({
+        role: 'system',
+        content: `Available tools:\n${JSON.stringify(tools, null, 2)}`,
+        name: 'Tool Definitions',
+      });
     }
 
     apiMessages = (
@@ -291,59 +317,20 @@ export class RewriteService {
       };
     }
 
-    return new Promise(async (resolve, reject) => {
-      let messages: ApiChatMessage[] = apiMessages;
-      let iterations = 0;
-      const maxIterations = 3;
+    const response = (await this.api.llm.generate(apiMessages, {
+      connectionProfile,
+      signal,
+      samplerOverrides: {
+        stream: false,
+      },
+      structuredResponse: structuredResponseOptions,
+    })) as GenerationResponse;
 
-      while (iterations < maxIterations) {
-        const response = (await this.api.llm.generate(messages, {
-          connectionProfile,
-          signal,
-          samplerOverrides: {
-            stream: false,
-          },
-          structuredResponse: structuredResponseOptions,
-          toolConfig: { includeRegisteredTools: true, bypassGlobalCheck: true },
-        })) as GenerationResponse;
-
-        if (response.tool_calls && response.tool_calls.length > 0) {
-          const { invocations, errors } = await ToolService.processToolCalls(response.tool_calls);
-
-          const toolMessages: ApiChatMessage[] = [];
-          for (const inv of invocations) {
-            toolMessages.push({
-              role: 'tool',
-              tool_call_id: inv.id,
-              content: inv.result,
-              name: inv.name,
-            } as ApiToolMessage);
-          }
-
-          if (errors.length > 0) {
-            console.warn('Tool call errors:', errors);
-          }
-
-          const assistantMessage: ApiAssistantMessage = {
-            role: 'assistant',
-            content: response.content || '',
-            tool_calls: response.tool_calls,
-            name: 'Assistant',
-          };
-
-          messages = [...messages, assistantMessage, ...toolMessages];
-          iterations++;
-        } else if (response.structured_content) {
-          resolve(response.structured_content as RewriteLLMResponse);
-          return;
-        } else {
-          reject(new Error(`No tool calls or structured content received after ${iterations} iterations`));
-          return;
-        }
-      }
-
-      reject(new Error('Max tool call iterations exceeded'));
-    });
+    if (response.structured_content) {
+      return response.structured_content as RewriteLLMResponse;
+    } else {
+      throw new Error('No structured content received');
+    }
   }
 
   public extractCodeBlock(text: string): string {

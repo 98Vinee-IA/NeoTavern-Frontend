@@ -45,7 +45,7 @@ export class PromptBuilder {
     return apiMessages.map((m) => ({
       extra: {},
       is_user: m.role === 'user',
-      is_system: m.role === 'system',
+      is_system: false,
       mes: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
       name: m.name,
       send_date: new Date().toISOString(),
