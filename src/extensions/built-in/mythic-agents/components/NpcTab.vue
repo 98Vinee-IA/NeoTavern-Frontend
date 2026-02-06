@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Button, Input } from '../../../../components/UI';
-import type { MythicChatExtraData, MythicExtensionAPI } from '../types';
+import { useMythicState } from '../composables/useMythicState';
+import type { MythicExtensionAPI } from '../types';
 import { genUNENpc } from '../une';
 
 interface Props {
@@ -10,11 +11,24 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const chatInfo = computed(() => props.api.chat.getChatInfo());
-const extra = computed(
-  () => chatInfo.value?.chat_metadata.extra?.['core.mythic-agents'] as MythicChatExtraData | undefined,
-);
+const extra = useMythicState(props.api);
 const scene = computed(() => extra.value?.scene);
+
+function updateLatestExtra(update: Record<string, unknown>) {
+  const history = props.api.chat.getHistory();
+  if (history.length === 0) return;
+  const lastMsg = history[history.length - 1];
+  const currentExtra = lastMsg.extra?.['core.mythic-agents'];
+  if (!currentExtra) return;
+  const newExtra = { ...currentExtra, ...update };
+  lastMsg.extra = {
+    ...lastMsg.extra,
+    'core.mythic-agents': newExtra,
+  };
+  props.api.chat.updateMessageObject(history.length - 1, {
+    extra: lastMsg.extra,
+  });
+}
 
 const editingNpcId = ref<string | null>(null);
 const editForm = ref({
@@ -43,13 +57,7 @@ function saveEdit() {
         c.id === editingNpcId.value ? { ...c, name: editForm.value.name, type: editForm.value.type } : c,
       ) || [],
   };
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-      },
-    },
-  });
+  updateLatestExtra({ scene: updatedScene });
   editingNpcId.value = null;
 }
 
@@ -62,13 +70,7 @@ function regenerateUNE(id: string) {
         c.id === id ? { ...c, une_profile: newUNE, name: `${newUNE.modifier} ${newUNE.noun}` } : c,
       ) || [],
   };
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-      },
-    },
-  });
+  updateLatestExtra({ scene: updatedScene });
 }
 
 function addNpc() {
@@ -83,13 +85,7 @@ function addNpc() {
     ...scene.value,
     characters: [...(scene.value?.characters || []), newNpc],
   };
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-      },
-    },
-  });
+  updateLatestExtra({ scene: updatedScene });
 }
 
 function removeNpc(id: string) {
@@ -97,13 +93,7 @@ function removeNpc(id: string) {
     ...scene.value,
     characters: scene.value?.characters.filter((c) => c.id !== id) || [],
   };
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-      },
-    },
-  });
+  updateLatestExtra({ scene: updatedScene });
 }
 </script>
 
@@ -113,19 +103,10 @@ function removeNpc(id: string) {
       <Button block @click="addNpc"> <i class="fas fa-plus"></i> Add Random NPC </Button>
     </div>
 
-    <div
-      v-if="!scene?.characters.filter((c) => !['pc', 'player'].includes(c.type.toLowerCase())).length"
-      class="empty-state"
-    >
-      No NPCs in current scene.
-    </div>
+    <div v-if="!scene?.characters?.length" class="empty-state">No characters in current scene.</div>
 
     <div class="npc-list">
-      <div
-        v-for="npc in scene?.characters.filter((c) => !['pc', 'player'].includes(c.type.toLowerCase())) || []"
-        :key="npc.id"
-        class="npc-card"
-      >
+      <div v-for="npc in scene?.characters || []" :key="npc.id" class="npc-card">
         <div class="npc-header">
           <div v-if="editingNpcId !== npc.id" class="npc-identity">
             <div class="npc-name">{{ npc.name }}</div>

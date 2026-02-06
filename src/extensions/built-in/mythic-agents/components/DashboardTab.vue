@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Button } from '../../../../components/UI';
-import type { MythicChatExtraData, MythicExtensionAPI } from '../types';
+import { POPUP_RESULT, POPUP_TYPE } from '../../../../types/popup';
+import { useMythicState } from '../composables/useMythicState';
+import { type MythicExtensionAPI } from '../types';
 
 interface Props {
   api: MythicExtensionAPI;
@@ -9,25 +11,76 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const chatInfo = computed(() => props.api.chat.getChatInfo());
-const extra = computed(() => chatInfo.value?.chat_metadata.extra?.['core.mythic-agents']);
+const extra = useMythicState(props.api);
 const chaos = computed(() => extra.value?.chaos ?? 5);
 const scene = computed(() => extra.value?.scene);
-const actionHistory = computed(() => extra.value?.actionHistory ?? []);
+const actionHistory = computed(() => props.api.chat.metadata.get()?.extra?.actionHistory ?? []);
+const npcCount = computed(() => scene.value?.characters.length);
 
 function adjustChaos(delta: number) {
-  const newChaos = Math.max(1, Math.min(9, chaos.value + delta));
-  const update: Partial<MythicChatExtraData> = {
+  const history = props.api.chat.getHistory();
+  if (history.length === 0) return;
+  const lastMsg = history[history.length - 1];
+  const currentExtra = lastMsg.extra?.['core.mythic-agents'];
+  if (!currentExtra) return;
+  const newChaos = Math.max(1, Math.min(9, (currentExtra.chaos ?? 5) + delta));
+  const newScene = currentExtra.scene ? { ...currentExtra.scene, chaos_rank: newChaos } : undefined;
+  const newExtra = {
+    ...currentExtra,
     chaos: newChaos,
+    scene: newScene,
   };
-  if (scene.value) {
-    update.scene = { ...scene.value, chaos_rank: newChaos };
-  }
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': update,
-    },
+  lastMsg.extra = {
+    ...lastMsg.extra,
+    'core.mythic-agents': newExtra,
+  };
+  props.api.chat.updateMessageObject(history.length - 1, {
+    extra: lastMsg.extra,
   });
+}
+
+function resetAll() {
+  props.api.ui
+    .showPopup({
+      title: 'Reset Mythic Agents',
+      content: 'This will clear all mythic agents data (chaos, scene, action history, etc.). Are you sure?',
+      type: POPUP_TYPE.CONFIRM,
+    })
+    .then((result) => {
+      if (result.result === POPUP_RESULT.AFFIRMATIVE) {
+        const history = props.api.chat.getHistory();
+        if (history.length === 0) return;
+        const lastMsg = history[history.length - 1];
+        const resetExtra = {
+          actionHistory: [],
+          chaos: 5,
+          scene: {
+            chaos_rank: 5,
+            characters: [],
+            threads: [],
+          },
+        };
+        lastMsg.extra = {
+          ...lastMsg.extra,
+          'core.mythic-agents': resetExtra,
+        };
+        props.api.chat.updateMessageObject(history.length - 1, {
+          extra: lastMsg.extra,
+        });
+        // Clear mythic extras from other messages
+        for (let i = 0; i < history.length - 1; i++) {
+          const msg = history[i];
+          if (msg.extra?.['core.mythic-agents']) {
+            props.api.chat.updateMessageObject(i, {
+              extra: {
+                ...msg.extra,
+                'core.mythic-agents': undefined,
+              },
+            });
+          }
+        }
+      }
+    });
 }
 
 function getOutcomeClass(outcome: string) {
@@ -57,6 +110,9 @@ function formatOutcome(outcome: string) {
         <Button class="chaos-btn" :disabled="chaos >= 9" @click="adjustChaos(1)">
           <i class="fas fa-plus"></i>
         </Button>
+        <Button class="chaos-btn reset-btn" @click="resetAll">
+          <i class="fas fa-undo"></i>
+        </Button>
       </div>
       <div class="chaos-description">
         {{ chaos >= 5 ? 'High Chaos: Expect the unexpected.' : 'Low Chaos: Things are calm.' }}
@@ -67,7 +123,7 @@ function formatOutcome(outcome: string) {
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-value">
-          {{ scene?.characters.filter((c) => !['pc', 'player'].includes(c.type.toLowerCase())).length || 0 }}
+          {{ npcCount }}
         </div>
         <div class="stat-label">NPCs</div>
       </div>

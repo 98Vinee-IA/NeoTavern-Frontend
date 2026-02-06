@@ -1,5 +1,5 @@
 import { GenerationMode } from '../../../constants';
-import type { ExtensionAPI } from '../../../types';
+import type { TypedChatMessage } from '../../../types/ExtensionAPI';
 import { uuidv4 } from '../../../utils/commons';
 import { DEFAULT_BASE_SETTINGS } from './defaults';
 import { analyzeUserAction, generateNarration, generateNarrationAndSceneUpdate } from './llm';
@@ -10,14 +10,12 @@ import { generateInitialScene } from './scene-manager';
 import SettingsPanel from './SettingsPanel.vue';
 import type {
   MythicCharacter,
-  MythicChatExtra,
-  MythicChatExtraData,
+  MythicExtensionAPI,
   MythicMessageExtra,
+  MythicMessageExtraData,
   MythicSettings,
 } from './types';
 import { genUNENpc } from './une';
-
-type MythicExtensionAPI = ExtensionAPI<MythicSettings, MythicChatExtra, MythicMessageExtra>;
 
 const DEFAULT_SETTINGS: MythicSettings = { ...DEFAULT_BASE_SETTINGS };
 
@@ -45,58 +43,78 @@ export function activate(api: MythicExtensionAPI) {
     },
   });
 
-  // Hooks
-  api.events.on('chat:entered', async () => {
-    const settings = { ...DEFAULT_SETTINGS, ...api.settings.get() };
-    if (!settings.enabled || !settings.autoAnalyze) return;
-
-    // Load or generate initial scene
-    const chatInfo = api.chat.getChatInfo();
-    const extra = chatInfo?.chat_metadata.extra?.['core.mythic-agents'] as MythicChatExtraData | undefined;
-    if (!extra?.scene) {
-      // Generate initial scene
-      const scene = await generateInitialScene(api, undefined);
-      const settings = { ...DEFAULT_SETTINGS, ...api.settings.get() };
-      const chaos = settings.chaos;
-      api.chat.metadata.update({
-        extra: { 'core.mythic-agents': { scene: { ...scene, chaos_rank: chaos }, chaos, actionHistory: [] } },
-      });
-    }
-  });
-
   api.events.on('chat:generation-requested', async (payload, context) => {
     const settings = { ...DEFAULT_SETTINGS, ...api.settings.get() };
     if (!settings.enabled || !settings.autoAnalyze) return;
 
-    if (![GenerationMode.NEW].includes(payload.mode)) {
-      throw new Error('Mythic Agents extension only supports NEW generation mode');
+    if (![GenerationMode.NEW, GenerationMode.REGENERATE, GenerationMode.ADD_SWIPE].includes(payload.mode)) {
+      throw new Error('Mythic Agents extension only supports NEW, REGENERATE, and ADD_SWIPE generation modes');
     }
 
-    const chatInfo = api.chat.getChatInfo();
-    const extra = chatInfo?.chat_metadata.extra?.['core.mythic-agents'] as MythicChatExtraData | undefined;
-    if (!extra || !extra.scene) return;
+    const history = api.chat.getHistory();
+    let currentMythicData: MythicMessageExtraData | undefined;
+    for (let i = history.length - 1; i >= 0; i--) {
+      const msg = history[i];
+      if (msg.extra?.['core.mythic-agents']) {
+        currentMythicData = msg.extra['core.mythic-agents'] as MythicMessageExtraData;
+        break;
+      }
+    }
 
-    // Get the last user message
+    if (!currentMythicData?.scene) {
+      // Generate initial scene
+      const scene = await generateInitialScene(api, undefined);
+      const chaos = settings.chaos;
+      currentMythicData = {
+        scene: { ...scene, chaos_rank: chaos },
+        chaos,
+      };
+      // Set initial chat metadata
+      api.chat.metadata.update({
+        extra: {
+          actionHistory: [],
+          resolved_threads: [],
+        },
+      });
+    }
+
+    payload.handled = true;
+
+    // Get the last message
     const lastMessage = api.chat.getLastMessage();
-    if (!lastMessage || !lastMessage.is_user) return;
+    if (!lastMessage) return;
+
+    let userMessage: TypedChatMessage<MythicMessageExtra> | null = lastMessage;
+    let isSwipe = false;
+
+    if (payload.mode === GenerationMode.REGENERATE) {
+      if (lastMessage.is_user || lastMessage.is_system) return; // can't regenerate
+      // Delete the last message
+      const history = api.chat.getHistory();
+      await api.chat.deleteMessage(history.length - 1);
+      // Now last message should be user
+      userMessage = api.chat.getLastMessage();
+      if (!userMessage || !userMessage.is_user) return;
+    } else if (payload.mode === GenerationMode.ADD_SWIPE) {
+      if (lastMessage.is_user || lastMessage.is_system) return; // can't add swipe
+      isSwipe = true;
+      // Find last user message
+      const history = api.chat.getHistory();
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].is_user) {
+          userMessage = history[i];
+          break;
+        }
+      }
+      if (!userMessage) return;
+    }
+
+    if (!userMessage.is_user) return;
 
     const currentPreset = settings.presets.find((p) => p.name === settings.selectedPreset) || settings.presets[0];
     if (!currentPreset) {
       throw new Error('No valid preset found for Mythic Agents');
     }
-
-    // Analyze
-    let analysis;
-    try {
-      analysis = await analyzeUserAction(api, extra.scene, context?.controller.signal);
-      if (context?.controller.signal.aborted) return;
-    } catch (error) {
-      console.error('Mythic Agents analysis error:', error);
-      return;
-    }
-
-    // Set handled
-    payload.handled = true;
 
     // Set generating state
     api.chat.setGeneratingState(true);
@@ -106,6 +124,16 @@ export function activate(api: MythicExtensionAPI) {
     (async () => {
       try {
         if (context?.controller.signal.aborted) return;
+
+        // Analyze
+        let analysis;
+        try {
+          analysis = await analyzeUserAction(api, currentMythicData.scene!, context?.controller.signal);
+          if (context?.controller.signal.aborted) return;
+        } catch (error) {
+          console.error('Mythic Agents analysis error:', error);
+          return;
+        }
 
         let fateRollResult:
           | {
@@ -121,9 +149,9 @@ export function activate(api: MythicExtensionAPI) {
         if (analysis.requires_fate_roll) {
           const result = await askOracle(
             analysis,
-            extra.chaos,
+            currentMythicData.chaos ?? 5,
             currentPreset.data.fateChart,
-            extra.scene!,
+            currentMythicData.scene!,
             currentPreset.data.eventGeneration,
             currentPreset.data.une,
           );
@@ -134,7 +162,7 @@ export function activate(api: MythicExtensionAPI) {
         }
 
         // Update scene with new NPCs if any
-        let updatedScene = { ...extra.scene! };
+        let updatedScene = { ...currentMythicData.scene! };
         if (randomEvent?.new_npcs) {
           updatedScene.characters = [...updatedScene.characters, ...randomEvent.new_npcs];
         }
@@ -154,7 +182,9 @@ export function activate(api: MythicExtensionAPI) {
           narration = narr;
 
           // Apply scene update
-          const existingChars = new Map(updatedScene.characters.map((c) => [c.name.toLowerCase(), c]));
+          const existingChars = new Map<string, MythicCharacter>(
+            updatedScene.characters.map((c: MythicCharacter) => [c.name.toLowerCase(), c]),
+          );
           const newCharacters: MythicCharacter[] = [];
           for (const char of sceneUpdate.characters) {
             const key = char.name.toLowerCase();
@@ -193,35 +223,97 @@ export function activate(api: MythicExtensionAPI) {
           if (context?.controller.signal.aborted) return;
         }
 
-        // Update metadata
-        api.chat.metadata.update({
-          extra: {
-            'core.mythic-agents': {
-              scene: updatedScene,
-            },
-          },
-        });
-        extra.scene = updatedScene;
+        // Update metadata - removed, using message extra
+        // extra.scene = updatedScene;
 
-        // Create assistant message
-        const assistantMsg = api.chat.createMessage({
+        // Create assistant message object
+        const genStarted = new Date().toISOString();
+        const genFinished = new Date().toISOString();
+        const assistantMsg = await api.chat.createMessage({
           role: 'assistant',
           content: narration,
           name: activeCharacter.name,
         });
-        assistantMsg.extra = { 'core.mythic-agents': { action: { analysis: anal, fateRollResult, randomEvent } } };
+        assistantMsg.gen_started = genStarted;
+        assistantMsg.gen_finished = genFinished;
+        const actionData = { analysis: anal, fateRollResult, randomEvent };
 
-        // Update action history
-        const currentExtra = api.chat.getChatInfo()?.chat_metadata.extra?.['core.mythic-agents'] as
-          | MythicChatExtraData
-          | undefined;
+        assistantMsg.extra = {
+          'core.mythic-agents': { action: actionData },
+        };
+
+        assistantMsg.extra = {
+          'core.mythic-agents': {
+            action: actionData,
+            scene: updatedScene,
+            chaos: updatedScene.chaos_rank,
+          },
+        };
+        if (assistantMsg.swipe_info && assistantMsg.swipe_info[0]) {
+          assistantMsg.swipe_info[0].extra = {
+            ...assistantMsg.swipe_info[0].extra,
+            'core.mythic-agents': {
+              action: actionData,
+              scene: updatedScene,
+              chaos: updatedScene.chaos_rank,
+            },
+          };
+        }
+
+        const currentActionHistory = api.chat.metadata.get()?.extra?.actionHistory ?? [];
         api.chat.metadata.update({
           extra: {
-            'core.mythic-agents': {
-              actionHistory: [...(currentExtra?.actionHistory ?? []), { analysis: anal, fateRollResult, randomEvent }],
-            },
+            actionHistory: [...currentActionHistory, actionData],
           },
         });
+
+        if (isSwipe) {
+          // Update the last message (which is assistant) to add swipe
+          const history = api.chat.getHistory();
+          const lastMsgIndex = history.length - 1;
+          const lastMsg = history[lastMsgIndex];
+          const newSwipes = [...lastMsg.swipes, narration];
+          const newSwipeInfo = [
+            ...lastMsg.swipe_info,
+            {
+              send_date: genStarted,
+              gen_started: genStarted,
+              gen_finished: genFinished,
+              generation_id: payload.generationId,
+              extra: {
+                'core.mythic-agents': {
+                  action: { analysis: anal, fateRollResult, randomEvent },
+                  scene: updatedScene,
+                  chaos: updatedScene.chaos_rank,
+                },
+              },
+            },
+          ];
+          await api.chat.updateMessageObject(lastMsgIndex, {
+            mes: narration,
+            swipes: newSwipes,
+            swipe_info: newSwipeInfo,
+            swipe_id: newSwipes.length - 1,
+            extra: {
+              ...lastMsg.extra,
+              'core.mythic-agents': {
+                action: actionData,
+                scene: updatedScene,
+                chaos: updatedScene.chaos_rank,
+              },
+            },
+          });
+          const currentActionHistorySwipe = api.chat.metadata.get()?.extra?.actionHistory ?? [];
+          api.chat.metadata.update({
+            extra: {
+              actionHistory: [...currentActionHistorySwipe, actionData],
+            },
+          });
+        }
+        if (!isSwipe) {
+          const history = api.chat.getHistory();
+          await api.chat.updateMessageObject(history.length - 1, { extra: assistantMsg.extra });
+        }
       } catch (error) {
         console.error('Mythic Agents error:', error);
         api.ui.showToast('Mythic Agents encountered an error. Check console for details.', 'error');

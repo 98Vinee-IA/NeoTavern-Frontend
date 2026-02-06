@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import Pagination from '../../../../components/common/Pagination.vue';
-import type { MythicChatExtraData, MythicExtensionAPI } from '../types';
+import type { MythicExtensionAPI } from '../types';
 
 interface Props {
   api: MythicExtensionAPI;
@@ -9,11 +9,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const chatInfo = computed(() => props.api.chat.getChatInfo());
-const extra = computed(
-  () => chatInfo.value?.chat_metadata.extra?.['core.mythic-agents'] as MythicChatExtraData | undefined,
-);
-const actionHistory = computed(() => extra.value?.actionHistory ?? []);
+const actionHistory = computed(() => props.api.chat.metadata.get()?.extra?.actionHistory ?? []);
 const reversedHistory = computed(() => actionHistory.value.slice().reverse());
 
 const pageSize = 10;

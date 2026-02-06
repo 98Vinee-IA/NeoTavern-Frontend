@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Button, Input } from '../../../../components/UI';
-import type { MythicChatExtraData, MythicExtensionAPI } from '../types';
+import { useMythicState } from '../composables/useMythicState';
+import type { MythicExtensionAPI } from '../types';
 
 interface Props {
   api: MythicExtensionAPI;
@@ -11,11 +12,25 @@ const props = defineProps<Props>();
 
 const newThread = ref('');
 
-const chatInfo = computed(() => props.api.chat.getChatInfo());
-const extra = computed(
-  () => chatInfo.value?.chat_metadata.extra?.['core.mythic-agents'] as MythicChatExtraData | undefined,
-);
+const extra = useMythicState(props.api);
 const scene = computed(() => extra.value?.scene);
+const resolvedThreads = computed(() => props.api.chat.metadata.get()?.extra?.resolved_threads ?? []);
+
+function updateLatestExtra(update: Record<string, unknown>) {
+  const history = props.api.chat.getHistory();
+  if (history.length === 0) return;
+  const lastMsg = history[history.length - 1];
+  const currentExtra = lastMsg.extra?.['core.mythic-agents'];
+  if (!currentExtra) return;
+  const newExtra = { ...currentExtra, ...update };
+  lastMsg.extra = {
+    ...lastMsg.extra,
+    'core.mythic-agents': newExtra,
+  };
+  props.api.chat.updateMessageObject(history.length - 1, {
+    extra: lastMsg.extra,
+  });
+}
 
 function addThread() {
   const trimmed = newThread.value.trim();
@@ -24,67 +39,17 @@ function addThread() {
     ...scene.value,
     threads: [...(scene.value?.threads || []), trimmed],
   };
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-      },
-    },
-  });
+  updateLatestExtra({ scene: updatedScene });
   newThread.value = '';
 }
 
-function resolveThread(index: number) {
-  const thread = scene.value?.threads[index];
-  if (!thread) return;
-  const updatedThreads = scene.value?.threads.filter((_, i) => i !== index) || [];
-  const updatedScene = {
-    ...scene.value,
-    threads: updatedThreads,
-  };
-  const currentResolved = extra.value?.resolved_threads || [];
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-        resolved_threads: [...currentResolved, thread],
-      },
-    },
-  });
-}
-
 function removeThread(index: number) {
-  const updatedThreads = scene.value?.threads.filter((_, i) => i !== index) || [];
+  const updatedThreads = scene.value?.threads.filter((_: string, i: number) => i !== index) || [];
   const updatedScene = {
     ...scene.value,
     threads: updatedThreads,
   };
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-      },
-    },
-  });
-}
-
-function revertThread(index: number) {
-  const thread = extra.value?.resolved_threads?.[index];
-  if (!thread) return;
-  const updatedResolved = extra.value?.resolved_threads?.filter((_, i) => i !== index) || [];
-  const updatedThreads = [...(scene.value?.threads || []), thread];
-  const updatedScene = {
-    ...scene.value,
-    threads: updatedThreads,
-  };
-  props.api.chat.metadata.update({
-    extra: {
-      'core.mythic-agents': {
-        scene: updatedScene,
-        resolved_threads: updatedResolved,
-      },
-    },
-  });
+  updateLatestExtra({ scene: updatedScene });
 }
 </script>
 
@@ -106,9 +71,6 @@ function revertThread(index: number) {
       <li v-for="(thread, index) in scene?.threads || []" :key="index" class="thread-item">
         <span class="thread-text">{{ thread }}</span>
         <div class="thread-actions">
-          <Button size="small" variant="ghost" title="Resolve Thread" @click="resolveThread(index)">
-            <i class="fas fa-check"></i>
-          </Button>
           <Button size="small" variant="danger" title="Remove Thread" @click="removeThread(index)">
             <i class="fas fa-trash"></i>
           </Button>
@@ -116,16 +78,11 @@ function revertThread(index: number) {
       </li>
     </ul>
 
-    <div v-if="extra?.resolved_threads?.length" class="resolved-threads">
+    <div v-if="resolvedThreads?.length" class="resolved-threads">
       <h4>Resolved Threads</h4>
       <ul class="thread-list">
-        <li v-for="(thread, index) in extra.resolved_threads" :key="`resolved-${index}`" class="thread-item resolved">
+        <li v-for="(thread, index) in resolvedThreads" :key="`resolved-${index}`" class="thread-item resolved">
           <span class="thread-text">{{ thread }}</span>
-          <div class="thread-actions">
-            <Button size="small" variant="ghost" title="Revert Thread" @click="revertThread(index)">
-              <i class="fas fa-undo"></i>
-            </Button>
-          </div>
         </li>
       </ul>
     </div>

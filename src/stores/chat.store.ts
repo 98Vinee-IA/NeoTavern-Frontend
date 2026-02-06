@@ -99,6 +99,7 @@ export const useChatStore = defineStore('chat', () => {
 
     await nextTick();
     await eventEmitter.emit('message:updated', messageIndex, message);
+    await eventEmitter.emit('message:swipe-changed', messageIndex, swipeIndex);
     triggerSave();
   }
 

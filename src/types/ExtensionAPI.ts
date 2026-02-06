@@ -400,11 +400,11 @@ export interface ExtensionAPI<
     getChatInfo: () => ChatInfo<TChatExtra> | null;
     getAllChatInfos: () => Array<ChatInfo<TChatExtra>>;
     getLastMessage: () => TypedChatMessage<TMessageExtra> | null;
-    createMessage: (message: ApiChatMessage) => TypedChatMessage<TMessageExtra>;
+    createMessage: (message: ApiChatMessage) => Promise<TypedChatMessage<TMessageExtra>>;
     insertMessage: (
       message: Omit<TypedChatMessage<TMessageExtra>, 'send_date'> & { send_date?: string },
       index?: number,
-    ) => void;
+    ) => Promise<void>;
     updateMessage: (index: number, newContent: string, newReasoning?: string) => Promise<void>;
     updateMessageObject: (index: number, updates: DeepPartial<TypedChatMessage<TMessageExtra>>) => Promise<void>;
     deleteMessage: (index: number) => Promise<void>;

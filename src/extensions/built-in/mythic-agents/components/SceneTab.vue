@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Button } from '../../../../components/UI';
-import {
-  generateInitialScene as sceneManagerGenerateInitialScene,
-} from '../scene-manager';
-import type { MythicChatExtraData, MythicExtensionAPI } from '../types';
+import { useMythicState } from '../composables/useMythicState';
+import { generateInitialScene as sceneManagerGenerateInitialScene } from '../scene-manager';
+import type { MythicExtensionAPI } from '../types';
 
 interface Props {
   api: MythicExtensionAPI;
@@ -12,22 +11,28 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const chatInfo = computed(() => props.api.chat.getChatInfo());
-const extra = computed(
-  () => chatInfo.value?.chat_metadata.extra?.['core.mythic-agents'] as MythicChatExtraData | undefined,
-);
+const extra = useMythicState(props.api);
 const scene = computed(() => extra.value?.scene);
+const activeNpcCount = computed(() => scene.value?.characters.length || 0);
 
 async function generateInitialScene() {
   try {
     const newScene = await sceneManagerGenerateInitialScene(props.api);
-    props.api.chat.metadata.update({
-      extra: {
-        'core.mythic-agents': {
-          scene: newScene,
-          chaos: newScene.chaos_rank,
-        },
-      },
+    const history = props.api.chat.getHistory();
+    if (history.length === 0) return;
+    const lastMsg = history[history.length - 1];
+    const currentExtra = lastMsg.extra?.['core.mythic-agents'];
+    const newExtra = {
+      ...currentExtra,
+      scene: newScene,
+      chaos: newScene.chaos_rank,
+    };
+    lastMsg.extra = {
+      ...lastMsg.extra,
+      'core.mythic-agents': newExtra,
+    };
+    props.api.chat.updateMessageObject(history.length - 1, {
+      extra: lastMsg.extra,
     });
   } catch (error) {
     console.error('Failed to generate initial scene:', error);
@@ -57,7 +62,7 @@ async function generateInitialScene() {
         <div class="detail-content">
           <div class="label">Active NPCs</div>
           <div class="value">
-            {{ scene.characters.filter((c) => !['pc', 'player'].includes(c.type.toLowerCase())).length }}
+            {{ activeNpcCount }}
           </div>
         </div>
       </div>

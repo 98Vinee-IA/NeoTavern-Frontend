@@ -10,7 +10,6 @@ import CollapsibleSection from '../../../components/UI/CollapsibleSection.vue';
 import Tabs from '../../../components/UI/Tabs.vue';
 import Textarea from '../../../components/UI/Textarea.vue';
 import { usePopupStore } from '../../../stores/popup.store';
-import type { ExtensionAPI } from '../../../types';
 import { POPUP_TYPE } from '../../../types';
 import {
   DEFAULT_BASE_SETTINGS,
@@ -19,17 +18,10 @@ import {
   DEFAULT_UNE_SETTINGS,
 } from './defaults';
 import { ANALYSIS_PROMPT, INITIAL_SCENE_PROMPT, NARRATION_PROMPT } from './prompts';
-import type {
-  EventFocus,
-  FateChartData,
-  MythicChatExtra,
-  MythicMessageExtra,
-  MythicPreset,
-  MythicSettings,
-} from './types';
+import type { EventFocus, FateChartData, MythicExtensionAPI, MythicPreset, MythicSettings } from './types';
 
 const props = defineProps<{
-  api: ExtensionAPI<MythicSettings, MythicChatExtra, MythicMessageExtra>;
+  api: MythicExtensionAPI;
 }>();
 
 const initial: MythicSettings = { ...DEFAULT_BASE_SETTINGS };
@@ -663,10 +655,7 @@ const customActions: CustomAction[] = [
       >
         <Toggle v-model="settings.autoAnalyze" />
       </FormItem>
-      <FormItem
-        label="Auto-Update Scene"
-        description="Automatically update the scene state after each narration."
-      >
+      <FormItem label="Auto-Update Scene" description="Automatically update the scene state after each narration.">
         <Toggle v-model="settings.autoSceneUpdate" />
       </FormItem>
       <FormItem

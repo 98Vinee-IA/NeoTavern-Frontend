@@ -91,20 +91,28 @@ export const ActionDataSchema = z.object({
 
 export type ActionData = z.infer<typeof ActionDataSchema>;
 
-export const MythicChatExtraDataSchema = z.object({
-  scene: SceneSchema.optional(),
-  actionHistory: z.array(ActionDataSchema),
-  chaos: z.number().min(1).max(9).default(5),
-  resolved_threads: z.array(z.string()).default([]),
+export const MythicChatExtraSchema = z.object({
+  actionHistory: z.array(ActionDataSchema).optional(),
+  resolved_threads: z.array(z.string()).optional(),
 });
 
-export type MythicChatExtraData = z.infer<typeof MythicChatExtraDataSchema>;
+export type MythicChatExtraData = z.infer<typeof MythicChatExtraSchema>;
 
 export const MythicMessageExtraSchema = z.object({
   action: ActionDataSchema.optional(),
+  scene: SceneSchema.optional(),
+  chaos: z.number().min(1).max(9).optional(),
 });
 
 export type MythicMessageExtraData = z.infer<typeof MythicMessageExtraSchema>;
+
+export const MythicSwipeExtraDataSchema = z.object({
+  action: ActionDataSchema,
+  scene: SceneSchema,
+  chaos: z.number().min(1).max(9),
+});
+
+export type MythicSwipeExtraData = z.infer<typeof MythicSwipeExtraDataSchema>;
 
 // Settings Structures
 
@@ -185,12 +193,8 @@ export const MythicSettingsSchema = z.object({
 
 export type MythicSettings = z.infer<typeof MythicSettingsSchema>;
 
-export interface MythicChatExtra {
-  'core.mythic-agents'?: MythicChatExtraData;
-}
-
 export interface MythicMessageExtra {
   'core.mythic-agents'?: MythicMessageExtraData;
 }
 
-export type MythicExtensionAPI = ExtensionAPI<MythicSettings, MythicChatExtra, MythicMessageExtra>;
+export type MythicExtensionAPI = ExtensionAPI<MythicSettings, MythicChatExtraData, MythicMessageExtra>;

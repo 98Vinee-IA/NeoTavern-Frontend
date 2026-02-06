@@ -1,5 +1,5 @@
 import * as Vue from 'vue';
-import { createVNode, render, type App } from 'vue';
+import { createVNode, nextTick, render, type App } from 'vue';
 import { CustomPromptPostProcessing, default_avatar, default_user_avatar } from '../constants';
 import type {
   ApiChatContentPart,
@@ -236,7 +236,7 @@ const baseExtensionAPI: ExtensionAPI = {
       const messages = useChatStore().activeChat?.messages ?? [];
       return messages.length > 0 ? deepClone(messages[messages.length - 1]) : null;
     },
-    createMessage: (message: ApiChatMessage) => {
+    createMessage: async (message: ApiChatMessage) => {
       if (!message.content) {
         throw new Error('Message content cannot be empty.');
       }
@@ -296,9 +296,11 @@ const baseExtensionAPI: ExtensionAPI = {
         swipes: [content],
       };
       chatStore.activeChat.messages.push(fullMessage);
+      await nextTick();
+      await eventEmitter.emit('message:created', fullMessage);
       return deepClone(fullMessage);
     },
-    insertMessage: (message, index) => {
+    insertMessage: async (message, index) => {
       const store = useChatStore();
       if (!store.activeChat) throw new Error('No active chat.');
       const fullMessage: ChatMessage = { ...message, send_date: message.send_date ?? getMessageTimeStamp() };
@@ -308,6 +310,8 @@ const baseExtensionAPI: ExtensionAPI = {
       } else {
         messages.splice(index, 0, fullMessage);
       }
+      await nextTick();
+      await eventEmitter.emit('message:created', fullMessage);
     },
     updateMessage: async (index, newContent, newReasoning) => {
       const store = useChatStore();
