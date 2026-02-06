@@ -277,7 +277,10 @@ export function buildChatCompletionPayload(options: BuildChatCompletionPayloadOp
   }
 
   // Handle Tools
-  if (toolConfig && ToolService.isToolCallingSupported(provider, model, customPromptPostProcessing)) {
+  if (
+    toolConfig &&
+    ToolService.isToolCallingSupported(provider, model, customPromptPostProcessing, toolConfig.bypassGlobalCheck)
+  ) {
     const finalTools: ApiToolDefinition[] = [];
 
     // 1. Registered Tools (Default: true)

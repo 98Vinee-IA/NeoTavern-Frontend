@@ -78,7 +78,7 @@ function handleApplyLatest() {
             :api="api"
             @send="emit('send', $event)"
             @delete-from="emit('deleteFrom', $event)"
-            @edit-message="emit('editMessage', $event, $event)"
+            @edit-message="(msgId, newContent) => emit('editMessage', msgId, newContent)"
             @show-diff="emit('showDiff', $event)"
             @abort="emit('abort')"
             @regenerate="emit('regenerate')"

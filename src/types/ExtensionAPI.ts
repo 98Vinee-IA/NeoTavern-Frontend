@@ -16,6 +16,7 @@ import type {
   PromptBuilderOptions,
   StreamedChunk,
   StructuredResponseOptions,
+  ToolGenerationConfig,
 } from './generation';
 import type { Persona, PersonaDescription } from './persona';
 import type { PopupShowOptions } from './popup';
@@ -47,6 +48,10 @@ export interface LlmGenerationOptions {
    * Configuration for structured response generation.
    */
   structuredResponse?: StructuredResponseOptions;
+  /**
+   * Configuration for tool calling.
+   */
+  toolConfig?: ToolGenerationConfig;
   isContinuation?: boolean;
   onCompletion?: (data: {
     outputTokens: number;

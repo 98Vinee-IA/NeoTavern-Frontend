@@ -148,6 +148,10 @@ export interface ToolGenerationConfig {
    * Tool choice preference.
    */
   toolChoice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  /**
+   * Whether to bypass the global tools enabled setting.
+   */
+  bypassGlobalCheck?: boolean;
 }
 
 export type ChatCompletionPayload = Partial<{
@@ -427,6 +431,11 @@ export interface GenerationOptions {
    * If provided, the generation will be guided to produce a structured output (e.g., JSON, XML).
    */
   structuredResponse?: StructuredResponseOptions;
+  /**
+   * Configuration for tool calling.
+   * If provided, tools will be included in the generation request.
+   */
+  toolConfig?: ToolGenerationConfig;
   /**
    * Whether this is a continuation or prefill scenario.
    * If true, leading whitespace will be preserved on the first chunk.

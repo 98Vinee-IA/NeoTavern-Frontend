@@ -1,5 +1,15 @@
 import localforage from 'localforage';
-import type { ApiChatMessage, Character, ExtensionAPI, Persona, StructuredResponseOptions } from '../../../types';
+import { ToolService } from '../../../services/tool.service';
+import type {
+  ApiAssistantMessage,
+  ApiChatMessage,
+  ApiToolMessage,
+  Character,
+  ExtensionAPI,
+  GenerationResponse,
+  Persona,
+  StructuredResponseOptions,
+} from '../../../types';
 import type {
   RewriteField,
   RewriteLLMResponse,
@@ -282,32 +292,57 @@ export class RewriteService {
     }
 
     return new Promise(async (resolve, reject) => {
-      try {
-        const response = await this.api.llm.generate(apiMessages, {
+      let messages: ApiChatMessage[] = apiMessages;
+      let iterations = 0;
+      const maxIterations = 3;
+
+      while (iterations < maxIterations) {
+        const response = (await this.api.llm.generate(messages, {
           connectionProfile,
           signal,
-          structuredResponse: structuredResponseOptions,
-          onCompletion: (data) => {
-            if (data.parse_error) {
-              reject(data.parse_error);
-              return;
-            }
-            if (data.structured_content) {
-              resolve(data.structured_content as RewriteLLMResponse);
-            } else {
-              reject(new Error('No structured content received'));
-            }
+          samplerOverrides: {
+            stream: false,
           },
-        });
+          structuredResponse: structuredResponseOptions,
+          toolConfig: { includeRegisteredTools: true, bypassGlobalCheck: true },
+        })) as GenerationResponse;
 
-        if (Symbol.asyncIterator in response) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          for await (const _ of response) {
+        if (response.tool_calls && response.tool_calls.length > 0) {
+          const { invocations, errors } = await ToolService.processToolCalls(response.tool_calls);
+
+          const toolMessages: ApiChatMessage[] = [];
+          for (const inv of invocations) {
+            toolMessages.push({
+              role: 'tool',
+              tool_call_id: inv.id,
+              content: inv.result,
+              name: inv.name,
+            } as ApiToolMessage);
           }
+
+          if (errors.length > 0) {
+            console.warn('Tool call errors:', errors);
+          }
+
+          const assistantMessage: ApiAssistantMessage = {
+            role: 'assistant',
+            content: response.content || '',
+            tool_calls: response.tool_calls,
+            name: 'Assistant',
+          };
+
+          messages = [...messages, assistantMessage, ...toolMessages];
+          iterations++;
+        } else if (response.structured_content) {
+          resolve(response.structured_content as RewriteLLMResponse);
+          return;
+        } else {
+          reject(new Error(`No tool calls or structured content received after ${iterations} iterations`));
+          return;
         }
-      } catch (err) {
-        reject(err);
       }
+
+      reject(new Error('Max tool call iterations exceeded'));
     });
   }
 

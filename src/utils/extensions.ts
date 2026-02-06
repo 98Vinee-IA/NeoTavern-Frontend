@@ -893,6 +893,7 @@ const baseExtensionAPI: ExtensionAPI = {
         customPromptPostProcessing: customPromptPostProcessing ?? CustomPromptPostProcessing.NONE,
         instructTemplate: effectiveInstructTemplate,
         structuredResponse: options.structuredResponse,
+        toolConfig: options.toolConfig,
         activeCharacter: characterStore.activeCharacters[0],
       });
 
@@ -925,6 +926,7 @@ const baseExtensionAPI: ExtensionAPI = {
         },
         reasoningTemplate: reasoningTemplate,
         structuredResponse: options.structuredResponse,
+        toolConfig: options.toolConfig,
         onCompletion: options.onCompletion,
         isContinuation: options.isContinuation,
       });
