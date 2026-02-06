@@ -205,7 +205,7 @@ export function useRewriteSessions(api: ExtensionAPI<RewriteSettings>) {
             activeSession.value.messages.push({
               id: api.uuid(),
               role: 'user',
-              content: inv.result,
+              content: inv.result, // TODO: We should able to collapse this in the UI
               timestamp: Date.now(),
             });
           }
