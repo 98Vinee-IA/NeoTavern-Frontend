@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, Input } from '../../../../components/UI';
+import { Button, Input, Select } from '../../../../components/UI';
 import { useMythicState } from '../composables/useMythicState';
 import { DEFAULT_UNE_SETTINGS } from '../defaults';
-import type { MythicExtensionAPI } from '../types';
+import type { MythicCharacter, MythicExtensionAPI } from '../types';
 import { genUNENpc } from '../une';
 
 interface Props {
@@ -14,6 +14,13 @@ const props = defineProps<Props>();
 
 const extra = useMythicState(props.api);
 const scene = computed(() => extra.value?.scene);
+
+const typeOptions = computed(() => {
+  const settings = props.api.settings.get();
+  const currentPreset = settings.presets.find((p) => p.name === settings.selectedPreset) || settings.presets[0];
+  const types = currentPreset?.data?.characterTypes || ['NPC'];
+  return types.map((type) => ({ label: type, value: type }));
+});
 
 function getCurrentUNE() {
   const settings = props.api.settings.get();
@@ -41,13 +48,21 @@ const editingNpcId = ref<string | null>(null);
 const editForm = ref({
   name: '',
   type: '',
+  modifier: '',
+  noun: '',
+  motivation_verb: '',
+  motivation_noun: '',
 });
 
-function startEdit(npc: { id: string; name: string; type: string }) {
+function startEdit(npc: MythicCharacter) {
   editingNpcId.value = npc.id;
   editForm.value = {
     name: npc.name,
     type: npc.type,
+    modifier: npc.une_profile.modifier,
+    noun: npc.une_profile.noun,
+    motivation_verb: npc.une_profile.motivation_verb,
+    motivation_noun: npc.une_profile.motivation_noun,
   };
 }
 
@@ -61,7 +76,20 @@ function saveEdit() {
     ...scene.value,
     characters:
       scene.value?.characters.map((c) =>
-        c.id === editingNpcId.value ? { ...c, name: editForm.value.name, type: editForm.value.type } : c,
+        c.id === editingNpcId.value
+          ? {
+              ...c,
+              name: editForm.value.name,
+              type: editForm.value.type,
+              une_profile: {
+                ...c.une_profile,
+                modifier: editForm.value.modifier,
+                noun: editForm.value.noun,
+                motivation_verb: editForm.value.motivation_verb,
+                motivation_noun: editForm.value.motivation_noun,
+              },
+            }
+          : c,
       ) || [],
   };
   updateLatestExtra({ scene: updatedScene });
@@ -73,10 +101,7 @@ function regenerateUNE(id: string) {
   const newUNE = genUNENpc(une.modifiers, une.nouns, une.motivation_verbs, une.motivation_nouns);
   const updatedScene = {
     ...scene.value,
-    characters:
-      scene.value?.characters.map((c) =>
-        c.id === id ? { ...c, une_profile: newUNE, name: `${newUNE.modifier} ${newUNE.noun}` } : c,
-      ) || [],
+    characters: scene.value?.characters.map((c) => (c.id === id ? { ...c, une_profile: newUNE } : c)) || [],
   };
   updateLatestExtra({ scene: updatedScene });
 }
@@ -126,7 +151,7 @@ function removeNpc(id: string) {
               <Input v-model="editForm.name" placeholder="Name" />
             </div>
             <div class="edit-input-wrapper">
-              <Input v-model="editForm.type" placeholder="Type" />
+              <Select v-model="editForm.type" :options="typeOptions" placeholder="Type" />
             </div>
           </div>
           <div class="npc-actions">
@@ -149,14 +174,26 @@ function removeNpc(id: string) {
           <div class="une-profile">
             <div class="profile-row">
               <span class="label">Identity:</span>
-              <span class="value">{{ npc.une_profile.modifier }} {{ npc.une_profile.noun }}</span>
-              <Button size="small" title="Regenerate UNE" @click="regenerateUNE(npc.id)">
+              <span v-if="editingNpcId !== npc.id" class="value"
+                >{{ npc.une_profile.modifier }} {{ npc.une_profile.noun }}</span
+              >
+              <div v-else class="value">
+                <Input v-model="editForm.modifier" placeholder="Modifier" style="width: 80px; margin-right: 4px" />
+                <Input v-model="editForm.noun" placeholder="Noun" style="width: 80px" />
+              </div>
+              <Button v-if="editingNpcId !== npc.id" size="small" title="Regenerate UNE" @click="regenerateUNE(npc.id)">
                 <i class="fas fa-dice"></i>
               </Button>
             </div>
             <div class="profile-row">
               <span class="label">Motivation:</span>
-              <span class="value"> {{ npc.une_profile.motivation_verb }} {{ npc.une_profile.motivation_noun }} </span>
+              <span v-if="editingNpcId !== npc.id" class="value">
+                {{ npc.une_profile.motivation_verb }} {{ npc.une_profile.motivation_noun }}
+              </span>
+              <div v-else class="value">
+                <Input v-model="editForm.motivation_verb" placeholder="Verb" style="width: 80px; margin-right: 4px" />
+                <Input v-model="editForm.motivation_noun" placeholder="Noun" style="width: 80px" />
+              </div>
             </div>
           </div>
         </div>

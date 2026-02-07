@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Button } from '../../../../components/UI';
 import { useMythicState } from '../composables/useMythicState';
 import { generateInitialScene as sceneManagerGenerateInitialScene } from '../scene-manager';
@@ -15,9 +15,20 @@ const extra = useMythicState(props.api);
 const scene = computed(() => extra.value?.scene);
 const activeNpcCount = computed(() => scene.value?.characters.length || 0);
 
+const loading = ref(false);
+const abortController = ref<AbortController | null>(null);
+
 async function generateInitialScene() {
+  if (loading.value) {
+    abortController.value?.abort();
+    return;
+  }
+
+  loading.value = true;
+  abortController.value = new AbortController();
+
   try {
-    const newScene = await sceneManagerGenerateInitialScene(props.api);
+    const newScene = await sceneManagerGenerateInitialScene(props.api, abortController.value.signal);
     const history = props.api.chat.getHistory();
     if (history.length === 0) return;
     const lastMsg = history[history.length - 1];
@@ -35,7 +46,12 @@ async function generateInitialScene() {
       extra: lastMsg.extra,
     });
   } catch (error) {
-    console.error('Failed to generate initial scene:', error);
+    if (!(error instanceof Error) || error.name !== 'AbortError') {
+      console.error('Failed to generate initial scene:', error);
+    }
+  } finally {
+    loading.value = false;
+    abortController.value = null;
   }
 }
 </script>
@@ -44,7 +60,7 @@ async function generateInitialScene() {
   <div class="scene">
     <div class="controls">
       <Button block class="action-btn" @click="generateInitialScene">
-        <i class="fas fa-film"></i>Reinitialize Scene</Button
+        <i :class="loading ? 'fas fa-stop' : 'fas fa-film'"></i>{{ loading ? 'Abort' : 'Reinitialize Scene' }}</Button
       >
     </div>
 

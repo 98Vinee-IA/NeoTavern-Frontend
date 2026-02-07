@@ -13,6 +13,12 @@ function getCurrentUNE(api: MythicExtensionAPI) {
   return currentPreset?.data?.une || DEFAULT_UNE_SETTINGS;
 }
 
+function getCurrentCharacterTypes(api: MythicExtensionAPI) {
+  const settings = api.settings.get();
+  const currentPreset = settings.presets.find((p) => p.name === settings.selectedPreset) || settings.presets[0];
+  return currentPreset?.data?.characterTypes || ['NPC'];
+}
+
 export async function analyzeUserAction(
   api: MythicExtensionAPI,
   scene: Scene,
@@ -64,8 +70,10 @@ export async function genInitialScene(api: MythicExtensionAPI, signal?: AbortSig
   const settings = api.settings.get();
   const connectionProfile = settings?.connectionProfileId || api.settings.getGlobal('api.selectedConnectionProfile');
 
+  const characterTypes = getCurrentCharacterTypes(api);
   const processedPrompt = api.macro.process(settings.prompts.initialScene || INITIAL_SCENE_PROMPT, undefined, {
     language_name: settings?.language || 'English',
+    character_types: characterTypes.join(', '),
   });
   const structuredResponse: StructuredResponseOptions = {
     schema: { name: 'initial_scene', strict: true, value: SceneSchema.toJSONSchema() },

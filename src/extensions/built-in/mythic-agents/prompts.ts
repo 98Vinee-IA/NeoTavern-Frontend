@@ -4,7 +4,7 @@ export const INITIAL_SCENE_PROMPT = `You are a Game Master AI responsible for se
 Based ONLY on the provided chat history, identify the key elements of the current situation. Extract the following information:
 
 - **Chaos Rank:** A number from 1 to 9 indicating the current level of chaos in the story. 1 is very predictable, 9 is extremely chaotic and unpredictable. Base this on the tone and complexity of the chat history.
-- **Characters:** List all characters who are currently present, have been recently mentioned, or are important to the immediate context. Each character must be an object with a \`name\` and a \`type\` (e.g., PC, NPC, Customer). Do NOT invent new characters. The character names must be in {{language_name}}.
+- **Characters:** List all characters who are currently present, have been recently mentioned, or are important to the immediate context. Each character must be an object with a \`name\` and a \`type\`. Possible types are: {{character_types}}. Do NOT invent new characters. The character names must be in {{language_name}}.
 - **Threads:** List any open plot points, active goals, immediate problems, or unresolved questions that the characters are dealing with. Do NOT invent new threads. The threads must be in {{language_name}}.
 
 Provide a brief justification for your choices. Your goal is to create a starting point for the Mythic GME system to take over by summarizing what is ALREADY happening.`;
