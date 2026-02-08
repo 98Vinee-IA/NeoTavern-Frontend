@@ -53,6 +53,20 @@ const activeTab = ref<string>(isMultiFieldMode.value ? 'session' : 'one-shot');
 const primaryField = computed(() => safeInitialFields.value[0] || { id: '', label: '', value: '' });
 const originalText = computed(() => primaryField.value.value);
 
+const isGlobalCharacterEdit = computed(() => props.identifier.startsWith('character.global.'));
+
+const tabOptions = computed(() => {
+  const base = [{ label: t('extensionsBuiltin.rewrite.popup.sessions'), value: 'session', icon: 'fa-comments' }];
+  if (!isGlobalCharacterEdit.value) {
+    base.unshift({
+      label: t('extensionsBuiltin.rewrite.popup.oneShot'),
+      value: 'one-shot',
+      icon: 'fa-wand-magic-sparkles',
+    });
+  }
+  return base;
+});
+
 // Use composables
 const {
   selectedTemplateId,
@@ -323,17 +337,7 @@ function handleGeneralDiff() {
     />
 
     <!-- Tabs -->
-    <Tabs
-      v-model="activeTab"
-      :options="[
-        {
-          label: t('extensionsBuiltin.rewrite.popup.oneShot'),
-          value: 'one-shot',
-          icon: 'fa-wand-magic-sparkles',
-        },
-        { label: t('extensionsBuiltin.rewrite.popup.sessions'), value: 'session', icon: 'fa-comments' },
-      ]"
-    />
+    <Tabs v-model="activeTab" :options="tabOptions" />
 
     <div class="tab-content">
       <!-- One-Shot View -->
