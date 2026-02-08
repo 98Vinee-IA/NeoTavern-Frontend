@@ -182,6 +182,17 @@ export class PromptBuilder {
             contentParts.push({ type: 'audio_url', audio_url: { url: dataUrl } });
             mediaTokens += 32 * Math.ceil(await getMediaDurationFromDataURL(dataUrl, 'audio'));
           }
+        } else if (mediaItem.type === 'text') {
+          try {
+            const response = await fetch(dataUrl);
+            if (response.ok) {
+              const textContent = await response.text();
+              contentParts.push({ type: 'text', text: textContent });
+              mediaTokens += await countTokens(textContent, this.tokenizer);
+            }
+          } catch (e) {
+            console.error('Failed to fetch text file:', e);
+          }
         }
       } catch (e) {
         console.error('Failed to process media item:', e);

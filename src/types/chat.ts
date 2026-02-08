@@ -3,7 +3,7 @@ import type { ToolInvocation } from './tools';
 
 export interface ChatMediaItem {
   source: 'upload' | 'url' | 'inline';
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'text';
   url: string;
   title?: string;
 }
