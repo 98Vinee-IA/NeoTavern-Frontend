@@ -261,8 +261,8 @@ export class RewriteService {
                   description: 'The name of the tool function to call.',
                 },
                 arguments: {
-                  type: 'object',
-                  description: 'The arguments to pass to the tool function.',
+                  type: 'string',
+                  description: 'A JSON string of the arguments to pass to the tool function.',
                 },
               },
               required: ['name', 'arguments'],

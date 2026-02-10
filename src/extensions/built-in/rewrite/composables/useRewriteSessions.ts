@@ -222,7 +222,7 @@ export function useRewriteSessions(api: ExtensionAPI<RewriteSettings>) {
               type: 'function' as const,
               function: {
                 name: tc.name,
-                arguments: JSON.stringify(tc.arguments),
+                arguments: tc.arguments,
               },
             }));
           const { invocations, errors } = await ToolService.processToolCalls(fakeToolCalls);

@@ -19,8 +19,7 @@ export interface RewriteLLMResponse {
   changes?: Omit<FieldChange, 'oldValue' | 'label'>[]; // For multi-field proposals from LLM
   toolCalls?: {
     name: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    arguments: Record<string, any>;
+    arguments: string; // JSON string
   }[];
 }
 
