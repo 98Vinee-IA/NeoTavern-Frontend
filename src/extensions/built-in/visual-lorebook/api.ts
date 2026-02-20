@@ -36,7 +36,8 @@ const API_BASE = '/api/visual-lorebook';
  */
 export async function uploadMedia(request: UploadMediaRequest): Promise<UploadMediaResponse> {
   const formData = new FormData();
-  formData.append('file', request.file);
+  // Use 'avatar' as field name to match global multer middleware
+  formData.append('avatar', request.file);
   formData.append('lorebook', request.lorebook);
   formData.append('entryUid', request.entryUid.toString());
 
