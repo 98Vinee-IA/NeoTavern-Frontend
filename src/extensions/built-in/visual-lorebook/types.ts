@@ -2,12 +2,14 @@ export interface VisualLorebookSettings {
   maxImageSize: number; // Max image size in bytes (default: 5MB)
   maxVideoSize: number; // Max video size in bytes (default: 50MB)
   enabled: boolean;
+  lastSelectedLorebook: string; // Last selected lorebook filename
 }
 
 export const defaultSettings: VisualLorebookSettings = {
   maxImageSize: 5 * 1024 * 1024, // 5MB
   maxVideoSize: 50 * 1024 * 1024, // 50MB
   enabled: true,
+  lastSelectedLorebook: '',
 };
 
 // Media metadata stored in parallel JSON file

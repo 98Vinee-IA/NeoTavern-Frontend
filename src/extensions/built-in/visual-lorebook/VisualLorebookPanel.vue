@@ -259,6 +259,12 @@ watch(
 
 // Set up event listener for generation finished
 onMounted(() => {
+  // Restore last selected lorebook from settings
+  const lastSelected = props.api.settings.get('lastSelectedLorebook');
+  if (lastSelected && lorebooks.value.some((l) => l.value === lastSelected)) {
+    selectedLorebook.value = lastSelected;
+  }
+
   // Listen for generation finished to detect new LLM responses
   const unsubscribe = props.api.events.on('generation:finished', async (result) => {
     if (result.message && !result.message.is_user) {
@@ -290,6 +296,11 @@ onMounted(() => {
 // Reset matched entries when switching lorebooks
 watch(selectedLorebook, () => {
   matchedEntryUids.value = [];
+});
+
+// Persist selected lorebook to settings
+watch(selectedLorebook, (newLorebook) => {
+  props.api.settings.set('lastSelectedLorebook', newLorebook);
 });
 
 async function handleMediaSelect(event: Event, targetEntryUid?: number) {
