@@ -3,6 +3,8 @@ export interface VisualLorebookSettings {
   maxVideoSize: number; // Max video size in bytes (default: 50MB)
   enabled: boolean;
   lastSelectedLorebook: string; // Last selected lorebook filename
+  showOnlyActiveCharacters: boolean; // Show only characters mentioned in recent messages
+  activeCharacterLookback: number; // Number of messages to look back for character mentions
 }
 
 export const defaultSettings: VisualLorebookSettings = {
@@ -10,6 +12,8 @@ export const defaultSettings: VisualLorebookSettings = {
   maxVideoSize: 50 * 1024 * 1024, // 50MB
   enabled: true,
   lastSelectedLorebook: '',
+  showOnlyActiveCharacters: false,
+  activeCharacterLookback: 5,
 };
 
 // Media metadata stored in parallel JSON file

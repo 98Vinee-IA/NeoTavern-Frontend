@@ -2,6 +2,7 @@
 import { debounce } from 'lodash-es';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Button, FormItem, Input, Search, Select } from '../../../components/UI';
+import { useChatStore } from '../../../stores/chat.store';
 import { useWorldInfoUiStore } from '../../../stores/world-info-ui.store';
 import { useWorldInfoStore } from '../../../stores/world-info.store';
 import type { ExtensionAPI } from '../../../types';
@@ -22,6 +23,7 @@ const props = defineProps<{
 const t = props.api.i18n.t;
 const worldInfoUiStore = useWorldInfoUiStore();
 const worldInfoStore = useWorldInfoStore();
+const chatStore = useChatStore();
 
 const selectedLorebook = ref<string>('');
 const selectedEntryUid = ref<number>(0);
@@ -38,6 +40,9 @@ const isSavingKeyword = ref(false);
 
 // Track matched entries in order (most recent first)
 const matchedEntryUids = ref<number[]>([]);
+
+// Active characters filter
+const showOnlyActiveCharacters = ref(false);
 
 // Get all available lorebooks (use bookInfos for the list, not worldInfoCache)
 // Use file_id (filename) as the value since worldInfoCache is keyed by filename
@@ -69,6 +74,31 @@ async function loadMediaMetadata() {
   }
 }
 
+// Get entries that have been mentioned in recent messages
+const activeEntries = computed(() => {
+  if (!showOnlyActiveCharacters.value || !selectedLorebook.value || !mediaMetadata.value) {
+    return new Set<number>();
+  }
+
+  const lookback = props.api.settings.get('activeCharacterLookback');
+  const recentMessages = chatStore.activeChat?.messages.slice(-lookback) || [];
+  const activeEntryUids = new Set<number>();
+
+  for (const message of recentMessages) {
+    const messageText = message.mes.toLowerCase();
+    // Check each entry's visual keyword
+    for (const [uidStr, mediaData] of Object.entries(mediaMetadata.value!.entries)) {
+      const uid = Number(uidStr);
+      const keyword = mediaData.visualKeyword?.trim();
+      if (keyword && messageText.includes(keyword.toLowerCase())) {
+        activeEntryUids.add(uid);
+      }
+    }
+  }
+
+  return activeEntryUids;
+});
+
 // Get entries for selected lorebook (only entries with media)
 const entriesWithMedia = computed(() => {
   if (!selectedLorebook.value || !mediaMetadata.value) return [];
@@ -78,6 +108,11 @@ const entriesWithMedia = computed(() => {
 
   // Filter to only show entries that have media
   let entries = book.entries.filter((entry) => mediaMetadata.value!.entries[entry.uid]);
+
+  // Filter by active characters if toggle is enabled
+  if (showOnlyActiveCharacters.value) {
+    entries = entries.filter((entry) => activeEntries.value.has(entry.uid));
+  }
 
   // Filter by search query
   if (searchQuery.value) {
@@ -427,6 +462,13 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
         :options="lorebooks"
         :placeholder="t('extensionsBuiltin.visualLorebook.selectLorebook')"
         @update:model-value="handleLorebookChange"
+      />
+      <Button
+        :variant="showOnlyActiveCharacters ? 'confirm' : 'ghost'"
+        :icon="showOnlyActiveCharacters ? 'fa-eye' : 'fa-eye-slash'"
+        title="Show only active characters"
+        class="toggle-active-characters"
+        @click="showOnlyActiveCharacters = !showOnlyActiveCharacters"
       />
     </FormItem>
 
