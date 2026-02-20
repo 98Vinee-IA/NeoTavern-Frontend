@@ -8,16 +8,11 @@ export { manifest };
 
 export function activate(api: ExtensionAPI<VisualLorebookSettings>) {
   // Register sidebar panel on the RIGHT side (openSidebar only works with right sidebars)
-  api.ui.registerSidebar(
-    'visual-lorebook',
-    markRaw(VisualLorebookPanel),
-    'right',
-    {
-      icon: 'fa-solid fa-photo-video',
-      title: 'extensionsBuiltin.visualLorebook.title',
-      props: { api },
-    },
-  );
+  api.ui.registerSidebar('visual-lorebook', markRaw(VisualLorebookPanel), 'right', {
+    icon: 'fa-solid fa-photo-video',
+    title: 'extensionsBuiltin.visualLorebook.title',
+    props: { api },
+  });
 
   // Register nav bar item
   api.ui.registerNavBarItem('visual-lorebook', {

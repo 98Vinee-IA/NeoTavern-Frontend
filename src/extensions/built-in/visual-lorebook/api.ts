@@ -1,5 +1,5 @@
-import type { VisualLorebookFile, VisualLorebookMediaData } from './types';
 import { getRequestHeaders } from '../../../utils/client';
+import type { VisualLorebookFile, VisualLorebookMediaData } from './types';
 
 export interface UploadMediaRequest {
   file: File;

@@ -6,27 +6,27 @@
 
 All files are created in `src/extensions/built-in/visual-lorebook/`:
 
-| File | Purpose |
-|-------|----------|
-| `manifest.ts` | Extension manifest with name, version, author, and icon |
-| `types.ts` | TypeScript interfaces for settings, media data, and metadata file structure |
-| `api.ts` | API service functions for upload, delete, fetch, and update operations |
-| `VisualLorebookPanel.vue` | Main UI component for the media management panel |
-| `locales/en.json` | Internationalization keys for all UI labels |
-| `style.scss` | SCSS styling for the panel component |
-| `index.ts` | Extension activation function, panel registration, and nav bar item |
+| File                      | Purpose                                                                     |
+| ------------------------- | --------------------------------------------------------------------------- |
+| `manifest.ts`             | Extension manifest with name, version, author, and icon                     |
+| `types.ts`                | TypeScript interfaces for settings, media data, and metadata file structure |
+| `api.ts`                  | API service functions for upload, delete, fetch, and update operations      |
+| `VisualLorebookPanel.vue` | Main UI component for the media management panel                            |
+| `locales/en.json`         | Internationalization keys for all UI labels                                 |
+| `style.scss`              | SCSS styling for the panel component                                        |
+| `index.ts`                | Extension activation function, panel registration, and nav bar item         |
 
 ### Backend (Separate Repository)
 
-| File | Purpose |
-|-------|----------|
+| File                                       | Purpose                                 |
+| ------------------------------------------ | --------------------------------------- |
 | `backend/src/endpoints/visual-lorebook.js` | Express router with all 6 API endpoints |
 
 ### Data Files (Created at Runtime)
 
-| Path | Purpose |
-|-------|----------|
-| `backend/data/default-user/visual-lorebook/media/` | Directory for uploaded media files |
+| Path                                                             | Purpose                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------- |
+| `backend/data/default-user/visual-lorebook/media/`               | Directory for uploaded media files             |
 | `backend/data/default-user/visual-lorebook/{lorebook-name}.json` | Parallel JSON metadata files for each lorebook |
 
 ---
@@ -87,14 +87,17 @@ app.use('/api/visual-lorebook', visualLorebookRouter);
 ## Summary
 
 ### Files Created: 8 new files
+
 - 7 frontend extension files
 - 1 backend router file
 - Runtime data directories and files created automatically
 
 ### Files Modified: 2 existing files
+
 - 1 backend server startup file (add router registration)
 - 1 frontend i18n file (add extension keys)
 
 ### No Core Changes Required
+
 - Zero changes to core NeoTavern codebase
 - All functionality is self-contained in the extension

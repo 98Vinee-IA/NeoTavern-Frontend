@@ -70,7 +70,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB max
@@ -88,7 +88,7 @@ const upload = multer({
       'video/webm',
       'video/quicktime',
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -102,10 +102,10 @@ router.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  
+
   // Get lorebook name and entry UID from request body
   const { lorebook, entryUid } = req.body;
-  
+
   res.json({
     filename: req.file.filename,
     lorebook,
@@ -119,13 +119,13 @@ router.post('/upload', upload.single('file'), (req, res) => {
 // DELETE /api/visual-lorebook/delete - Delete media file
 router.delete('/delete', (req, res) => {
   const { mediaId } = req.body;
-  
+
   if (!mediaId) {
     return res.status(400).json({ error: 'mediaId is required' });
   }
-  
+
   const filePath = path.join(uploadDir, mediaId);
-  
+
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
     res.json({ success: true });
@@ -137,7 +137,7 @@ router.delete('/delete', (req, res) => {
 // GET /api/visual-lorebook/media/:filename - Serve media files
 router.get('/media/:filename', (req, res) => {
   const filePath = path.join(uploadDir, req.params.filename);
-  
+
   if (fs.existsSync(filePath)) {
     // Determine content type
     const ext = path.extname(filePath).toLowerCase();
@@ -166,7 +166,7 @@ router.get('/media/:filename', (req, res) => {
 router.get('/metadata/:lorebookName', (req, res) => {
   const { lorebookName } = req.params;
   const metadataPath = path.join(mediaMetadataDir, `${lorebookName}.json`);
-  
+
   if (fs.existsSync(metadataPath)) {
     const data = fs.readFileSync(metadataPath, 'utf-8');
     res.json(JSON.parse(data));
@@ -179,26 +179,26 @@ router.get('/metadata/:lorebookName', (req, res) => {
 router.post('/metadata/:lorebookName', (req, res) => {
   const { lorebookName } = req.params;
   const { entryUid, mediaData } = req.body;
-  
+
   if (!entryUid || !mediaData) {
     return res.status(400).json({ error: 'entryUid and mediaData are required' });
   }
-  
+
   const metadataPath = path.join(mediaMetadataDir, `${lorebookName}.json`);
-  
+
   let metadata;
   if (fs.existsSync(metadataPath)) {
     metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
   } else {
     metadata = { name: lorebookName, entries: {} };
   }
-  
+
   // Update the entry's media data
   metadata.entries[entryUid] = mediaData;
-  
+
   // Write back to file
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-  
+
   res.json({ success: true });
 });
 
@@ -206,29 +206,29 @@ router.post('/metadata/:lorebookName', (req, res) => {
 router.delete('/metadata/:lorebookName', (req, res) => {
   const { lorebookName } = req.params;
   const { entryUid } = req.body;
-  
+
   if (!entryUid) {
     return res.status(400).json({ error: 'entryUid is required' });
   }
-  
+
   const metadataPath = path.join(mediaMetadataDir, `${lorebookName}.json`);
-  
+
   if (!fs.existsSync(metadataPath)) {
     return res.status(404).json({ error: 'Media metadata not found' });
   }
-  
+
   const data = fs.readFileSync(metadataPath, 'utf-8');
   const metadata = JSON.parse(data);
-  
+
   // Remove the entry's media data
   delete metadata.entries[entryUid];
-  
+
   // Clean up empty metadata files
   if (Object.keys(metadata.entries).length === 0) {
     // Optionally: delete the metadata file itself
     // fs.unlinkSync(metadataPath);
   }
-  
+
   // Write back to file
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
   res.json({ success: true });
