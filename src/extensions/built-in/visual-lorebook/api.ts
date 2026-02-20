@@ -1,4 +1,5 @@
 import type { VisualLorebookFile, VisualLorebookMediaData } from './types';
+import { getRequestHeaders } from '../../../utils/client';
 
 export interface UploadMediaRequest {
   file: File;
@@ -41,6 +42,7 @@ export async function uploadMedia(request: UploadMediaRequest): Promise<UploadMe
 
   const response = await fetch(`${API_BASE}/upload`, {
     method: 'POST',
+    headers: getRequestHeaders({ omitContentType: true }),
     body: formData,
   });
 
@@ -57,9 +59,7 @@ export async function uploadMedia(request: UploadMediaRequest): Promise<UploadMe
 export async function deleteMedia(request: DeleteMediaRequest): Promise<{ success: true }> {
   const response = await fetch(`${API_BASE}/delete`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getRequestHeaders(),
     body: JSON.stringify(request),
   });
 
@@ -81,7 +81,9 @@ export function getMediaUrl(mediaId: string): string {
  * Fetch media metadata for a lorebook
  */
 export async function fetchMediaMetadata(lorebookName: string): Promise<VisualLorebookFile | null> {
-  const response = await fetch(`${API_BASE}/metadata/${lorebookName}`);
+  const response = await fetch(`${API_BASE}/metadata/${lorebookName}`, {
+    headers: getRequestHeaders(),
+  });
 
   if (response.status === 404) {
     return null;
@@ -103,9 +105,7 @@ export async function updateMediaMetadata(
 ): Promise<{ success: true }> {
   const response = await fetch(`${API_BASE}/metadata/${lorebookName}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getRequestHeaders(),
     body: JSON.stringify(request),
   });
 
@@ -125,9 +125,7 @@ export async function removeMediaMetadata(
 ): Promise<{ success: true }> {
   const response = await fetch(`${API_BASE}/metadata/${lorebookName}`, {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getRequestHeaders(),
     body: JSON.stringify(request),
   });
 

@@ -1,3 +1,4 @@
+import { markRaw } from 'vue';
 import type { ExtensionAPI } from '../../../types';
 import { manifest } from './manifest';
 import type { VisualLorebookSettings } from './types';
@@ -6,11 +7,11 @@ import VisualLorebookPanel from './VisualLorebookPanel.vue';
 export { manifest };
 
 export function activate(api: ExtensionAPI<VisualLorebookSettings>) {
-  // Register sidebar panel
-  const panelIdPromise = api.ui.registerSidebar(
+  // Register sidebar panel on the RIGHT side (openSidebar only works with right sidebars)
+  api.ui.registerSidebar(
     'visual-lorebook',
-    VisualLorebookPanel,
-    'left',
+    markRaw(VisualLorebookPanel),
+    'right',
     {
       icon: 'fa-solid fa-photo-video',
       title: 'extensionsBuiltin.visualLorebook.title',
@@ -23,17 +24,15 @@ export function activate(api: ExtensionAPI<VisualLorebookSettings>) {
     icon: 'fa-solid fa-photo-video',
     title: 'extensionsBuiltin.visualLorebook.title',
     onClick: () => {
-      // Open sidebar panel - panelId is a promise, so we need to await it
-      panelIdPromise.then((panelId) => {
-        api.ui.openSidebar(panelId);
-      });
+      // Open sidebar panel - use the same ID as registered above
+      api.ui.openSidebar('visual-lorebook');
     },
   });
 
   // Cleanup function
   return () => {
     // Unregister sidebar - requires side parameter
-    api.ui.unregisterSidebar('visual-lorebook', 'left');
+    api.ui.unregisterSidebar('visual-lorebook', 'right');
     api.ui.unregisterNavBarItem('visual-lorebook');
   };
 }

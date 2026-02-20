@@ -29,9 +29,10 @@ const isUploadingMedia = ref(false);
 const searchQuery = ref('');
 const mediaMetadata = ref<VisualLorebookFile | null>(null);
 
-// Get all available lorebooks
+// Get all available lorebooks (use bookInfos for the list, not worldInfoCache)
+// Use file_id (filename) as the value since worldInfoCache is keyed by filename
 const lorebooks = computed(() => {
-  return Object.keys(worldInfoStore.worldInfoCache);
+  return worldInfoStore.bookInfos.map((info) => ({ label: info.name, value: info.file_id }));
 });
 
 // Fetch media metadata for selected lorebook
@@ -42,6 +43,9 @@ async function loadMediaMetadata() {
   }
 
   try {
+    // First, ensure the lorebook is loaded in the cache
+    await worldInfoStore.getBookFromCache(selectedLorebook.value, true);
+
     const metadata = await fetchMediaMetadataFromApi(selectedLorebook.value);
     if (metadata) {
       mediaMetadata.value = metadata;
@@ -141,7 +145,7 @@ watch(selectedLorebook, () => {
 watch(
   () => worldInfoUiStore.selectedFilename,
   (newFilename) => {
-    if (newFilename && lorebooks.value.includes(newFilename)) {
+    if (newFilename && lorebooks.value.some((l) => l.value === newFilename)) {
       selectedLorebook.value = newFilename;
     }
   },
@@ -264,7 +268,7 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
     <FormItem :label="t('extensionsBuiltin.visualLorebook.selectLorebook')">
       <Select
         :model-value="selectedLorebook"
-        :options="lorebooks.map((l) => ({ label: l, value: l }))"
+        :options="lorebooks"
         :placeholder="t('extensionsBuiltin.visualLorebook.selectLorebook')"
         @update:model-value="handleLorebookChange"
       />
@@ -340,7 +344,7 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
           :model-value="selectedEntryForUpload"
           :options="
             entriesWithoutMedia.map((e) => ({
-              label: `UID: ${e.uid} - ${e.key[0] || '(no key)'}`,
+              label: e.comment || e.key[0] || `Entry ${e.uid}`,
               value: e.uid,
             }))
           "
