@@ -1650,7 +1650,7 @@
     "visualLorebook": {
       "title": "Visual Lorebook",
       "selectLorebook": "Select Lorebook",
-      "selectEntry": "Select Entry",
+      "selectEntry": "Selected",
       "selectEntryToUpload": "Select entry to add media to",
       "noEntriesWithMedia": "No entries with media in this lorebook",
       "searchPlaceholder": "Search entries with media...",

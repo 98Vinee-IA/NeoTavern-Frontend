@@ -335,42 +335,9 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
     </FormItem>
 
     <!-- Entry Search -->
-    <FormItem v-if="selectedLorebook">
+    <FormItem v-if="false">
       <Search v-model="searchQuery" :placeholder="t('extensionsBuiltin.visualLorebook.searchPlaceholder')" />
     </FormItem>
-
-    <!-- Entry Grid - Only shows entries WITH media -->
-    <div v-if="selectedLorebook" class="entry-grid">
-      <div v-if="entriesWithMedia.length === 0" class="empty-state">
-        {{ t('extensionsBuiltin.visualLorebook.noEntriesWithMedia') }}
-      </div>
-
-      <div
-        v-for="entry in entriesWithMedia"
-          :key="entry.uid"
-          class="entry-card"
-          :class="{ selected: selectedEntryUid === entry.uid }"
-          @click="selectedEntryUid = entry.uid"
-        >
-          <div class="entry-header">
-            <span class="entry-key">{{ entry.key[0] || '(no key)' }}</span>
-          </div>
-
-          <!-- Media thumbnail -->
-          <div class="entry-media">
-            <img
-              v-if="mediaMetadata?.entries[entry.uid]?.mediaType === 'image'"
-              :src="getEntryMediaUrl(entry.uid)"
-              alt="UID {{ entry.uid }}"
-            />
-            <video v-else-if="isVideo" :src="getEntryMediaUrl(entry.uid)" class="preview-video" autoplay loop>
-            </video>
-          </div>
-
-          <div class="entry-comment">{{ entry.comment }}</div>
-        </div>
-      </div>
-
     <!-- Selected Entry Media Section - For viewing/replacing/deleting existing media -->
     <div v-if="selectedEntry" class="selected-entry-section">
       <div class="section-header">
@@ -401,6 +368,38 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
         </div>
       </div>
     </div>
+    
+    <!-- Entry Grid - Only shows entries WITH media -->
+    <div v-if="selectedLorebook" class="entry-grid">
+      <div v-if="entriesWithMedia.length === 0" class="empty-state">
+        {{ t('extensionsBuiltin.visualLorebook.noEntriesWithMedia') }}
+      </div>
+
+      <div
+        v-for="entry in entriesWithMedia"
+          :key="entry.uid"
+          class="entry-card"
+          :class="{ selected: selectedEntryUid === entry.uid }"
+          @click="selectedEntryUid = entry.uid"
+        >
+          <div class="entry-header">
+            <span class="entry-key">{{ entry.comment || 'No Name' }}</span>
+          </div>
+
+          <!-- Media thumbnail -->
+          <div class="entry-media">
+            <img
+              v-if="mediaMetadata?.entries[entry.uid]?.mediaType === 'image'"
+              :src="getEntryMediaUrl(entry.uid)"
+              alt="UID {{ entry.uid }}"
+            />
+            <video v-else-if="isVideo" :src="getEntryMediaUrl(entry.uid)" class="preview-video" autoplay loop>
+            </video>
+          </div>
+        </div>
+      </div>
+
+
 
     <!-- Add Media to Entry Section - For uploading to entries without media -->
     <div v-if="selectedLorebook" class="add-media-section">
