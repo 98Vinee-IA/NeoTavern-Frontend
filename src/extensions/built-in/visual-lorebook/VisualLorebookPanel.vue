@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { debounce } from 'lodash-es';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { Button, FormItem, Input, Search, Select } from '../../../components/UI';
+import { Button, FormItem, Search, Select } from '../../../components/UI';
 import { useChatStore } from '../../../stores/chat.store';
 import { useWorldInfoUiStore } from '../../../stores/world-info-ui.store';
 import { useWorldInfoStore } from '../../../stores/world-info.store';
@@ -32,11 +31,6 @@ const mediaInputRef = ref<HTMLInputElement | null>(null);
 const isUploadingMedia = ref(false);
 const searchQuery = ref('');
 const mediaMetadata = ref<VisualLorebookFile | null>(null);
-
-// Visual keyword state
-const visualKeywordForUpload = ref<string>('');
-const visualKeywordForEdit = ref<string>('');
-const isSavingKeyword = ref(false);
 
 // Track matched entries in order (most recent first)
 const matchedEntryUids = ref<number[]>([]);
@@ -80,18 +74,32 @@ const activeEntries = computed(() => {
     return new Set<number>();
   }
 
+  const book = worldInfoStore.worldInfoCache[selectedLorebook.value];
+  if (!book) return new Set<number>();
+
   const lookback = props.api.settings.get('activeCharacterLookback');
   const recentMessages = chatStore.activeChat?.messages.slice(-lookback) || [];
   const activeEntryUids = new Set<number>();
 
   for (const message of recentMessages) {
     const messageText = message.mes.toLowerCase();
-    // Check each entry's visual keyword
-    for (const [uidStr, mediaData] of Object.entries(mediaMetadata.value!.entries)) {
+    // Check each entry's keywords from lorebook
+    for (const uidStr of Object.keys(mediaMetadata.value!.entries)) {
       const uid = Number(uidStr);
-      const keyword = mediaData.visualKeyword?.trim();
-      if (keyword && messageText.includes(keyword.toLowerCase())) {
-        activeEntryUids.add(uid);
+      const entry = book.entries.find((e) => e.uid === uid);
+
+      if (!entry) continue;
+
+      // Check if ANY of the entry's keywords match
+      for (const keyword of entry.key) {
+        const trimmedKeyword = keyword.trim();
+        if (trimmedKeyword && messageText.includes(trimmedKeyword.toLowerCase())) {
+          console.log(
+            `[Visual Lorebook] Active filter match - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+          );
+          activeEntryUids.add(uid);
+          break;
+        }
       }
     }
   }
@@ -196,16 +204,29 @@ function getEntryMediaUrl(entryUid: number): string {
 function findMatchingVisualKeywords(messageText: string): number[] {
   if (!selectedLorebook.value || !mediaMetadata.value) return [];
 
+  const book = worldInfoStore.worldInfoCache[selectedLorebook.value];
+  if (!book) return [];
+
   const text = messageText.toLowerCase();
   const matchedUids: number[] = [];
 
   // Scan all entries with media for keyword matches
-  for (const [uidStr, mediaData] of Object.entries(mediaMetadata.value.entries)) {
+  for (const [uidStr] of Object.entries(mediaMetadata.value.entries)) {
     const uid = Number(uidStr);
-    const keyword = mediaData.visualKeyword?.trim();
+    const entry = book.entries.find((e) => e.uid === uid);
 
-    if (keyword && text.includes(keyword.toLowerCase())) {
-      matchedUids.push(uid);
+    if (!entry) continue;
+
+    // Check if ANY of the entry's keywords match
+    for (const keyword of entry.key) {
+      const trimmedKeyword = keyword.trim();
+      if (trimmedKeyword && text.includes(trimmedKeyword.toLowerCase())) {
+        console.log(
+          `[Visual Lorebook] Keyword matched - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+        );
+        matchedUids.push(uid);
+        break; // Only add once per entry
+      }
     }
   }
 
@@ -223,54 +244,9 @@ function getMatchPosition(entryUid: number): number | null {
   return index !== -1 ? index + 1 : null;
 }
 
-// Debounced autosave for visual keyword edits
-const debouncedSaveVisualKeyword = debounce(async () => {
-  if (!selectedLorebook.value || selectedEntryUid.value === 0 || !mediaData.value) return;
-
-  const newKeyword = visualKeywordForEdit.value.trim();
-  if (newKeyword === (mediaData.value.visualKeyword || '')) return;
-
-  isSavingKeyword.value = true;
-  try {
-    await updateMediaMetadata(selectedLorebook.value, {
-      entryUid: selectedEntryUid.value,
-      mediaData: {
-        ...mediaData.value,
-        visualKeyword: newKeyword,
-      },
-    });
-    // Update local metadata
-    if (mediaMetadata.value) {
-      mediaMetadata.value.entries[selectedEntryUid.value] = {
-        ...mediaMetadata.value.entries[selectedEntryUid.value],
-        visualKeyword: newKeyword,
-      };
-    }
-    props.api.ui.showToast(t('extensionsBuiltin.visualLorebook.visualKeywordSaved'), 'success');
-  } catch (error) {
-    console.error('Failed to save visual keyword:', error);
-    props.api.ui.showToast(t('extensionsBuiltin.visualLorebook.visualKeywordSaveFailed'), 'error');
-  } finally {
-    isSavingKeyword.value = false;
-  }
-}, 500);
-
-// Handler for visual keyword input change
-function handleVisualKeywordChange(value: string | number | (string | number)[]) {
-  visualKeywordForEdit.value = Array.isArray(value) ? (value[0] as string) : (value as string);
-  debouncedSaveVisualKeyword();
-}
-
 // Fetch metadata when lorebook changes
 watch(selectedLorebook, () => {
   loadMediaMetadata();
-});
-
-// Watch for mediaData changes to sync visualKeywordForEdit
-watch(mediaData, (newData) => {
-  // Update visual keyword when entry's media data changes
-  const entryKeyword = newData?.visualKeyword || '';
-  visualKeywordForEdit.value = entryKeyword;
 });
 
 // Also reload metadata when returning to the same lorebook (e.g., after navigating away and back)
@@ -417,12 +393,8 @@ async function handleMediaSelect(event: Event, targetEntryUid?: number) {
         mediaId,
         mediaType,
         uploadedAt: new Date().toISOString(),
-        visualKeyword: visualKeywordForUpload.value.trim(),
       },
     });
-
-    // Clear visual keyword for upload after successful upload
-    visualKeywordForUpload.value = '';
 
     // Refresh media metadata
     await loadMediaMetadata();
@@ -516,16 +488,6 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
         <img v-if="isImage" :src="mediaUrl" alt="Entry media preview" class="preview-image" />
         <video v-else-if="isVideo" :src="mediaUrl" controls class="preview-video" />
 
-        <!-- Visual keyword display/edit (small text below media) -->
-        <div class="visual-keyword-section">
-          <Input
-            :model-value="visualKeywordForEdit"
-            :placeholder="t('extensionsBuiltin.visualLorebook.visualKeywordPlaceholder')"
-            class="visual-keyword-input"
-            @update:model-value="handleVisualKeywordChange"
-          />
-        </div>
-
         <div class="media-actions">
           <Button variant="ghost" icon="fa-upload" :disabled="isUploadingMedia" @click="mediaInputRef?.click()">
             {{
@@ -589,13 +551,6 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
           :options="entriesWithoutMedia.map((e) => ({ label: `${e.uid}: ${e.comment}`, value: e.uid }))"
           :placeholder="t('extensionsBuiltin.visualLorebook.selectEntry')"
           @update:model-value="handleEntryForUploadChange"
-        />
-      </FormItem>
-
-      <FormItem :label="t('extensionsBuiltin.visualLorebook.visualKeyword')">
-        <Input
-          v-model="visualKeywordForUpload"
-          :placeholder="t('extensionsBuiltin.visualLorebook.visualKeywordPlaceholder')"
         />
       </FormItem>
 

@@ -1668,10 +1668,6 @@ export interface MessageSchema {
       mediaUploadFailed: string;
       mediaRemoved: string;
       deleteConfirm: string;
-      visualKeyword: string;
-      visualKeywordPlaceholder: string;
-      visualKeywordSaved: string;
-      visualKeywordSaveFailed: string;
     };
   };
   login: {

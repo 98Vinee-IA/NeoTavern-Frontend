@@ -1664,11 +1664,7 @@
       "mediaUploaded": "Media uploaded successfully.",
       "mediaUploadFailed": "Failed to upload media.",
       "mediaRemoved": "Media removed successfully.",
-      "deleteConfirm": "Are you sure you want to remove this media?",
-      "visualKeyword": "Visual Keyword",
-      "visualKeywordPlaceholder": "Enter keyword...",
-      "visualKeywordSaved": "Visual keyword saved.",
-      "visualKeywordSaveFailed": "Failed to save visual keyword."
+      "deleteConfirm": "Are you sure you want to remove this media?"
     }
   },
   "login": {
