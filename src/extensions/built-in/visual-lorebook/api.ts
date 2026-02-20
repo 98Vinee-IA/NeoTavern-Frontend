@@ -124,8 +124,8 @@ export async function removeMediaMetadata(
   lorebookName: string,
   request: RemoveMetadataRequest,
 ): Promise<{ success: true }> {
-  const response = await fetch(`${API_BASE}/metadata/${lorebookName}`, {
-    method: 'DELETE',
+  const response = await fetch(`${API_BASE}/metadata/${lorebookName}/remove`, {
+    method: 'POST',
     headers: getRequestHeaders(),
     body: JSON.stringify(request),
   });

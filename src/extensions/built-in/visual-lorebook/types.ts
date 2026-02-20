@@ -15,6 +15,7 @@ export interface VisualLorebookMediaData {
   mediaId: string; // Reference to media file on backend
   mediaType: 'image' | 'video';
   uploadedAt: string; // ISO timestamp
+  visualKeyword: string; // Optional text keyword for visual reference
 }
 
 // Structure of the parallel media JSON file

@@ -1656,7 +1656,6 @@ export interface MessageSchema {
       selectEntry: string;
       selectEntryToUpload: string;
       noEntriesWithMedia: string;
-      noEntriesWithoutMedia: string;
       searchPlaceholder: string;
       uploadMedia: string;
       replaceMedia: string;
@@ -1668,8 +1667,11 @@ export interface MessageSchema {
       mediaUploaded: string;
       mediaUploadFailed: string;
       mediaRemoved: string;
-      mediaRemoveFailed: string;
       deleteConfirm: string;
+      visualKeyword: string;
+      visualKeywordPlaceholder: string;
+      visualKeywordSaved: string;
+      visualKeywordSaveFailed: string;
     };
   };
   login: {
