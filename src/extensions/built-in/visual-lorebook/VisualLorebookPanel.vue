@@ -42,7 +42,7 @@ const isSavingKeyword = ref(false);
 const matchedEntryUids = ref<number[]>([]);
 
 // Active characters filter
-const showOnlyActiveCharacters = ref(false);
+const showOnlyActiveCharacters = ref<boolean>(false);
 
 // Get all available lorebooks (use bookInfos for the list, not worldInfoCache)
 // Use file_id (filename) as the value since worldInfoCache is keyed by filename
@@ -300,6 +300,16 @@ onMounted(() => {
     selectedLorebook.value = lastSelected;
   }
 
+  // Restore matched entry order from settings for current lorebook
+  const matchedOrder = props.api.settings.get('matchedEntryOrder') || {};
+  if (lastSelected && matchedOrder[lastSelected]) {
+    matchedEntryUids.value = matchedOrder[lastSelected];
+  }
+
+  // Restore showOnlyActiveCharacters from settings
+  const savedShowOnlyActive = props.api.settings.get('showOnlyActiveCharacters');
+  showOnlyActiveCharacters.value = savedShowOnlyActive ?? false;
+
   // Listen for generation finished to detect new LLM responses
   const unsubscribe = props.api.events.on('generation:finished', async (result) => {
     if (result.message && !result.message.is_user) {
@@ -337,6 +347,24 @@ watch(selectedLorebook, () => {
 watch(selectedLorebook, (newLorebook) => {
   props.api.settings.set('lastSelectedLorebook', newLorebook);
 });
+
+// Persist showOnlyActiveCharacters toggle to settings
+watch(showOnlyActiveCharacters, (newValue) => {
+  props.api.settings.set('showOnlyActiveCharacters', newValue);
+});
+
+// Persist matched entry order to settings
+watch(
+  matchedEntryUids,
+  (newOrder) => {
+    if (selectedLorebook.value) {
+      const matchedOrder = props.api.settings.get('matchedEntryOrder') || {};
+      matchedOrder[selectedLorebook.value] = newOrder;
+      props.api.settings.set('matchedEntryOrder', matchedOrder);
+    }
+  },
+  { deep: true },
+);
 
 async function handleMediaSelect(event: Event, targetEntryUid?: number) {
   const target = event.target as HTMLInputElement;

@@ -5,6 +5,7 @@ export interface VisualLorebookSettings {
   lastSelectedLorebook: string; // Last selected lorebook filename
   showOnlyActiveCharacters: boolean; // Show only characters mentioned in recent messages
   activeCharacterLookback: number; // Number of messages to look back for character mentions
+  matchedEntryOrder: Record<string, number[]>; // Lorebook filename -> array of entry UIDs in matched order
 }
 
 export const defaultSettings: VisualLorebookSettings = {
@@ -14,6 +15,7 @@ export const defaultSettings: VisualLorebookSettings = {
   lastSelectedLorebook: '',
   showOnlyActiveCharacters: false,
   activeCharacterLookback: 5,
+  matchedEntryOrder: {},
 };
 
 // Media metadata stored in parallel JSON file
