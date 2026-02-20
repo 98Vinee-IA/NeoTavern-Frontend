@@ -1670,7 +1670,6 @@ export interface MessageSchema {
       mediaRemoved: string;
       mediaRemoveFailed: string;
       deleteConfirm: string;
-      entryUid: string;
     };
   };
   login: {

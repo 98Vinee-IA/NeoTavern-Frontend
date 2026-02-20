@@ -1659,15 +1659,14 @@
       "replaceMedia": "Replace Media",
       "removeMedia": "Remove Media",
       "uploading": "Uploading...",
-      "invalidFileType": "Invalid file type. Please select an image or video.",
+      "invalidFileType": "Invalid file type. Please select a media file.",
       "imageTooLarge": "Image too large. Maximum size is 5MB.",
       "videoTooLarge": "Video too large. Maximum size is 50MB.",
       "mediaUploaded": "Media uploaded successfully.",
       "mediaUploadFailed": "Failed to upload media.",
       "mediaRemoved": "Media removed successfully.",
       "mediaRemoveFailed": "Failed to remove media.",
-      "deleteConfirm": "Are you sure you want to remove this media?",
-      "entryUid": "Entry UID"
+      "deleteConfirm": "Are you sure you want to remove this media?"
     }
   },
   "login": {

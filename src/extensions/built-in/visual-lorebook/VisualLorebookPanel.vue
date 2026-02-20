@@ -293,8 +293,7 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
         @click="selectedEntryUid = entry.uid"
       >
         <div class="entry-header">
-          <span class="entry-uid">{{ t('extensionsBuiltin.visualLorebook.entryUid') }}: {{ entry.uid }}</span>
-          <span class="entry-key">{{ entry.key[0] || '(no key)' }}</span>
+          <span class="entry-key">{{ entry.comment || '(no comment)' }}</span>
         </div>
 
         <!-- Media thumbnail -->
@@ -302,14 +301,11 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
           <img
             v-if="mediaMetadata?.entries[entry.uid]?.mediaType === 'image'"
             :src="getEntryMediaUrl(entry.uid)"
-            alt="Entry media thumbnail"
+            alt="UID {{ entry.uid }}"
           />
-          <div v-else class="video-thumbnail">
-            <i class="fa-solid fa-play"></i>
-          </div>
+          <video v-else :src="getEntryMediaUrl(entry.uid)" class="preview-video" autoplay loop>
+          </video>
         </div>
-
-        <div class="entry-comment">{{ entry.comment }}</div>
       </div>
     </div>
 

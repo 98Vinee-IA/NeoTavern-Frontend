@@ -9,13 +9,8 @@
 
 .entry-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  max-height: 40vh;
-  overflow-y: auto;
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(10vw, 1fr));
+  gap: 16px;
 }
 
 .empty-state {
@@ -28,7 +23,6 @@
 .entry-card {
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
   display: flex;
@@ -51,30 +45,31 @@
   font-size: 0.85em;
   color: var(--text-secondary);
 }
-
+.sidebar-content{
+  overflow-y:hidden!important;
+}
 .entry-uid {
-  font-weight: 500;
 }
 
 .entry-key {
-  max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight:700;
 }
 
 .entry-media {
   width: 100%;
-  aspect-ratio: 16/9;
   background-color: var(--background-secondary);
   border-radius: 4px;
   overflow: hidden;
 
-  img {
+  img, video {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+
 }
 
 .video-thumbnail {
