@@ -254,6 +254,7 @@ function getBarWidth(value: number, total: number) {
 }
 
 // Simple SVG Line Chart Logic
+// @ts-expect-error - Reserved for future use
 const chartContainer = ref<HTMLElement | null>(null);
 const chartWidth = 800;
 const chartHeight = 250;

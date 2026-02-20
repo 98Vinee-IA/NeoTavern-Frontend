@@ -1650,6 +1650,28 @@ export interface MessageSchema {
         manageSchemas: string;
       };
     };
+    visualLorebook: {
+      title: string;
+      selectLorebook: string;
+      selectEntry: string;
+      selectEntryToUpload: string;
+      noEntriesWithMedia: string;
+      noEntriesWithoutMedia: string;
+      searchPlaceholder: string;
+      uploadMedia: string;
+      replaceMedia: string;
+      removeMedia: string;
+      uploading: string;
+      invalidFileType: string;
+      imageTooLarge: string;
+      videoTooLarge: string;
+      mediaUploaded: string;
+      mediaUploadFailed: string;
+      mediaRemoved: string;
+      mediaRemoveFailed: string;
+      deleteConfirm: string;
+      entryUid: string;
+    };
   };
   login: {
     authenticating: string;
