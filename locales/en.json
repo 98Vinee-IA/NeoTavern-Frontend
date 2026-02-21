@@ -1664,7 +1664,20 @@
       "mediaUploaded": "Media uploaded successfully.",
       "mediaUploadFailed": "Failed to upload media.",
       "mediaRemoved": "Media removed successfully.",
-      "deleteConfirm": "Are you sure you want to remove this media?"
+      "deleteConfirm": "Are you sure you want to remove this media?",
+      "settings": {
+        "enable": "Enable Visual Lorebook",
+        "keywordMatching": {
+          "enable": "Enable Keyword Matching",
+          "description": "Match entries by their keywords from the lorebook.",
+          "lookbackCount": "Keyword Lookback Count",
+          "lookbackDescription": "Number of chat messages to look back for keyword matches."
+        },
+        "entryNameMatching": {
+          "enable": "Enable Entry Name Matching",
+          "description": "Match entries by their entry name (comment field). Matches exact words or possessive forms. Single quotes around nicknames are stripped."
+        }
+      }
     }
   },
   "login": {

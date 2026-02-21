@@ -38,6 +38,9 @@ const matchedEntryUids = ref<number[]>([]);
 // Active characters filter
 const showOnlyActiveCharacters = ref<boolean>(false);
 
+// Common words to ignore in entry name matching
+const COMMON_WORDS = new Set(['the', 'and', 'a', 'an', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']);
+
 // Get all available lorebooks (use bookInfos for the list, not worldInfoCache)
 // Use file_id (filename) as the value since worldInfoCache is keyed by filename
 const lorebooks = computed(() => {
@@ -77,9 +80,13 @@ const activeEntries = computed(() => {
   const book = worldInfoStore.worldInfoCache[selectedLorebook.value];
   if (!book) return new Set<number>();
 
-  const lookback = props.api.settings.get('activeCharacterLookback');
+  // Use keywordLookbackCount instead of activeCharacterLookback
+  const lookback = props.api.settings.get('keywordLookbackCount') ?? 3;
   const recentMessages = chatStore.activeChat?.messages.slice(-lookback) || [];
   const activeEntryUids = new Set<number>();
+
+  const enableKeywordMatching = props.api.settings.get('enableKeywordMatching') ?? true;
+  const enableEntryNameMatching = props.api.settings.get('enableEntryNameMatching') ?? false;
 
   for (const message of recentMessages) {
     const messageText = cleanMessageText(message.mes).toLowerCase();
@@ -90,15 +97,37 @@ const activeEntries = computed(() => {
 
       if (!entry) continue;
 
-      // Check if ANY of the entry's keywords match
-      for (const keyword of entry.key) {
-        const trimmedKeyword = keyword.trim();
-        if (trimmedKeyword && messageText.includes(trimmedKeyword.toLowerCase())) {
-          console.log(
-            `[Visual Lorebook] Active filter match - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
-          );
-          activeEntryUids.add(uid);
-          break;
+      let matched = false;
+
+      // Check keyword matching (if enabled)
+      if (enableKeywordMatching) {
+        for (const keyword of entry.key) {
+          const trimmedKeyword = keyword.trim();
+          if (trimmedKeyword && messageText.includes(trimmedKeyword.toLowerCase())) {
+            console.log(
+              `[Visual Lorebook] Active filter match - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+            );
+            activeEntryUids.add(uid);
+            matched = true;
+            break;
+          }
+        }
+      }
+
+      // Check entry name matching (if enabled and not already matched)
+      if (!matched && enableEntryNameMatching) {
+        const entryNameKeywords = extractEntryNameKeywords(entry.comment);
+        for (const keyword of entryNameKeywords) {
+          const keywordLower = keyword.toLowerCase();
+          // Match exact keyword OR possessive form (e.g., "Hira" matches "Hira" or "Hira's")
+          if (messageText.includes(keywordLower) || messageText.includes(`${keywordLower}'s`)) {
+            console.log(
+              `[Visual Lorebook] Active filter match - Entry name: "${keyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+            );
+            activeEntryUids.add(uid);
+            matched = true;
+            break;
+          }
         }
       }
     }
@@ -207,6 +236,32 @@ function cleanMessageText(text: string): string {
   return cleaned;
 }
 
+// Extract keywords from entry name (comment field)
+function extractEntryNameKeywords(comment: string): string[] {
+  // Delimit by whitespace
+  const words = comment.split(/\s+/);
+
+  // Filter out common words and strip quotes
+  const keywords: string[] = [];
+  for (const word of words) {
+    const trimmed = word.trim();
+    if (!trimmed) continue;
+
+    // Check if it's a common word (case-insensitive)
+    if (COMMON_WORDS.has(trimmed.toLowerCase())) continue;
+
+    // Strip leading/trailing single or double quotes
+    // Examples: "'Hira'" -> "Hira", '"Hira"' -> "Hira", "Hira" -> "Hira"
+    const stripped = trimmed.replace(/^['"]|['"]$/g, '');
+
+    if (stripped) {
+      keywords.push(stripped);
+    }
+  }
+
+  return keywords;
+}
+
 // Find visual keywords in message text
 function findMatchingVisualKeywords(messageText: string): number[] {
   if (!selectedLorebook.value || !mediaMetadata.value) return [];
@@ -217,6 +272,9 @@ function findMatchingVisualKeywords(messageText: string): number[] {
   const text = cleanMessageText(messageText).toLowerCase();
   const matchedUids: number[] = [];
 
+  const enableKeywordMatching = props.api.settings.get('enableKeywordMatching') ?? true;
+  const enableEntryNameMatching = props.api.settings.get('enableEntryNameMatching') ?? false;
+
   // Scan all entries with media for keyword matches
   for (const [uidStr] of Object.entries(mediaMetadata.value.entries)) {
     const uid = Number(uidStr);
@@ -224,15 +282,37 @@ function findMatchingVisualKeywords(messageText: string): number[] {
 
     if (!entry) continue;
 
-    // Check if ANY of the entry's keywords match
-    for (const keyword of entry.key) {
-      const trimmedKeyword = keyword.trim();
-      if (trimmedKeyword && text.includes(trimmedKeyword.toLowerCase())) {
-        console.log(
-          `[Visual Lorebook] Keyword matched - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
-        );
-        matchedUids.push(uid);
-        break; // Only add once per entry
+    let matched = false;
+
+    // Check keyword matching (if enabled)
+    if (enableKeywordMatching) {
+      for (const keyword of entry.key) {
+        const trimmedKeyword = keyword.trim();
+        if (trimmedKeyword && text.includes(trimmedKeyword.toLowerCase())) {
+          console.log(
+            `[Visual Lorebook] Keyword matched - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+          );
+          matchedUids.push(uid);
+          matched = true;
+          break;
+        }
+      }
+    }
+
+    // Check entry name matching (if enabled and not already matched)
+    if (!matched && enableEntryNameMatching) {
+      const entryNameKeywords = extractEntryNameKeywords(entry.comment);
+      for (const keyword of entryNameKeywords) {
+        const keywordLower = keyword.toLowerCase();
+        // Match exact keyword OR possessive form (e.g., "Hira" matches "Hira" or "Hira's")
+        if (text.includes(keywordLower) || text.includes(`${keywordLower}'s`)) {
+          console.log(
+            `[Visual Lorebook] Entry name matched - Keyword: "${keyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+          );
+          matchedUids.push(uid);
+          matched = true;
+          break;
+        }
       }
     }
   }

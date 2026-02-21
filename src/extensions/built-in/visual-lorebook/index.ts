@@ -1,12 +1,18 @@
 import { markRaw } from 'vue';
 import type { ExtensionAPI } from '../../../types';
 import { manifest } from './manifest';
+import SettingsPanel from './SettingsPanel.vue';
 import type { VisualLorebookSettings } from './types';
 import VisualLorebookPanel from './VisualLorebookPanel.vue';
 
 export { manifest };
 
 export function activate(api: ExtensionAPI<VisualLorebookSettings>) {
+  // Mount settings panel
+  const settingsContainer = document.getElementById(api.meta.containerId);
+  if (settingsContainer) {
+    api.ui.mount(settingsContainer, SettingsPanel, { api });
+  }
   // Register sidebar panel on the RIGHT side (openSidebar only works with right sidebars)
   api.ui.registerSidebar('visual-lorebook', markRaw(VisualLorebookPanel), 'right', {
     icon: 'fa-solid fa-photo-video',

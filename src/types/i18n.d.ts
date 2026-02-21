@@ -1668,6 +1668,19 @@ export interface MessageSchema {
       mediaUploadFailed: string;
       mediaRemoved: string;
       deleteConfirm: string;
+      settings: {
+        enable: string;
+        keywordMatching: {
+          enable: string;
+          description: string;
+          lookbackCount: string;
+          lookbackDescription: string;
+        };
+        entryNameMatching: {
+          enable: string;
+          description: string;
+        };
+      };
     };
   };
   login: {

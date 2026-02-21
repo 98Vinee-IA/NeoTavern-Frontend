@@ -6,6 +6,9 @@ export interface VisualLorebookSettings {
   showOnlyActiveCharacters: boolean; // Show only characters mentioned in recent messages
   activeCharacterLookback: number; // Number of messages to look back for character mentions
   matchedEntryOrder: Record<string, number[]>; // Lorebook filename -> array of entry UIDs in matched order
+  keywordLookbackCount: number; // Number of chat messages to look back for keyword matches
+  enableKeywordMatching: boolean; // Enable matching by lorebook keywords (entry.key)
+  enableEntryNameMatching: boolean; // Enable matching by entry name (comment field)
 }
 
 export const defaultSettings: VisualLorebookSettings = {
@@ -16,6 +19,9 @@ export const defaultSettings: VisualLorebookSettings = {
   showOnlyActiveCharacters: false,
   activeCharacterLookback: 3,
   matchedEntryOrder: {},
+  keywordLookbackCount: 3,
+  enableKeywordMatching: true,
+  enableEntryNameMatching: false,
 };
 
 // Media metadata stored in parallel JSON file
