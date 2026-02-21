@@ -82,7 +82,7 @@ const activeEntries = computed(() => {
   const activeEntryUids = new Set<number>();
 
   for (const message of recentMessages) {
-    const messageText = message.mes.toLowerCase();
+    const messageText = cleanMessageText(message.mes).toLowerCase();
     // Check each entry's keywords from lorebook
     for (const uidStr of Object.keys(mediaMetadata.value!.entries)) {
       const uid = Number(uidStr);
@@ -178,6 +178,35 @@ function getEntryMediaUrl(entryUid: number): string {
   return getMediaUrl(mediaMetadata.value.entries[entryUid].mediaId);
 }
 
+/**
+ * Clean message text by removing unwanted content for keyword matching
+ * - Removes text inside <...> tags (angle brackets)
+ * - Removes text inside <!-- --> comments
+ * - Removes text inside <memo></memo> tags
+ * - Removes text inside </think>...</think> tags (LLM chain-of-thought)
+ * - Removes text inside <thinking>...</thinking> tags (LLM chain-of-thought)
+ */
+function cleanMessageText(text: string): string {
+  let cleaned = text;
+
+  // Remove HTML comments <!-- ... -->
+  cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
+
+  // Remove memo tags <memo>...</memo>
+  cleaned = cleaned.replace(/<memo>[\s\S]*?<\/memo>/gi, '');
+
+  // Remove thinking tags <thinking>...</thinking> (LLM chain-of-thought)
+  cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+
+  // Remove think tags <think>...</think> (LLM chain-of-thought)
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+  // Remove any remaining tags with angle brackets <...>
+  cleaned = cleaned.replace(/<[^>]*>/g, '');
+
+  return cleaned;
+}
+
 // Find visual keywords in message text
 function findMatchingVisualKeywords(messageText: string): number[] {
   if (!selectedLorebook.value || !mediaMetadata.value) return [];
@@ -185,7 +214,7 @@ function findMatchingVisualKeywords(messageText: string): number[] {
   const book = worldInfoStore.worldInfoCache[selectedLorebook.value];
   if (!book) return [];
 
-  const text = messageText.toLowerCase();
+  const text = cleanMessageText(messageText).toLowerCase();
   const matchedUids: number[] = [];
 
   // Scan all entries with media for keyword matches

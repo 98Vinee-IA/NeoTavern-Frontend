@@ -14,7 +14,7 @@ export const defaultSettings: VisualLorebookSettings = {
   enabled: true,
   lastSelectedLorebook: '',
   showOnlyActiveCharacters: false,
-  activeCharacterLookback: 5,
+  activeCharacterLookback: 3,
   matchedEntryOrder: {},
 };
 
