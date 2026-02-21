@@ -13,7 +13,7 @@ import {
   updateMediaMetadata,
   uploadMedia,
 } from './api';
-import type { VisualLorebookFile, VisualLorebookMediaData, VisualLorebookSettings } from './types';
+import type { VisualLorebookFile, VisualLorebookSettings } from './types';
 
 const props = defineProps<{
   api: ExtensionAPI<VisualLorebookSettings>;
@@ -25,8 +25,8 @@ const worldInfoStore = useWorldInfoStore();
 const chatStore = useChatStore();
 
 const selectedLorebook = ref<string>('');
-const selectedEntryUid = ref<number>(0);
 const selectedEntryForUpload = ref<number>(0);
+const entryUidForReplace = ref<number>(0);
 const mediaInputRef = ref<HTMLInputElement | null>(null);
 const isUploadingMedia = ref(false);
 const searchQuery = ref('');
@@ -168,29 +168,7 @@ const entriesWithoutMedia = computed(() => {
   return entries;
 });
 
-// Get selected entry (from grid - has media)
-const selectedEntry = computed(() => {
-  if (!selectedLorebook.value || selectedEntryUid.value === 0) return null;
-
-  const book = worldInfoStore.worldInfoCache[selectedLorebook.value];
-  if (!book) return null;
-
-  return book.entries.find((e) => e.uid === selectedEntryUid.value) || null;
-});
-
-// Get media data for selected entry
-const mediaData = computed((): VisualLorebookMediaData | null => {
-  if (selectedEntryUid.value === 0 || !mediaMetadata.value) return null;
-  return mediaMetadata.value.entries[selectedEntryUid.value] || null;
-});
-
 // Get media URL
-const mediaUrl = computed(() => {
-  return getMediaUrl(mediaData.value?.mediaId || '');
-});
-
-const isImage = computed(() => mediaData.value?.mediaType === 'image');
-const isVideo = computed(() => mediaData.value?.mediaType === 'video');
 
 // Helper function to get media URL for an entry
 function getEntryMediaUrl(entryUid: number): string {
@@ -342,14 +320,13 @@ watch(
   { deep: true },
 );
 
-async function handleMediaSelect(event: Event, targetEntryUid?: number) {
+async function handleMediaSelect(event: Event) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
-  // Determine which entry to upload to
-  const entryUid =
-    targetEntryUid ?? (selectedEntryUid.value !== 0 ? selectedEntryUid.value : selectedEntryForUpload.value);
+  // Determine which entry to upload to (from inline replace or upload section)
+  const entryUid = entryUidForReplace.value !== 0 ? entryUidForReplace.value : selectedEntryForUpload.value;
   if (entryUid === 0) {
     props.api.ui.showToast('Please select an entry first', 'error');
     return;
@@ -401,8 +378,9 @@ async function handleMediaSelect(event: Event, targetEntryUid?: number) {
 
     props.api.ui.showToast(t('extensionsBuiltin.visualLorebook.mediaUploaded'), 'success');
 
-    // Clear dropdown selection
+    // Clear selections
     selectedEntryForUpload.value = 0;
+    entryUidForReplace.value = 0;
   } catch (error) {
     console.error('Failed to upload media:', error);
     props.api.ui.showToast(t('extensionsBuiltin.visualLorebook.mediaUploadFailed'), 'error');
@@ -414,10 +392,23 @@ async function handleMediaSelect(event: Event, targetEntryUid?: number) {
   }
 }
 
-async function handleRemoveMedia() {
-  if (!mediaData.value || selectedEntryUid.value === 0 || !selectedLorebook.value) return;
+// Handle media replacement for specific entry
+function handleReplaceMedia(event: Event, entryUid: number) {
+  event.stopPropagation();
+  entryUidForReplace.value = entryUid;
+  mediaInputRef.value?.click();
+}
 
-  const mediaId = mediaData.value.mediaId;
+// Handle media removal for specific entry
+async function handleRemoveMedia(event: Event, entryUid: number) {
+  event.stopPropagation();
+
+  if (!selectedLorebook.value) return;
+
+  const entryMediaData = mediaMetadata.value?.entries[entryUid];
+  if (!entryMediaData) return;
+
+  const mediaId = entryMediaData.mediaId;
 
   // Confirm deletion
   const confirmed = confirm(t('extensionsBuiltin.visualLorebook.deleteConfirm'));
@@ -429,7 +420,7 @@ async function handleRemoveMedia() {
 
     // Update parallel media JSON file to remove entry
     await removeMediaMetadata(selectedLorebook.value, {
-      entryUid: selectedEntryUid.value,
+      entryUid,
     });
 
     // Refresh media metadata
@@ -476,35 +467,6 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
     <FormItem v-if="false">
       <Search v-model="searchQuery" :placeholder="t('extensionsBuiltin.visualLorebook.searchPlaceholder')" />
     </FormItem>
-    <!-- Selected Entry Media Section - For viewing/replacing/deleting existing media -->
-    <div v-if="selectedEntry" class="selected-entry-section">
-      <div class="section-header">
-        <h5>{{ t('extensionsBuiltin.visualLorebook.selectEntry') }}: {{ selectedEntry.comment }}</h5>
-        <Button variant="ghost" icon="fa-xmark" class="close-button" @click="selectedEntryUid = 0" />
-      </div>
-
-      <!-- Media preview -->
-      <div v-if="mediaData" class="media-preview">
-        <img v-if="isImage" :src="mediaUrl" alt="Entry media preview" class="preview-image" />
-        <video v-else-if="isVideo" :src="mediaUrl" controls class="preview-video" />
-
-        <div class="media-actions">
-          <Button variant="ghost" icon="fa-upload" :disabled="isUploadingMedia" @click="mediaInputRef?.click()">
-            {{
-              isUploadingMedia
-                ? t('extensionsBuiltin.visualLorebook.uploading')
-                : t('extensionsBuiltin.visualLorebook.replaceMedia')
-            }}
-          </Button>
-          <Button
-            variant="danger"
-            icon="fa-trash-can"
-            :title="t('extensionsBuiltin.visualLorebook.removeMedia')"
-            @click="handleRemoveMedia"
-          />
-        </div>
-      </div>
-    </div>
 
     <!-- Entry Grid - Only shows entries WITH media -->
     <div v-if="selectedLorebook" class="entry-grid">
@@ -517,24 +479,39 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
         :key="entry.uid"
         class="entry-card"
         :class="{
-          selected: selectedEntryUid === entry.uid,
           matched: isEntryMatched(entry.uid),
         }"
-        @click="selectedEntryUid = entry.uid"
       >
         <div class="entry-header">
           <span class="entry-key">{{ entry.comment || 'No Name' }}</span>
           <span v-if="isEntryMatched(entry.uid)" class="match-badge"> #{{ getMatchPosition(entry.uid) }} </span>
         </div>
 
-        <!-- Media thumbnail -->
+        <!-- Media thumbnail with hover controls -->
         <div class="entry-media">
           <img
             v-if="mediaMetadata?.entries[entry.uid]?.mediaType === 'image'"
             :src="getEntryMediaUrl(entry.uid)"
             alt="UID {{ entry.uid }}"
           />
-          <video v-else-if="isVideo" :src="getEntryMediaUrl(entry.uid)" class="preview-video" autoplay loop></video>
+          <video v-else :src="getEntryMediaUrl(entry.uid)" class="preview-video" autoplay loop></video>
+
+          <!-- Icon-only controls overlay (centered, shown on hover) -->
+          <div class="entry-card-controls">
+            <Button
+              variant="ghost"
+              icon="fa-upload"
+              :disabled="isUploadingMedia"
+              :title="t('extensionsBuiltin.visualLorebook.replaceMedia')"
+              @click="(e) => handleReplaceMedia(e, entry.uid)"
+            />
+            <Button
+              variant="danger"
+              icon="fa-trash-can"
+              :title="t('extensionsBuiltin.visualLorebook.removeMedia')"
+              @click="(e) => handleRemoveMedia(e, entry.uid)"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -566,13 +543,7 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
     </div>
 
     <!-- Hidden file input -->
-    <input
-      ref="mediaInputRef"
-      type="file"
-      accept="image/*,video/*"
-      style="display: none"
-      @change="(e) => handleMediaSelect(e, selectedEntryForUpload !== 0 ? selectedEntryForUpload : undefined)"
-    />
+    <input ref="mediaInputRef" type="file" accept="image/*,video/*" style="display: none" @change="handleMediaSelect" />
   </div>
 </template>
 
