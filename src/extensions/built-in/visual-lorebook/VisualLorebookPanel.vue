@@ -429,6 +429,40 @@ watch(
   { deep: true },
 );
 
+// Watch for changes in active entries and log when entries are removed
+let previousActiveEntries = new Set<number>();
+watch(
+  activeEntries,
+  (newActiveEntries) => {
+    if (!selectedLorebook.value || !mediaMetadata.value) return;
+
+    const book = worldInfoStore.worldInfoCache[selectedLorebook.value];
+    if (!book) return;
+
+    // Find entries that were in the previous active set but not in the new set
+    const removedUids: number[] = [];
+    for (const uid of previousActiveEntries) {
+      if (!newActiveEntries.has(uid)) {
+        removedUids.push(uid);
+      }
+    }
+
+    // Log removed entries
+    for (const uid of removedUids) {
+      const entry = book.entries.find((e) => e.uid === uid);
+      if (entry) {
+        console.log(
+          `[Visual Lorebook] Active filter removed - UID: ${uid}, Comment: "${entry.comment}"`,
+        );
+      }
+    }
+
+    // Update previous active entries for next comparison
+    previousActiveEntries = new Set(newActiveEntries);
+  },
+  { deep: true },
+);
+
 async function handleMediaSelect(event: Event) {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];

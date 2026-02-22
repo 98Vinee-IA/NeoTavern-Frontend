@@ -58,6 +58,14 @@ watch(
     >
       <Toggle v-model="settings.enableEntryNameMatching" />
     </FormItem>
+
+    <div class="group-header">{{ t('extensionsBuiltin.visualLorebook.settings.autoClear') }}</div>
+    <FormItem
+      :label="t('extensionsBuiltin.visualLorebook.settings.autoClear.label')"
+      :description="t('extensionsBuiltin.visualLorebook.settings.autoClear.description')"
+    >
+      <Input v-model.number="settings.autoClearMatchedEntriesAfterMessages" type="number" :min="1" :max="100" />
+    </FormItem>
   </div>
 </template>
 

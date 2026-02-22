@@ -9,6 +9,7 @@ export interface VisualLorebookSettings {
   keywordLookbackCount: number; // Number of chat messages to look back for keyword matches
   enableKeywordMatching: boolean; // Enable matching by lorebook keywords (entry.key)
   enableEntryNameMatching: boolean; // Enable matching by entry name (comment field)
+  autoClearMatchedEntriesAfterMessages: number; // Number of messages after which to auto-clear matched entries (default: 20)
 }
 
 export const defaultSettings: VisualLorebookSettings = {
@@ -22,6 +23,7 @@ export const defaultSettings: VisualLorebookSettings = {
   keywordLookbackCount: 3,
   enableKeywordMatching: true,
   enableEntryNameMatching: false,
+  autoClearMatchedEntriesAfterMessages: 3,
 };
 
 // Media metadata stored in parallel JSON file

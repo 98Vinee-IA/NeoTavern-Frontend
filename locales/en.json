@@ -1676,6 +1676,10 @@
         "entryNameMatching": {
           "enable": "Enable Entry Name Matching",
           "description": "Match entries by their entry name (comment field). Matches exact words or possessive forms. Single quotes around nicknames are stripped."
+        },
+        "autoClear": {
+          "label": "Auto-clear matched entries after N messages",
+          "description": "Automatically clear matched entries after this many chat messages (default: 20)."
         }
       }
     }

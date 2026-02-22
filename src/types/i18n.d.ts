@@ -1680,6 +1680,10 @@ export interface MessageSchema {
           enable: string;
           description: string;
         };
+        autoClear: {
+          label: string;
+          description: string;
+        };
       };
     };
   };
