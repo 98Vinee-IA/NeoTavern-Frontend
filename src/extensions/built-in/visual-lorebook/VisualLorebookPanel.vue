@@ -637,7 +637,7 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
             :src="getEntryMediaUrl(entry.uid)"
             alt="UID {{ entry.uid }}"
           />
-          <video v-else :src="getEntryMediaUrl(entry.uid)" class="preview-video" autoplay loop></video>
+          <video v-else :src="getEntryMediaUrl(entry.uid)" class="preview-video" autoplay loop muted></video>
 
           <!-- Icon-only controls overlay (centered, shown on hover) -->
           <div class="entry-card-controls">
