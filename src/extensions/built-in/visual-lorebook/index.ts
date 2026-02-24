@@ -1,0 +1,39 @@
+import { markRaw } from 'vue';
+import type { ExtensionAPI } from '../../../types';
+import { manifest } from './manifest';
+import SettingsPanel from './SettingsPanel.vue';
+import type { VisualLorebookSettings } from './types';
+import VisualLorebookPanel from './VisualLorebookPanel.vue';
+
+export { manifest };
+
+export function activate(api: ExtensionAPI<VisualLorebookSettings>) {
+  // Mount settings panel
+  const settingsContainer = document.getElementById(api.meta.containerId);
+  if (settingsContainer) {
+    api.ui.mount(settingsContainer, SettingsPanel, { api });
+  }
+  // Register sidebar panel on the RIGHT side (openSidebar only works with right sidebars)
+  api.ui.registerSidebar('visual-lorebook', markRaw(VisualLorebookPanel), 'right', {
+    icon: 'fa-solid fa-photo-video',
+    title: 'extensionsBuiltin.visualLorebook.title',
+    props: { api },
+  });
+
+  // Register nav bar item
+  api.ui.registerNavBarItem('visual-lorebook', {
+    icon: 'fa-solid fa-photo-video',
+    title: 'extensionsBuiltin.visualLorebook.title',
+    onClick: () => {
+      // Open sidebar panel - use the same ID as registered above
+      api.ui.openSidebar('visual-lorebook');
+    },
+  });
+
+  // Cleanup function
+  return () => {
+    // Unregister sidebar - requires side parameter
+    api.ui.unregisterSidebar('visual-lorebook', 'right');
+    api.ui.unregisterNavBarItem('visual-lorebook');
+  };
+}

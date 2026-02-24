@@ -98,7 +98,7 @@ function saveTabState() {
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .memory-popup {
   display: flex;
   flex-direction: column;

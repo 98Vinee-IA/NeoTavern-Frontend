@@ -1693,6 +1693,42 @@
         "profileDeleted": "Profile deleted successfully.",
         "profileActivated": "Profile activated successfully."
       }
+    },
+    "visualLorebook": {
+      "title": "Visual Lorebook",
+      "selectLorebook": "Select Lorebook",
+      "selectEntry": "Selected",
+      "selectEntryToUpload": "Select entry to add media to",
+      "noEntriesWithMedia": "No entries with media in this lorebook",
+      "searchPlaceholder": "Search entries with media...",
+      "uploadMedia": "Upload Media",
+      "replaceMedia": "Replace Media",
+      "removeMedia": "Remove Media",
+      "uploading": "Uploading...",
+      "invalidFileType": "Invalid file type. Please select a media file.",
+      "imageTooLarge": "Image too large. Maximum size is 5MB.",
+      "videoTooLarge": "Video too large. Maximum size is 50MB.",
+      "mediaUploaded": "Media uploaded successfully.",
+      "mediaUploadFailed": "Failed to upload media.",
+      "mediaRemoved": "Media removed successfully.",
+      "deleteConfirm": "Are you sure you want to remove this media?",
+      "settings": {
+        "enable": "Enable Visual Lorebook",
+        "keywordMatching": {
+          "enable": "Enable Keyword Matching",
+          "description": "Match entries by their keywords from the lorebook.",
+          "lookbackCount": "Keyword Lookback Count",
+          "lookbackDescription": "Number of chat messages to look back for keyword matches."
+        },
+        "entryNameMatching": {
+          "enable": "Enable Entry Name Matching",
+          "description": "Match entries by their entry name (comment field). Matches exact words or possessive forms. Single quotes around nicknames are stripped."
+        },
+        "autoClear": {
+          "label": "Auto-clear matched entries after N messages",
+          "description": "Automatically clear matched entries after this many chat messages (default: 20)."
+        }
+      }
     }
   },
   "login": {

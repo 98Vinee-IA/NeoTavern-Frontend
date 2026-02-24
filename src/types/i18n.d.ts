@@ -1697,6 +1697,42 @@ export interface MessageSchema {
         profileActivated: string;
       };
     };
+    visualLorebook: {
+      title: string;
+      selectLorebook: string;
+      selectEntry: string;
+      selectEntryToUpload: string;
+      noEntriesWithMedia: string;
+      searchPlaceholder: string;
+      uploadMedia: string;
+      replaceMedia: string;
+      removeMedia: string;
+      uploading: string;
+      invalidFileType: string;
+      imageTooLarge: string;
+      videoTooLarge: string;
+      mediaUploaded: string;
+      mediaUploadFailed: string;
+      mediaRemoved: string;
+      deleteConfirm: string;
+      settings: {
+        enable: string;
+        keywordMatching: {
+          enable: string;
+          description: string;
+          lookbackCount: string;
+          lookbackDescription: string;
+        };
+        entryNameMatching: {
+          enable: string;
+          description: string;
+        };
+        autoClear: {
+          label: string;
+          description: string;
+        };
+      };
+    };
   };
   login: {
     authenticating: string;
