@@ -103,13 +103,17 @@ const activeEntries = computed(() => {
       if (enableKeywordMatching) {
         for (const keyword of entry.key) {
           const trimmedKeyword = keyword.trim();
-          if (trimmedKeyword && messageText.includes(trimmedKeyword.toLowerCase())) {
-            console.log(
-              `[Visual Lorebook] Active filter match - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
-            );
-            activeEntryUids.add(uid);
-            matched = true;
-            break;
+          if (trimmedKeyword) {
+            // Match whole words and possessives only (e.g., "Rin" matches "Rin" or "Rin's", but not "Scrin")
+            const wordBoundaryPattern = new RegExp(`\\b${trimmedKeyword}(?:'s)?\\b`, 'i');
+            if (wordBoundaryPattern.test(messageText)) {
+              console.log(
+                `[Visual Lorebook] Active filter match - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+              );
+              activeEntryUids.add(uid);
+              matched = true;
+              break;
+            }
           }
         }
       }
@@ -288,13 +292,17 @@ function findMatchingVisualKeywords(messageText: string): number[] {
     if (enableKeywordMatching) {
       for (const keyword of entry.key) {
         const trimmedKeyword = keyword.trim();
-        if (trimmedKeyword && text.includes(trimmedKeyword.toLowerCase())) {
-          console.log(
-            `[Visual Lorebook] Keyword matched - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
-          );
-          matchedUids.push(uid);
-          matched = true;
-          break;
+        if (trimmedKeyword) {
+          // Match whole words and possessives only (e.g., "Rin" matches "Rin" or "Rin's", but not "Scrin")
+          const wordBoundaryPattern = new RegExp(`\\b${trimmedKeyword}(?:'s)?\\b`, 'i');
+          if (wordBoundaryPattern.test(text)) {
+            console.log(
+              `[Visual Lorebook] Keyword matched - Keyword: "${trimmedKeyword}", UID: ${uid}, Comment: "${entry.comment}"`,
+            );
+            matchedUids.push(uid);
+            matched = true;
+            break;
+          }
         }
       }
     }
