@@ -262,17 +262,20 @@ class TrackerManager {
     });
   }
 
-  public handleAutoTrack(message: ChatMessage) {
+  public handleAutoTrack(message: ChatMessage, index?: number) {
     const settings = this.getSettings();
     if (!settings.enabled || settings.autoMode === 'none') return;
 
-    const index = this.api.chat.getHistory().length - 1;
+    // If index is not provided, find the message in the chat history
+    const messageIndex = index ?? this.api.chat.getHistory().findIndex((m) => m === message);
+    if (messageIndex === -1) return;
+
     const shouldTrackUser = settings.autoMode === 'inputs' || settings.autoMode === 'both';
     const shouldTrackBot = settings.autoMode === 'responses' || settings.autoMode === 'both';
 
     if ((message.is_user && shouldTrackUser) || (!message.is_user && shouldTrackBot)) {
       // Small delay to allow UI to settle
-      setTimeout(() => this.runTracker(index), 200);
+      setTimeout(() => this.runTracker(messageIndex), 200);
     }
   }
 
@@ -424,7 +427,13 @@ export function activate(api: TrackerExtensionAPI) {
   const onChatEntered = () => manager.injectAllUi();
   const onMessageCreated = (msg: ChatMessage) => {
     manager.injectUiForMessage(api.chat.getHistory().length - 1);
-    manager.handleAutoTrack(msg);
+    // For user messages, auto-track immediately (no streaming involved)
+    // For bot messages, auto-track is handled by onGenerationFinished to ensure
+    // the message content is complete after streaming
+    if (msg.is_user) {
+      const index = api.chat.getHistory().length - 1;
+      manager.handleAutoTrack(msg, index);
+    }
   };
   const onMessageUpdated = (index: number) => {
     // Unmount and re-mount to handle data/position changes
@@ -445,6 +454,14 @@ export function activate(api: TrackerExtensionAPI) {
       context.generationId,
     );
   };
+  const onGenerationFinished = (result: { message: ChatMessage | null; error?: Error }) => {
+    // Only auto-track bot messages when generation is complete (after streaming)
+    // User messages are handled by onMessageCreated since they don't stream
+    if (result.message && !result.error && !result.message.is_user) {
+      const index = api.chat.getHistory().length - 1;
+      manager.handleAutoTrack(result.message, index);
+    }
+  };
 
   unbinds.push(api.events.on('chat:entered', onChatEntered));
   unbinds.push(api.events.on('message:created', onMessageCreated));
@@ -452,6 +469,7 @@ export function activate(api: TrackerExtensionAPI) {
   unbinds.push(api.events.on('message:deleted', onMessageDeleted));
   unbinds.push(api.events.on('chat:cleared', onChatCleared));
   unbinds.push(api.events.on('prompt:history-message-processing', onHistoryMessageProcessing));
+  unbinds.push(api.events.on('generation:finished', onGenerationFinished));
 
   // Initial load if a chat is already open
   if (api.chat.getChatInfo()) {
