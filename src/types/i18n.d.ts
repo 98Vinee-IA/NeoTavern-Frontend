@@ -1733,6 +1733,24 @@ export interface MessageSchema {
         };
       };
     };
+    multiModelParallel: {
+      settings: {
+        title: string;
+        description: string;
+        enabled: string;
+        enabledDescription: string;
+        connectionProfiles: string;
+        connectionProfilesDescription: string;
+        noProfilesWarning: string;
+        maxSwipes: string;
+        maxSwipesDescription: string;
+      };
+      toast: {
+        noProfiles: string;
+        generationComplete: string;
+        generationFailed: string;
+      };
+    };
   };
   login: {
     authenticating: string;

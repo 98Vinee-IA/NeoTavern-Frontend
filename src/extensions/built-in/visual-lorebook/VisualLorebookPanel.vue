@@ -459,9 +459,7 @@ watch(
     for (const uid of removedUids) {
       const entry = book.entries.find((e) => e.uid === uid);
       if (entry) {
-        console.log(
-          `[Visual Lorebook] Active filter removed - UID: ${uid}, Comment: "${entry.comment}"`,
-        );
+        console.log(`[Visual Lorebook] Active filter removed - UID: ${uid}, Comment: "${entry.comment}"`);
       }
     }
 
@@ -784,7 +782,7 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
   video {
     width: 100%;
     height: 100%;
-    object-fit: cover;    
+    object-fit: cover;
     aspect-ratio: 3 / 5;
   }
 }
@@ -960,5 +958,4 @@ function handleEntryForUploadChange(value: string | number | (string | number)[]
   top: 8px;
   right: 16px;
 }
-
 </style>

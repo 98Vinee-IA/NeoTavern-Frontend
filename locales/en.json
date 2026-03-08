@@ -1729,6 +1729,24 @@
           "description": "Automatically clear matched entries after this many chat messages (default: 20)."
         }
       }
+    },
+    "multiModelParallel": {
+      "settings": {
+        "title": "Multi-Model Parallel Response",
+        "description": "Send chat replies to multiple LLM models simultaneously. The first response becomes the main message, and subsequent responses are added as swipes.",
+        "enabled": "Enable Multi-Model Parallel",
+        "enabledDescription": "When enabled, chat generation will send requests to multiple connection profiles simultaneously instead of using the single global connection.",
+        "connectionProfiles": "Connection Profiles",
+        "connectionProfilesDescription": "Select the connection profiles to use for parallel generation. All requests will be sent simultaneously.",
+        "noProfilesWarning": "Please select at least one connection profile to use for parallel generation.",
+        "maxSwipes": "Maximum Swipes",
+        "maxSwipesDescription": "Maximum number of additional responses to save as swipes (beyond the first response)."
+      },
+      "toast": {
+        "noProfiles": "No connection profiles selected for multi-model parallel generation.",
+        "generationComplete": "Multi-model parallel generation complete.",
+        "generationFailed": "Multi-model parallel generation failed: {error}"
+      }
     }
   },
   "login": {
